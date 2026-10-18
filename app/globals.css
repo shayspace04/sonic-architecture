@@ -1,26 +1,86 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --sa-charcoal: #0b0a0d;
+  --sa-plum: #151018;
+  --sa-lime: #d5ff3f;
+  --sa-violet: #8b5cf6;
+  --sa-white: #f4f0e8;
+  --sa-gray: #a6a0aa;
+  --sa-line: rgba(244, 240, 232, 0.08);
+  --sa-glass: rgba(21, 16, 24, 0.55);
+
+  --background: var(--sa-charcoal);
+  --foreground: var(--sa-white);
+
+  --sa-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --sa-fast: 180ms;
+  --sa-med: 420ms;
+  --sa-slow: 900ms;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --color-lime: var(--sa-lime);
+  --color-violet: var(--sa-violet);
+  --color-warm: var(--sa-white);
+  --color-muted: var(--sa-gray);
+  --color-plum: var(--sa-plum);
+  --color-line: var(--sa-line);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: var(--sa-lime);
+  color: var(--sa-charcoal);
+}
+
+:focus-visible {
+  outline: 2px solid var(--sa-lime);
+  outline-offset: 3px;
+}
+
+.sa-label {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 0.65rem;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: var(--sa-gray);
+}
+
+.sa-glass {
+  background: var(--sa-glass);
+  border: 1px solid var(--sa-line);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+.sa-rule {
+  border-color: var(--sa-line);
 }
