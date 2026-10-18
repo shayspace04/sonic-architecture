@@ -47,6 +47,6 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-18**, not pr
 
 - [x] `PROJECT_CONTEXT.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TASKS.md`, `AGENTS.md`, `CHANGELOG.md` created/updated (2026-10-18)
 - [x] `.env.example` added (variable names only)
-- [x] Git set up: clean baseline on `main` (`d589bfd`), pushed to private remote `shayspace04/sonic-architecture`
+- [x] Git set up: clean baseline on `main` (`d589bfd`), pushed to remote `shayspace04/sonic-architecture` (now public)
 - [ ] **Rotate the Qloo API key** (old key was exposed; see `DECISIONS.md`) and update `.env.local`
 - [x] Fix hotspot DNS (Wi-Fi DNS set to 8.8.8.8 / 1.1.1.1) — GitHub and Qloo both resolve; live Qloo verified working

@@ -3,7 +3,7 @@
 Last audited: 2026-10-18 (full handoff audit from files + git + live checks).
 Read this before making any change. Verify claims against code, not history.
 
-**Repo:** local `main` ↔ private remote `https://github.com/shayspace04/sonic-architecture.git`
+**Repo:** local `main` ↔ remote `https://github.com/shayspace04/sonic-architecture` (public)
 (baseline commit `d589bfd`; old history containing a leaked key was purged by user decision —
 see `DECISIONS.md`).
 

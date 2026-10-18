@@ -5,6 +5,8 @@ All notable changes, reverse chronological. No secrets in this file.
 ## 2026-10-18 (later)
 
 ### Changed
+- **Repository made public** (`shayspace04/sonic-architecture`) after verifying
+  via full-history grep that no credential exists in any commit.
 - **Qloo live integration verified working** — after the user set Wi-Fi DNS to
   `8.8.8.8` / `1.1.1.1`, `POST /api/vibe` returned `source: qloo`,
   `fallback: false`, 5 artist recommendations, full palette/lighting mapping.

@@ -34,7 +34,7 @@ conversation claims are not reliable.
   using conventional prefixes (`feat:` `fix:` `style:` `refactor:` `docs:`
   `test:` `chore:`).
 - **Update `TASKS.md` + `CHANGELOG.md`** whenever status or behavior changes materially.
-- **Remote:** private origin `https://github.com/shayspace04/sonic-architecture.git`,
+- **Remote:** origin `https://github.com/shayspace04/sonic-architecture.git` (public),
   branch `main`. Push at sensible milestones; never force-push or rewrite pushed
   history without explicit authorization. Do not claim work is backed up until
   the push succeeds.

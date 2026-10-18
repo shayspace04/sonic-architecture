@@ -59,12 +59,11 @@ question. Do not invent history.
   (`d589bfd`) from the working tree; the two old commits were discarded and
   purged (`reflog expire` + `git gc --prune=now`), verified unreachable. This
   is why remote history starts at the baseline.
-- **Remote (decided 2026-10-18):** private repo
-  `https://github.com/shayspace04/sonic-architecture.git` created via GitHub API
-  using the already-stored Windows Credential Manager token (token never printed
-  or committed). GitHub CLI (`gh` 2.102.0) installed later via winget and
-  authenticated as `shayspace04` (keyring, scopes: repo/read:org/gist/workflow);
-  it is now the preferred tool for repo operations.
+- **Remote (decided 2026-10-18):** repo
+  `https://github.com/shayspace04/sonic-architecture` created via GitHub API;
+  initially private, **changed to public the same day** after verifying all
+  history was free of secrets. GitHub CLI (`gh` 2.102.0) installed later via
+  winget and authenticated as `shayspace04` (keyring, scopes: repo/read:org/gist/workflow).
 - **DNS root cause fixed (2026-10-18):** hotspot DNS (`172.20.10.1`) was failing
   to resolve `github.com` and resolving `hackathon.api.qloo.com` only to NAT64
   IPv6. User set Wi-Fi DNS to `8.8.8.8` / `1.1.1.1` — both hosts now resolve to
