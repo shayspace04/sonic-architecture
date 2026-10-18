@@ -22,6 +22,29 @@ conversation claims are not reliable.
 - **Do not run destructive git commands** (reset, clean, force-push, history
   rewrite) without explicit authorization.
 
+## Git workflow (mandatory for every session)
+
+- **Before editing:** `git status` + `git log --oneline -5`; read the docs above.
+- **While working:** focused, logically related changes only. Never commit
+  half-written code, secrets, or generated artifacts (`node_modules/`, `.next/`,
+  `.env.local`, `env.txt`).
+- **After each working milestone:** run `npm run lint` and `npm run build`,
+  review `git diff` and `git diff --check`, review the exact staged list
+  (`git status`), confirm no secrets, then make one small descriptive commit
+  using conventional prefixes (`feat:` `fix:` `style:` `refactor:` `docs:`
+  `test:` `chore:`).
+- **Update `TASKS.md` + `CHANGELOG.md`** whenever status or behavior changes materially.
+- **Remote:** private origin `https://github.com/shayspace04/sonic-architecture.git`,
+  branch `main`. Push at sensible milestones; never force-push or rewrite pushed
+  history without explicit authorization. Do not claim work is backed up until
+  the push succeeds.
+- **Note:** this machine's hotspot DNS intermittently fails to resolve
+  `github.com` (and `hackathon.api.qloo.com`). If `git push` fails with
+  "Could not resolve host", that is the cause — retry, or set Wi-Fi DNS to
+  8.8.8.8 / 1.1.1.1 (the fix that previously worked for Qloo).
+- **Before ending a session:** update docs/changelog, commit completed work,
+  push, and report the latest commit hash, `git status`, and sync state.
+
 ## After implementing
 
 - Run `npm run lint` and `npm run build`; fix what breaks. Report real results.

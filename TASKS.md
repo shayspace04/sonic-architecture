@@ -45,8 +45,8 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-18**, not pr
 
 ## Housekeeping / audit leftovers
 
-- [x] `PROJECT_CONTEXT.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TASKS.md`, `AGENTS.md` created/updated (2026-10-18)
+- [x] `PROJECT_CONTEXT.md`, `ARCHITECTURE.md`, `DECISIONS.md`, `TASKS.md`, `AGENTS.md`, `CHANGELOG.md` created/updated (2026-10-18)
 - [x] `.env.example` added (variable names only)
-- [ ] Uncommitted working-tree changes (`app/page.tsx`, `app/api/vibe/route.ts`,
-      `.gitignore`, staged `env.txt` deletion, untracked `QLOO_DEBUG.md` + new docs)
-      — commit only when the user asks
+- [x] Git set up: clean baseline on `main` (`d589bfd`), pushed to private remote `shayspace04/sonic-architecture`
+- [ ] **Rotate the Qloo API key** (old key was exposed; see `DECISIONS.md`) and update `.env.local`
+- [ ] Fix hotspot DNS permanently (set Wi-Fi DNS to 8.8.8.8 / 1.1.1.1) — fixes both GitHub push and Qloo

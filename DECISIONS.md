@@ -52,12 +52,20 @@ question. Do not invent history.
 
 ## Security decisions / required actions (pending user input)
 
-- **Rotate the Qloo API key.** The value committed in `env.txt` (history `610cf7c`)
-  is identical to the live `.env.local` key, so it must be treated as compromised.
-- History rewrite (`git filter-repo` on `env.txt`) is **not** to be done without
-  explicit authorization. Nothing has been pushed (no remote), so urgency is lower.
-- During this audit the key value was briefly printed in terminal output — one more
-  reason to rotate.
+- **Rotate the Qloo API key — STILL PENDING.** The old key was committed in
+  `env.txt` (former history `610cf7c`) and briefly shown in audit terminal output.
+- **History handling (decided 2026-10-18):** user chose **"fresh baseline, no
+  leaked history"** — the repo was rebuilt as a single clean root commit
+  (`d589bfd`) from the working tree; the two old commits were discarded and
+  purged (`reflog expire` + `git gc --prune=now`), verified unreachable. This
+  is why remote history starts at the baseline.
+- **Remote (decided 2026-10-18):** private repo
+  `https://github.com/shayspace04/sonic-architecture.git` created via GitHub API
+  using the already-stored Windows Credential Manager token (token never printed
+  or committed). gh CLI is not installed on this machine.
+- Local DNS workaround used once for the initial push (temporary `github.com`
+  hosts entry, removed afterward). Permanent fix recommended: set Wi-Fi DNS to
+  8.8.8.8 / 1.1.1.1.
 
 ## Open questions requiring user input
 
