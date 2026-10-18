@@ -1,94 +1,116 @@
 import { NextResponse } from "next/server";
+import type {
+  ArtistRec,
+  CulturalEvidence,
+  ResolvedEntity,
+  Track,
+  VibePayload,
+} from "@/lib/types";
+import { parseTasteTerms, MAX_INPUT_LENGTH } from "@/lib/terms";
+import { mapFromEvidence, neutralSpatialMapping } from "@/lib/spatial-rules";
 
-interface Track {
-  title: string;
-  artist: string;
+const REQUEST_TIMEOUT_MS = 12000;
+const MAX_INSIGHT_CALLS = 3;
+const INSIGHTS_TAKE = 8;
+
+const INSIGHTS_SUPPORTED_TYPES = new Set([
+  "urn:entity:artist",
+  "urn:entity:book",
+  "urn:entity:brand",
+  "urn:entity:destination",
+  "urn:entity:locality",
+  "urn:entity:movie",
+  "urn:entity:person",
+  "urn:entity:place",
+  "urn:entity:podcast",
+  "urn:entity:tv_show",
+  "urn:entity:videogame",
+]);
+
+const SEARCH_TYPES_PARAM = [...INSIGHTS_SUPPORTED_TYPES].join(",");
+
+interface SearchHit {
+  id: string;
+  name: string;
+  type: string;
 }
 
-interface DesignReasoning {
-  source: "qloo" | "qloo-partial" | "local-fallback";
-  evidence: string[];
-  rules: Record<string, string>;
+interface TagEvidence {
+  genres: string[];
+  styles: string[];
+  themes: string[];
 }
 
-interface VibePayload {
-  primaryColorHex: string;
-  accentColorHex: string;
-  lightingTemperatureK: number;
-  flooringMaterial: string;
-  seatingFabric: string;
-  tracks: Track[];
-  menu: string;
-  fallback: boolean;
-  reasoning: DesignReasoning;
-}
-
-
-
-function firstEntityId(data: Record<string, unknown>): string | null {
-  const first =
-    Array.isArray(data?.results) ? data.results[0] :
-    Array.isArray(data?.data) ? data.data[0] :
-    Array.isArray(data?.items) ? data.items[0] :
-    Array.isArray(data?.entities) ? data.entities[0] :
-    data?.result ?? data?.entity ?? null;
-  if (!first || typeof first !== "object") return null;
-  const f = first as Record<string, unknown>;
-  if (typeof f.id === "string") return f.id;
-  if (typeof f.entity_id === "string") return f.entity_id;
-  if (typeof f.qloo_id === "string") return f.qloo_id;
-  return null;
-}
-
-function firstEntityName(data: Record<string, unknown>): string | null {
-  const first =
-    Array.isArray(data?.results) ? data.results[0] :
-    Array.isArray(data?.data) ? data.data[0] :
-    Array.isArray(data?.items) ? data.items[0] :
-    Array.isArray(data?.entities) ? data.entities[0] :
-    data?.result ?? data?.entity ?? null;
-  if (!first || typeof first !== "object") return null;
-  const f = first as Record<string, unknown>;
-  if (typeof f.name === "string") return f.name;
-  if (typeof f.title === "string") return f.title;
-  if (typeof f.label === "string") return f.label;
-  return null;
-}
-
-function extractTracks(data: Record<string, unknown>): Track[] {
-  const r = (typeof data.results === "object" && data.results !== null ? data.results : {}) as Record<string, unknown>;
-  const arrays = [r.entities, data.entities, r, data.data, data.items];
-  let list: unknown[] = [];
-  for (const a of arrays) {
-    if (Array.isArray(a) && a.length) {
-      list = a;
-      break;
-    }
+function extractTagEvidence(tagsRaw: unknown): TagEvidence {
+  const genres = new Set<string>();
+  const styles = new Set<string>();
+  const themes = new Set<string>();
+  for (const raw of Array.isArray(tagsRaw) ? tagsRaw : []) {
+    const t = (raw ?? {}) as Record<string, unknown>;
+    if (typeof t.name !== "string") continue;
+    const name = t.name.toLowerCase();
+    const type = typeof t.type === "string" ? t.type.toLowerCase() : "";
+    if (type.includes("genre")) genres.add(name);
+    else if (type.includes("style")) styles.add(name);
+    else if (type.includes("theme")) themes.add(name);
   }
-  return list
-    .filter((e) => e && typeof e === "object")
-    .slice(0, 5)
-    .map((e, i) => {
-      const o = (e ?? {}) as Record<string, unknown>;
-      return {
-        title: typeof o.name === "string" ? o.name : typeof o.title === "string" ? o.title : `Insight ${i + 1}`,
-        artist: typeof o.creator === "string" ? o.creator : typeof o.artist === "string" ? o.artist : "",
-      };
-    });
+  return { genres: [...genres], styles: [...styles], themes: [...themes] };
 }
 
-interface Evidence {
-  genreTags: string[];
-  styleTags: string[];
-  themeTags: string[];
-  adjectives: string[];
-  characteristics: string[];
+function parseSearchResults(
+  data: Record<string, unknown>,
+  fallbackTerm: string
+): { hits: SearchHit[]; evidence: TagEvidence } {
+  const results = Array.isArray(data?.results) ? data.results : [];
+  const hits: SearchHit[] = [];
+  const genres = new Set<string>();
+  const styles = new Set<string>();
+  const themes = new Set<string>();
+  for (const raw of results) {
+    const f = (raw ?? {}) as Record<string, unknown>;
+    const typesArr = Array.isArray(f.types)
+      ? f.types.filter((t): t is string => typeof t === "string")
+      : typeof f.type === "string"
+        ? [f.type]
+        : [];
+    const supported = typesArr.find((t) => INSIGHTS_SUPPORTED_TYPES.has(t));
+    if (!supported) continue;
+    const tags = extractTagEvidence(f.tags);
+    for (const g of tags.genres) genres.add(g);
+    for (const s of tags.styles) styles.add(s);
+    for (const th of tags.themes) themes.add(th);
+    const id =
+      typeof f.entity_id === "string" ? f.entity_id :
+      typeof f.id === "string" ? f.id : null;
+    if (!id) continue;
+    const name =
+      typeof f.name === "string" ? f.name :
+      typeof f.title === "string" ? f.title : fallbackTerm;
+    hits.push({ id, name, type: supported });
+  }
+  return { hits, evidence: { genres: [...genres], styles: [...styles], themes: [...themes] } };
 }
 
-function collectEvidence(data: Record<string, unknown>): Evidence {
-  const d = data as Record<string, unknown>;
-  const results = (typeof d.results === "object" && d.results !== null ? d.results : {}) as Record<string, unknown>;
-  const entities = Array.isArray(results.entities) ? results.entities : Array.isArray(d.entities) ? d.entities : [];
+function extractArtists(data: Record<string, unknown>): ArtistRec[] {
+  const r = (typeof data.results === "object" && data.results !== null ? data.results : {}) as Record<string, unknown>;
+  const list = Array.isArray(r.entities) ? r.entities : Array.isArray(data.entities) ? data.entities : [];
+  const out: ArtistRec[] = [];
+  for (const raw of list) {
+    const e = (raw ?? {}) as Record<string, unknown>;
+    const subtype = typeof e.subtype === "string" ? e.subtype : "";
+    const type = typeof e.type === "string" ? e.type : "";
+    if (subtype !== "urn:entity:artist" && type !== "urn:entity:artist") continue;
+    const name = typeof e.name === "string" ? e.name : typeof e.title === "string" ? e.title : "";
+    if (!name) continue;
+    const id = typeof e.entity_id === "string" ? e.entity_id : typeof e.id === "string" ? e.id : "";
+    out.push({ id, name, sourceEntity: "" });
+  }
+  return out;
+}
+
+function collectEvidence(data: Record<string, unknown>): CulturalEvidence {
+  const results = (typeof data.results === "object" && data.results !== null ? data.results : {}) as Record<string, unknown>;
+  const entities = Array.isArray(results.entities) ? results.entities : Array.isArray(data.entities) ? data.entities : [];
   const genreSet = new Set<string>();
   const styleSet = new Set<string>();
   const themeSet = new Set<string>();
@@ -96,25 +118,15 @@ function collectEvidence(data: Record<string, unknown>): Evidence {
   const charSet = new Set<string>();
   for (const raw of entities) {
     const e = (raw ?? {}) as Record<string, unknown>;
-    const tags = Array.isArray(e.tags) ? e.tags : [];
-    for (const t of tags) {
-      const o = (t ?? {}) as Record<string, unknown>;
-      if (typeof o.name !== "string") continue;
-      const name = o.name.toLowerCase();
-      const type = typeof o.type === "string" ? o.type.toLowerCase() : "";
-      if (type.includes("genre")) genreSet.add(name);
-      else if (type.includes("style")) styleSet.add(name);
-      else if (type.includes("theme")) themeSet.add(name);
-    }
+    const tags = extractTagEvidence(e.tags);
+    for (const g of tags.genres) genreSet.add(g);
+    for (const s of tags.styles) styleSet.add(s);
+    for (const t of tags.themes) themeSet.add(t);
     const props = (e.properties ?? {}) as Record<string, unknown>;
     const adjs = Array.isArray(props.adjectives_for_music) ? props.adjectives_for_music : [];
-    for (const a of adjs) {
-      if (typeof a === "string") adjSet.add(a.toLowerCase());
-    }
+    for (const a of adjs) if (typeof a === "string") adjSet.add(a.toLowerCase());
     const chars = Array.isArray(props.characteristics) ? props.characteristics : [];
-    for (const c of chars) {
-      if (typeof c === "string") charSet.add(c.toLowerCase());
-    }
+    for (const c of chars) if (typeof c === "string") charSet.add(c.toLowerCase());
   }
   return {
     genreTags: [...genreSet],
@@ -125,141 +137,23 @@ function collectEvidence(data: Record<string, unknown>): Evidence {
   };
 }
 
-// Deterministic cultural-to-spatial mapping table.
-// Supported inputs are Qloo tag names (genre/style/theme) plus Qloo adjectives/characteristics.
-// Genre family selects palette/material; mood/energy tags adjust lighting. Unrecognized input uses neutral defaults.
-function mapFromEvidence(evidence: { genreTags: string[]; styleTags: string[]; themeTags: string[]; adjectives: string[]; characteristics: string[] }): {
-  primaryColorHex: string;
-  accentColorHex: string;
-  lightingTemperatureK: number;
-  flooringMaterial: string;
-  seatingFabric: string;
-  source: "qloo" | "qloo-partial";
-  evidence: string[];
-  rules: Record<string, string>;
-} {
-  const genreText = evidence.genreTags.join(" ");
-  const moodText = [...evidence.styleTags, ...evidence.adjectives, ...evidence.characteristics].join(" ");
-  const hasGenre = (words: string[]) => words.some((w) => genreText.includes(w));
-  const hasMood = (words: string[]) => words.some((w) => moodText.includes(w));
-
-  const isElectronic = hasGenre(["electronic", "house", "techno", "edm", "electro", "trance", "dubstep", "bass", "dance"]);
-  const isHipHop = hasGenre(["hip hop", "rap", "trap", "crunk"]);
-  const isPunkRock = hasGenre(["punk", "rock", "alternative", "hardcore", "grunge", "emo"]);
-  const isAtmospheric = hasGenre(["ambient", "psychedelic", "indie", "atmospheric", "melodic"]);
-
-  const isHighEnergy = hasMood(["energetic", "high-energy", "dynamic", "upbeat", "danceable"]);
-  const isDark = hasMood(["dark", "gritty", "raw", "aggressive", "intense"]);
-
-  const matchedEvidence: string[] = [];
-  const genreEvidence = evidence.genreTags.filter((t) =>
-    ["electronic", "house", "techno", "edm", "electro", "trance", "dubstep", "bass", "dance", "hip hop", "rap", "trap", "crunk", "punk", "rock", "alternative", "hardcore", "grunge", "emo", "ambient", "psychedelic", "indie", "atmospheric", "melodic"].some((w) => t.includes(w))
-  );
-  matchedEvidence.push(...genreEvidence);
-  const moodEvidence = [...evidence.adjectives, ...evidence.characteristics].filter((t) =>
-    ["energetic", "high-energy", "dynamic", "upbeat", "danceable", "dark", "gritty", "raw", "aggressive", "intense", "atmospheric", "melodic", "uplifting"].includes(t)
-  );
-  matchedEvidence.push(...moodEvidence);
-
-  const rules: Record<string, string> = {};
-
-  // Recognized genre family: use documented palette/material rules.
-  if (isElectronic || isHipHop || isPunkRock || isAtmospheric) {
-    let primaryColorHex = "";
-    let accentColorHex = "";
-    let lightingTemperatureK = 4500;
-    let flooringMaterial = "";
-    let seatingFabric = "";
-
-    if (isElectronic) {
-      primaryColorHex = "#00E5FF";
-      accentColorHex = "#FF00AA";
-      flooringMaterial = "High-Gloss Polyurethane Core";
-      seatingFabric = "Technical Ribbed Neoprene";
-      rules.primaryColorHex = "Matched Qloo genre tags (electronic/house/techno) to a cool neon palette.";
-      rules.flooringMaterial = "Electronic/club genre tags -> High-Gloss Polyurethane Core.";
-      rules.seatingFabric = "Electronic/club genre tags -> Technical Ribbed Neoprene.";
-    } else if (isHipHop) {
-      primaryColorHex = "#FF6B35";
-      accentColorHex = "#FFD166";
-      flooringMaterial = "Polished Black Basalt";
-      seatingFabric = "Brushed Matte Canvas";
-      rules.primaryColorHex = "Matched Qloo genre tags (hip hop/rap/trap) to a warm urban palette.";
-      rules.flooringMaterial = "Hip-hop genre tags -> Polished Black Basalt.";
-      rules.seatingFabric = "Hip-hop genre tags -> Brushed Matte Canvas.";
-    } else if (isPunkRock) {
-      primaryColorHex = "#FF3366";
-      accentColorHex = "#FF99AA";
-      flooringMaterial = "Industrial Micro-cement";
-      seatingFabric = "Distressed Moss Velvet";
-      rules.primaryColorHex = "Matched Qloo genre tags (punk/rock/alternative) to a high-contrast palette.";
-      rules.flooringMaterial = "Punk/rock genre tags -> Industrial Micro-cement.";
-      rules.seatingFabric = "Punk/rock genre tags -> Distressed Moss Velvet.";
-    } else {
-      primaryColorHex = "#7B68EE";
-      accentColorHex = "#B39DDB";
-      flooringMaterial = "Bleached Oak Planking";
-      seatingFabric = "Raw Linen Twill";
-      rules.primaryColorHex = "Matched Qloo genre tags (atmospheric/psychedelic/indie) to a soft palette.";
-      rules.flooringMaterial = "Atmospheric genre tags -> Bleached Oak Planking.";
-      rules.seatingFabric = "Atmospheric genre tags -> Raw Linen Twill.";
-    }
-
-    if (isHighEnergy) {
-      lightingTemperatureK = 6000;
-      rules.lightingTemperatureK = "High-energy Qloo style/adjective tags -> 6000K cool energetic lighting.";
-    } else if (isDark) {
-      lightingTemperatureK = 4500;
-      rules.lightingTemperatureK = "Dark/gritty Qloo tags -> 4500K neutral lighting.";
-    } else if (isAtmospheric) {
-      lightingTemperatureK = 3500;
-      rules.lightingTemperatureK = "Atmospheric Qloo tags -> 3500K soft warm lighting.";
-    } else {
-      lightingTemperatureK = 4500;
-      rules.lightingTemperatureK = "No clear mood tags; 4500K default.";
-    }
-
-    rules.accentColorHex = "Complementary accent for the selected palette.";
-
-    return {
-      primaryColorHex,
-      accentColorHex,
-      lightingTemperatureK,
-      flooringMaterial,
-      seatingFabric,
-      source: "qloo",
-      evidence: [...new Set(matchedEvidence)].slice(0, 8),
-      rules,
-    };
-  }
-
-  // No recognized genre family: use a clearly identified neutral default.
-  return {
-    primaryColorHex: "#808080",
-    accentColorHex: "#BFBFBF",
-    lightingTemperatureK: 4500,
-    flooringMaterial: "Micro-cement Screed Core",
-    seatingFabric: "Brushed Matte Canvas",
-    source: "qloo-partial",
-    evidence: [...new Set(matchedEvidence)].slice(0, 8),
-    rules: {
-      primaryColorHex: "No recognized Qloo genre family; neutral default color.",
-      accentColorHex: "No recognized Qloo genre family; neutral default accent.",
-      lightingTemperatureK: "No recognized Qloo mood tags; 4500K default.",
-      flooringMaterial: "No recognized Qloo material tags; neutral default flooring.",
-      seatingFabric: "No recognized Qloo material tags; neutral default seating.",
-    },
-  };
+function hasAnyEvidence(ev: CulturalEvidence): boolean {
+  return ev.genreTags.length + ev.styleTags.length + ev.themeTags.length + ev.adjectives.length + ev.characteristics.length > 0;
 }
-function fallbackPayload(): VibePayload {
+
+function localFallbackPayload(
+  submittedTerms: string[],
+  errors: string[]
+): VibePayload {
+  const mapping = neutralSpatialMapping(submittedTerms);
   return {
-    primaryColorHex: "#808080",
-    accentColorHex: "#BFBFBF",
-    lightingTemperatureK: 4500,
-    flooringMaterial: "Micro-cement Screed Core",
-    seatingFabric: "Brushed Matte Canvas",
+    primaryColorHex: mapping.primaryColorHex,
+    accentColorHex: mapping.accentColorHex,
+    lightingTemperatureK: mapping.lightingTemperatureK,
+    flooringMaterial: mapping.flooringMaterial,
+    seatingFabric: mapping.seatingFabric,
     tracks: [],
-    menu: "Local fallback (Qloo unavailable).",
+    menu: "Local fallback (live cultural intelligence unavailable).",
     fallback: true,
     reasoning: {
       source: "local-fallback",
@@ -272,126 +166,216 @@ function fallbackPayload(): VibePayload {
         seatingFabric: "Qloo unavailable; neutral default seating.",
       },
     },
+    partial: false,
+    submittedTerms,
+    entities: [],
+    unresolvedTerms: submittedTerms,
+    evidence: { genreTags: [], styleTags: [], themeTags: [], adjectives: [], characteristics: [] },
+    artists: [],
+    concept: mapping.concept,
+    limitations: [
+      "Live Qloo cultural intelligence was unavailable; this concept is a labeled local fallback.",
+    ],
+    errors,
   };
 }
 
+async function qlooGet(url: string, apiKey: string): Promise<{ ok: boolean; status: number; data: Record<string, unknown> | null; error: string | null }> {
+  try {
+    const res = await fetch(url, {
+      method: "GET",
+      headers: { "X-Api-Key": apiKey },
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+    if (!res.ok) {
+      return { ok: false, status: res.status, data: null, error: `HTTP ${res.status}` };
+    }
+    const data = (await res.json()) as Record<string, unknown>;
+    return { ok: true, status: res.status, data, error: null };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "request failed";
+    return { ok: false, status: 0, data: null, error: message };
+  }
+}
+
 export async function POST(request: Request) {
-  let body: { userInput?: string; sliderVal?: number } = {};
+  let body: { userInput?: unknown; sliderVal?: unknown } = {};
   try {
     body = await request.json();
   } catch {
     body = {};
   }
 
-  const userInput = typeof body.userInput === "string" ? body.userInput : "";
-  const sliderVal = typeof body.sliderVal === "number" ? body.sliderVal : 50;
-  const seed = userInput || "default";
+  const rawInput = typeof body.userInput === "string" ? body.userInput.slice(0, MAX_INPUT_LENGTH) : "";
+  const submittedTerms = parseTasteTerms(rawInput);
+
+  if (submittedTerms.length === 0) {
+    return NextResponse.json(
+      { error: "Enter at least one cultural reference — an artist, film, place, genre, or mood." },
+      { status: 400 }
+    );
+  }
 
   const qlooApiUrl = process.env.QLOO_API_URL || "https://hackathon.api.qloo.com";
   const qlooApiKey = process.env.QLOO_API_KEY;
 
-  console.log("Qloo base URL:", qlooApiUrl);
-  console.log("Qloo key present:", Boolean(qlooApiKey));
-
   if (!qlooApiKey) {
-    console.error("QLOO_API_KEY is missing; using fallback.");
-    return NextResponse.json(fallbackPayload());
+    return NextResponse.json(localFallbackPayload(submittedTerms, ["QLOO_API_KEY is not configured on the server."]));
   }
 
-  let searchStatus: number | null = null;
-  let searchData: Record<string, unknown> | null = null;
-
-  try {
-    const searchUrl = `${qlooApiUrl}/search?query=${encodeURIComponent(seed)}&types=urn:entity:artist&limit=5`;
-    const searchRes = await fetch(searchUrl, {
-      method: "GET",
-      headers: { "X-Api-Key": qlooApiKey },
-    });
-    searchStatus = searchRes.status;
-    console.log("Qloo /search status:", searchStatus);
-
-    if (!searchRes.ok) {
-      const text = await searchRes.text();
-      console.error("Qloo /search non-2xx:", searchStatus, text.slice(0, 500));
-      return NextResponse.json(fallbackPayload());
-    }
-
-    searchData = (await searchRes.json()) as Record<string, unknown>;
-    const preview = JSON.stringify(searchData).slice(0, 500);
-    console.log("Qloo /search preview:", preview);
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    console.error("Qloo /search threw:", err.message);
-    const cause1 = (err as { cause?: unknown }).cause; if (cause1) console.error("Qloo /search cause:", cause1);
-    return NextResponse.json(fallbackPayload());
-  }
-
-  const entityId = firstEntityId(searchData);
-  const entityName = firstEntityName(searchData) || seed;
-
-  if (!entityId) {
-    console.error("Qloo /search returned no usable entity ID.");
-    return NextResponse.json(fallbackPayload());
-  }
-
-  let insightsStatus: number | null = null;
-  let insightsData: Record<string, unknown> | null = null;
-
-  try {
-    const insightsUrl =
-      `${qlooApiUrl}/v2/insights` +
-      `?filter.type=urn:entity:artist` +
-      `&signal.interests.entities=${encodeURIComponent(entityId)}` +
-      `&limit=5`;
-    const insightsRes = await fetch(insightsUrl, {
-      method: "GET",
-      headers: { "X-Api-Key": qlooApiKey },
-    });
-    insightsStatus = insightsRes.status;
-    console.log("Qloo /v2/insights status:", insightsStatus);
-
-    if (!insightsRes.ok) {
-      const text = await insightsRes.text();
-      console.error("Qloo /v2/insights non-2xx:", insightsStatus, text.slice(0, 500));
-      return NextResponse.json(fallbackPayload());
-    }
-
-    insightsData = (await insightsRes.json()) as Record<string, unknown>;
-    const preview = JSON.stringify(insightsData).slice(0, 500);
-    console.log("Qloo /v2/insights preview:", preview);
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    console.error("Qloo /v2/insights threw:", err.message);
-    const cause2 = (err as { cause?: unknown }).cause; if (cause2) console.error("Qloo /v2/insights cause:", cause2);
-    return NextResponse.json(fallbackPayload());
-  }
-
-  const tracks = extractTracks(insightsData);
-  const evidence = collectEvidence(insightsData);
-  const mapped = mapFromEvidence(evidence);
-
-  const payload: VibePayload = {
-    primaryColorHex: mapped.primaryColorHex,
-    accentColorHex: mapped.accentColorHex,
-    lightingTemperatureK: mapped.lightingTemperatureK,
-    flooringMaterial: mapped.flooringMaterial,
-    seatingFabric: mapped.seatingFabric,
-    tracks,
-    menu:
-      tracks.length > 0
-        ? `Qloo insights returned ${tracks.length} item(s) for "${entityName}".`
-        : `Qloo insights returned no usable music entities for "${entityName}".`,
-    fallback: false,
-    reasoning: {
-      source: mapped.source,
-      evidence: mapped.evidence,
-      rules: mapped.rules,
-    },
+  const errors: string[] = [];
+  const resolved: ResolvedEntity[] = [];
+  const unresolvedTerms: string[] = [];
+  const searchEvidence: CulturalEvidence = {
+    genreTags: [],
+    styleTags: [],
+    themeTags: [],
+    adjectives: [],
+    characteristics: [],
+  };
+  const searchEvidenceSeen = {
+    genre: new Set<string>(),
+    style: new Set<string>(),
+    theme: new Set<string>(),
   };
 
-  void sliderVal;
-  void searchStatus;
-  void insightsStatus;
+  for (const term of submittedTerms) {
+    const searchUrl =
+      `${qlooApiUrl}/search?query=${encodeURIComponent(term)}` +
+      `&types=${encodeURIComponent(SEARCH_TYPES_PARAM)}&take=5`;
+    const result = await qlooGet(searchUrl, qlooApiKey);
+    if (!result.ok || !result.data) {
+      unresolvedTerms.push(term);
+      errors.push(`Search for "${term}" failed (${result.error ?? "no response"}).`);
+      continue;
+    }
+    const { hits, evidence } = parseSearchResults(result.data, term);
+    if (hits.length === 0) {
+      unresolvedTerms.push(term);
+      continue;
+    }
+    for (const g of evidence.genres) if (!searchEvidenceSeen.genre.has(g)) { searchEvidenceSeen.genre.add(g); searchEvidence.genreTags.push(g); }
+    for (const s of evidence.styles) if (!searchEvidenceSeen.style.has(s)) { searchEvidenceSeen.style.add(s); searchEvidence.styleTags.push(s); }
+    for (const t of evidence.themes) if (!searchEvidenceSeen.theme.has(t)) { searchEvidenceSeen.theme.add(t); searchEvidence.themeTags.push(t); }
+    const hit = hits[0];
+    resolved.push({ id: hit.id, name: hit.name, type: hit.type, searchTerm: term });
+  }
+
+  if (resolved.length === 0) {
+    return NextResponse.json(
+      localFallbackPayload(submittedTerms, [...errors, "No cultural references could be resolved in Qloo."])
+    );
+  }
+
+  const byType = new Map<string, ResolvedEntity[]>();
+  for (const entity of resolved) {
+    if (!INSIGHTS_SUPPORTED_TYPES.has(entity.type)) continue;
+    const list = byType.get(entity.type) ?? [];
+    list.push(entity);
+    byType.set(entity.type, list);
+  }
+
+  let insightsOk = 0;
+  let insightsFailed = 0;
+  const mergedArtists = new Map<string, ArtistRec>();
+  const mergedEvidence: CulturalEvidence = { genreTags: [], styleTags: [], themeTags: [], adjectives: [], characteristics: [] };
+  const evidenceSeen = {
+    genre: new Set<string>(),
+    style: new Set<string>(),
+    theme: new Set<string>(),
+    adj: new Set<string>(),
+    char: new Set<string>(),
+  };
+
+  let typeCall = 0;
+  for (const [type, entities] of byType) {
+    if (typeCall >= MAX_INSIGHT_CALLS) break;
+    typeCall += 1;
+    const ids = entities.map((e) => e.id).join(",");
+    const insightsUrl =
+      `${qlooApiUrl}/v2/insights` +
+      `?filter.type=${encodeURIComponent(type)}` +
+      `&signal.interests.entities=${encodeURIComponent(ids)}` +
+      `&take=${INSIGHTS_TAKE}`;
+    const result = await qlooGet(insightsUrl, qlooApiKey);
+    if (!result.ok || !result.data) {
+      insightsFailed += 1;
+      errors.push(`Insights for ${type} failed (${result.error ?? "no response"}).`);
+      continue;
+    }
+    insightsOk += 1;
+    const anchorName = entities[0]?.name ?? "";
+    for (const artist of extractArtists(result.data)) {
+      if (!artist.name) continue;
+      const key = artist.id || artist.name.toLowerCase();
+      if (!mergedArtists.has(key)) {
+        mergedArtists.set(key, { ...artist, sourceEntity: anchorName });
+      }
+    }
+    const ev = collectEvidence(result.data);
+    for (const g of ev.genreTags) if (!evidenceSeen.genre.has(g)) { evidenceSeen.genre.add(g); mergedEvidence.genreTags.push(g); }
+    for (const s of ev.styleTags) if (!evidenceSeen.style.has(s)) { evidenceSeen.style.add(s); mergedEvidence.styleTags.push(s); }
+    for (const t of ev.themeTags) if (!evidenceSeen.theme.has(t)) { evidenceSeen.theme.add(t); mergedEvidence.themeTags.push(t); }
+    for (const a of ev.adjectives) if (!evidenceSeen.adj.has(a)) { evidenceSeen.adj.add(a); mergedEvidence.adjectives.push(a); }
+    for (const c of ev.characteristics) if (!evidenceSeen.char.has(c)) { evidenceSeen.char.add(c); mergedEvidence.characteristics.push(c); }
+  }
+
+  for (const g of searchEvidence.genreTags) if (!evidenceSeen.genre.has(g)) { evidenceSeen.genre.add(g); mergedEvidence.genreTags.push(g); }
+  for (const s of searchEvidence.styleTags) if (!evidenceSeen.style.has(s)) { evidenceSeen.style.add(s); mergedEvidence.styleTags.push(s); }
+  for (const t of searchEvidence.themeTags) if (!evidenceSeen.theme.has(t)) { evidenceSeen.theme.add(t); mergedEvidence.themeTags.push(t); }
+
+  const artists = [...mergedArtists.values()].slice(0, 8);
+  const tracks: Track[] = artists.map((a) => ({ title: a.name, artist: "" }));
+
+  const anchorNames = resolved.map((e) => e.name);
+  const mapping = hasAnyEvidence(mergedEvidence)
+    ? mapFromEvidence(mergedEvidence, anchorNames)
+    : neutralSpatialMapping(anchorNames);
+
+  let source: "qloo" | "qloo-partial" | "local-fallback" = mapping.source;
+  if (insightsOk === 0) source = "qloo-partial";
+  const partial = unresolvedTerms.length > 0 || insightsFailed > 0 || insightsOk < byType.size;
+
+  const limitations: string[] = [];
+  if (artists.length > 0) {
+    limitations.push("Qloo insights returned artist entities, not individual tracks. No track titles or playback are claimed.");
+  } else {
+    limitations.push("Qloo returned no music entities for this profile; the soundtrack section will be empty by design.");
+  }
+  if (unresolvedTerms.length > 0) {
+    limitations.push(`Some references could not be resolved: ${unresolvedTerms.join(", ")}.`);
+  }
+  if (!hasAnyEvidence(mergedEvidence)) {
+    limitations.push("No structured affinity tags were returned; the design uses neutral defaults (qloo-partial).");
+  }
+
+  const payload: VibePayload = {
+    primaryColorHex: mapping.primaryColorHex,
+    accentColorHex: mapping.accentColorHex,
+    lightingTemperatureK: mapping.lightingTemperatureK,
+    flooringMaterial: mapping.flooringMaterial,
+    seatingFabric: mapping.seatingFabric,
+    tracks,
+    menu:
+      artists.length > 0
+        ? `Qloo insights returned ${artists.length} artist(s) across ${resolved.length} resolved reference(s).`
+        : `Qloo insights returned no music entities for ${resolved.length} resolved reference(s).`,
+    fallback: false,
+    reasoning: {
+      source,
+      evidence: mapping.evidence,
+      rules: mapping.rules,
+    },
+    partial,
+    submittedTerms,
+    entities: resolved,
+    unresolvedTerms,
+    evidence: mergedEvidence,
+    artists,
+    concept: mapping.concept,
+    limitations,
+    errors,
+  };
 
   return NextResponse.json(payload);
 }
