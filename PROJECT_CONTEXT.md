@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md — Sonic Architecture
 
-Last audited: 2026-10-19 (live-verified after the cinematic landing build).
+Last audited: 2026-10-19 (live-verified after the immersive 3D + sound build).
 Read this before making any change. Verify claims against code, not history.
 
 **Repo:** local `main` ↔ remote `https://github.com/shayspace04/sonic-architecture` (**public**)
@@ -14,8 +14,8 @@ see `DECISIONS.md`).
 User describes what they love (films, musicians, brands, places, moods). The app
 uses Qloo cultural-affinity evidence plus our own spatial translation logic to
 produce a coherent venue design direction: atmosphere, palette, lighting,
-materials, music, hospitality concept, rationale, and an explorable (currently
-2D, 3D is P2) venue scene.
+materials, music, hospitality concept, rationale, and an explorable 3D venue
+scene (SVG fallback when WebGL is unavailable).
 
 Target users: retail brands, boutique hotels, restaurants, event organizers,
 pop-up designers.
@@ -40,9 +40,11 @@ separately and end up incoherent. We connect them into one experience.
 - Acid-lime `#D5FF3F`; ultraviolet `#8B5CF6`; warm white `#F4F0E8`; muted `#A6A0AA`
 - Fine borders, smoked glass, restrained translucency; editorial typography;
   spaced uppercase labels; atmospheric lighting
-- Signature: **animated particle-wave field** — `components/ResonanceField.tsx`
-  (canvas 2D, layered undulating wave grids + drifting particles, pointer
-  parallax, reduced-motion static frame). Canvas-2D over three.js by decision.
+- Signature: **3D sound-membrane hero** — `components/three/SonicHero.tsx`
+  (R3F + GLSL: point/line/dust field reacting to a real `AnalyserNode`,
+  charging/forming transition into portal rings). Canvas-2D
+  `components/ResonanceField.tsx` retained as loading + no-WebGL/WebGL-failure
+  fallback. Audio never autoplays.
 - Copy: `SONIC ARCHITECTURE` / "Your taste has a frequency." /
   input "What do you love?" / 4 example prompts (chips that auto-submit)
 - Page narrative (implemented): hero+input → 4-step process band → signals →
@@ -59,8 +61,9 @@ separately and end up incoherent. We connect them into one experience.
 | `app/page.tsx` | Cinematic landing + full journey orchestrator | New; race-safe fetch, staged loading, error/reset/export |
 | `app/studio/page.tsx` | Original 3-col dashboard (moved via `git mv`) | Preserved, still works (additive payload) |
 | `app/api/vibe/route.ts` | Qloo multi-domain search → insights → evidence → mapping | Live-verified 2026-10-19 |
-| `lib/{types,terms,spatial-rules,brief}.ts` | Shared types, term parsing, mapping rules, brief export | New |
-| `components/ResonanceField.tsx` | Signature canvas-2D wave field | New |
+| `lib/{types,terms,spatial-rules,scene-params,brief}.ts` | Shared types, term parsing, mapping rules, 3D scene params, brief export | New |
+| `components/ResonanceField.tsx` | Signature canvas-2D wave field (fallback + loading) | New |
+| `components/three/{shared,SonicHero,Venue3D}.tsx` | 3D hero, 3D venue with controls, WebGL boundary/probes | New |
 | `components/{CulturalInput,ProvenanceIndicator,SignalAnalysis,SpatialTranslation,VenueScene,DesignMoodboard,SoundtrackSection,FinalCta}.tsx` | Journey sections | New |
 | `components/SpatialCanvas.tsx` | 2D SVG floor plan | Legacy; used by `/studio` |
 | `hooks/useAmbientAudio.ts` | WebAudio oscillator; vibeScore→freq/cutoff | Wired from `/` (audio toggle) |
@@ -72,8 +75,9 @@ separately and end up incoherent. We connect them into one experience.
 
 - next 16.4.2 (Turbopack), react 19.3.0, typescript 5, tailwindcss 4,
   framer-motion 14.3.0, eslint 9
-- **No three.js / @react-three/fiber / drei** — canvas 2D + SVG chosen instead;
-  3D venue remains a P2 option (see `DECISIONS.md`).
+- **three 0.186.1, @react-three/fiber 9.8.2, @react-three/postprocessing 3.2.0,
+  postprocessing** (drei installed then removed — orbit is hand-rolled; see
+  `DECISIONS.md` 18–19).
 - Scripts: `dev`, `build`, `start`, `lint` (no test script, no test files).
 
 ### Data flow (implemented, live-verified)
@@ -88,8 +92,9 @@ userInput (free text) ──POST /api/vibe──▶ server
   4. artists = insights entities with subtype urn:entity:artist (never tracks)
   5. evidence = insights tags/adjectives/characteristics + search-hit tags
   6. mapFromEvidence() deterministic rules → design fields + rules text + concept
-client ──▶ staged loading ──▶ SignalAnalysis → SpatialTranslation →
-  VenueScene → DesignMoodboard → SoundtrackSection → FinalCta (export/copy)
+client ──▶ sceneParamsFromPayload() → 3D hero/venue parameters
+   staged loading ──▶ SignalAnalysis → SpatialTranslation → Venue3D (SVG
+   fallback) → DesignMoodboard → SoundtrackSection → FinalCta (export/copy)
 ```
 
 Provenance values: `qloo` (evidence-backed mapping), `qloo-partial`
@@ -122,12 +127,16 @@ Provenance values: `qloo` (evidence-backed mapping), `qloo-partial`
 
 - `sliderVal` accepted by `/api/vibe` but discarded — remove or wire it.
 - `/studio` retains the old debug-log mojibake and inert time-of-day buttons
-  (preserved view; the live `/` path uses `VenueScene` presets instead).
-- Venue is 2D SVG labeled "not physically accurate"; 3D walkthrough is P2.
+  (preserved view; the live `/` path uses `Venue3D` presets instead).
+- Venue is 3D via R3F with an SVG `VenueScene` fallback labeled "not
+  physically accurate"; no first-person walkthrough (orbit only).
+- Headless screenshots were captured but **not visually inspected** in the
+  2026-10-19 session (verified only by pixel statistics).
 - Soundtrack is empty when insights return no artist subtypes (honest
   empty-by-design; not a bug).
 - Coarse mapping: genre-family rules can produce surprising-but-honest results
-  (e.g. a "jazz" *place* match mapping to hospitality tags).
+  (e.g. a "jazz" *place* match mapping to hospitality tags); texture families
+  now checked before electronic (`detectGenreFamily`).
 
 ## Configuration (names only — never paste values)
 
@@ -137,5 +146,5 @@ Provenance values: `qloo` (evidence-backed mapping), `qloo-partial`
 ## Most important next tasks
 
 1. Rotate the Qloo API key (user decision) and update `.env.local`.
-2. Push the landing-page milestone; verify remote state.
-3. P2 backlog: 3D venue (R3F), tests, `sliderVal` — see `TASKS.md`.
+2. Push the 3D milestone; verify remote state.
+3. P2 backlog: tests, `sliderVal`, `.env.example` maintenance — see `TASKS.md`.

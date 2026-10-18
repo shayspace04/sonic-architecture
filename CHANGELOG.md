@@ -2,6 +2,84 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-19 (later)
+
+### Added — immersive 3D + sound redesign
+
+- **3D resonance hero** (`components/three/SonicHero.tsx`): react-three-fiber
+  scene with GLSL sound-membrane (point cloud + contour lines + dust sharing
+  one displacement vertex program), hero phase machine (`resonance` →
+  `charging` during submit → `forming` cinematic morph pulling the field into
+  three vertical portal rings, then back), pointer-parallax + damped camera rig,
+  crest/shadow point lights, Bloom + Vignette postprocessing, fog. Falls back to
+  `ResonanceField` (2D) via error boundary and a WebGL availability probe.
+- **3D venue centerpiece** (`components/three/Venue3D.tsx`): architectural scene
+  (portal frames, columns scaled by openness, bar spine, seats, pendants) with
+  live controls — explore/reset orbit, light presets (morning / golden hour /
+  peak), atmosphere haze toggle, gloss/matte floor — plus a material-study
+  panel (flooring, seating, key K, accent, provenance). Hand-rolled damped
+  orbit rig (`touch-action: pan-y` keeps mobile scroll; auto-orbit respects
+  reduced motion). WebGL failure → `VenueScene` SVG fallback.
+- **Deterministic scene parameters** (`lib/scene-params.ts`): `SceneParams` +
+  `sceneParamsFromPayload()` mapping Qloo evidence to 3D uniforms (crest/shadow
+  colors, key-light Kelvin, wave amplitude/speed, point density, openness, fog,
+  bloom, material language) with a human-readable `rules` string per field;
+  `neutralSceneParams()` for pre-profile state; `blendHex`/`kelvinToRgb`
+  helpers. Rendered audibly in a new "3D scene parameters" block in
+  `SpatialTranslation`.
+- **Audio-reactive visuals**: `useAmbientAudio` gained an optional
+  `AnalyserNode` tap (fft 256, smoothing 0.82) wired into the hero rig — the
+  membrane swells with the procedural tone's real frequency data. Audio still
+  never autoplays; hero carries an honesty note ("procedural oscillator / real
+  analyser signal").
+- **Shared 3D utilities** (`components/three/shared.tsx`): `WebGLBoundary`
+  error boundary, `usePrefersReducedMotion` + `useWebGLSupport` via
+  `useSyncExternalStore` (SSR-safe: `null` → boolean on client).
+- **Editorial moodboard rewrite** (`DesignMoodboard.tsx`): layered asymmetric
+  grid panels, palette strip, CSS material chips derived from flooring/seating
+  strings, lighting-study gradient with the concept Kelvin marker, numbered
+  design principles, cultural reference chips.
+- **Page orchestration** (`app/page.tsx`): `next/dynamic` `ssr: false` imports
+  for both 3D scenes with 2D loading fallbacks, shared analyser ref, hero phase
+  timing (scroll to signals after the forming transition), audio-honesty copy.
+
+### Changed
+
+- **Dependencies**: added `three@0.186.1`, `@react-three/fiber@9.8.2`,
+  `@react-three/postprocessing@3.2.0`, `postprocessing`. `@react-three/drei`
+  was installed then removed — orbit controls are hand-rolled to keep the
+  dependency surface small.
+- **Genre-family detection** (`lib/spatial-rules.ts`): `detectGenreFamily` now
+  also scans style tags and checks texture families (jazz/soul/lo-fi/downtempo)
+  before electronic — plain `jazz` previously fell to neutral, and jazz
+  evidence containing "electro jazz"/"electronic" tags mapped to the
+  electronic family (the open question noted in the 2026-10-18 entry).
+- **ESLint**: scoped `react-hooks/immutability` off for `components/three/**`
+  only (WebGL uniforms/cameras are mutated per frame by design); the three
+  `set-state-in-effect` findings in UI code were fixed properly with
+  `useSyncExternalStore`.
+
+### Verified (2026-10-19, after the 3D build)
+
+- `npm run lint` clean (exit 0); `npm run build` passes, 4 routes.
+- Live `/api/vibe`: `jazz` → `qloo`/`#FF6B35`, `Miles Davis + neon Tokyo` →
+  `qloo`/`#00E5FF` + 8 artists, `80s synthwave rave` → `qloo-partial`/neutral,
+  whitespace → 400; `/` and `/studio` 200.
+- `sceneParamsFromPayload` exercised directly against real profile shapes:
+  jazz → atmospheric family (amp 0.70, soft, open 0.62), synthwave → electronic
+  (amp 2.07, gloss, open 0.90), neutral/`qloo-partial` → neutral defaults;
+  `rules` strings readable per field.
+- Headless Edge screenshots (1440×900 and 390×844) captured; pixel analysis
+  confirms rendered hero content (66%/59% non-black samples, acid-lime accent
+  pixels present) — **not visually inspected** (no image-capable viewer in
+  this session).
+- Staged/worktree secret scan for the key literal: clean (43 files).
+
+### Still open
+
+- **Rotate the Qloo API key** (old key was exposed pre-baseline) and update `.env.local`.
+- Tests, `sliderVal` wiring, `.env.example` maintenance — see `TASKS.md` P2.
+
 ## 2026-10-19
 
 ### Added — cinematic landing experience (P1 complete)

@@ -5,6 +5,16 @@ import nextTs from "eslint-config-next/typescript";
 const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
+  {
+    // WebGL scenes are imperative by design: uniforms, cameras and the
+    // renderer canvas are mutated every frame inside useFrame/useEffect.
+    // React Compiler's immutability rule cannot model that pattern, so it is
+    // disabled only for the three.js layer.
+    files: ["components/three/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/immutability": "off",
+    },
+  },
   // Override default ignores of eslint-config-next.
   globalIgnores([
     // Default ignores of eslint-config-next:

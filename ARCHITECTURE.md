@@ -1,7 +1,9 @@
 # ARCHITECTURE.md — Sonic Architecture
 
-Snapshot of the actual implementation (updated 2026-10-19). Next.js **16.4.2**
-with Turbopack, React 19.3, TypeScript strict, Tailwind v4, Framer Motion 14.
+Snapshot of the actual implementation (updated 2026-10-19, 3D layer added).
+Next.js **16.4.2** with Turbopack, React 19.3, TypeScript strict, Tailwind v4,
+Framer Motion 14, **three 0.186 + @react-three/fiber 9.8 +
+@react-three/postprocessing 3.2**.
 
 > Note: `AGENTS.md` carries a Next.js warning that this version has breaking
 > changes vs older Next. Before writing Next-specific code, read
@@ -47,13 +49,35 @@ Landing journey (`/`):
 - `components/FinalCta.tsx` — "Step inside your taste." + ENTER VENUE anchor,
   markdown brief download / copy, create-another-concept.
 
+3D layer (loaded with `next/dynamic` `ssr: false`; each behind a WebGL
+availability probe and error boundary):
+
+- `components/three/shared.tsx` — `WebGLBoundary` (class error boundary → 2D
+  fallback), `usePrefersReducedMotion` / `useWebGLSupport`
+  (`useSyncExternalStore`, SSR-safe).
+- `components/three/SonicHero.tsx` — hero scene: shared-GLSL sound membrane
+  (points + contour strips + dust), phase machine (`resonance` / `charging` /
+  `forming` morphing the field into three portal rings), damped camera rig with
+  pointer parallax and real `AnalyserNode` bass input, Bloom + Vignette.
+  Default export falls back to `ResonanceField`.
+- `components/three/Venue3D.tsx` — venue scene: architecture from
+  `SceneParams` (columns by openness, portals, bar, seats, pendants), lighting
+  presets + haze + gloss/matte controls, hand-rolled orbit rig (exploring,
+  `touch-action: pan-y` for mobile scroll, reduced-motion aware), material
+  study panel. Falls back to `VenueScene` SVG.
+- `components/DesignMoodboard.tsx` — editorial layered grid (palette strip,
+  CSS material chips from flooring/seating strings, lighting-study gradient,
+  principles, cultural references).
+
 Shared/legacy:
 
 - `components/SpatialCanvas.tsx` — original 2D SVG floor plan, used by `/studio`.
 - `hooks/useAmbientAudio.ts` — lazily created `AudioContext` sine oscillator →
   lowpass → gain (0.06); `vibeScore` (0–100) maps to frequency 440→120 Hz and
   cutoff 1200→300 Hz; play/pause on toggle; full teardown on unmount. Driven
-  from `/` by `lightingTemperatureK`.
+  from `/` by `lightingTemperatureK`. Optional `analyserRef` taps an
+  `AnalyserNode` (fft 256, smoothing 0.82) after the gain node — the hero's
+  `Rig` reads it for real audio reactivity. Never autoplays.
 
 ## Shared libraries
 
@@ -65,13 +89,24 @@ Shared/legacy:
 - `lib/spatial-rules.ts` — `mapFromEvidence` (deterministic family detection:
   electronic / hip-hop / punk / atmospheric / neutral → palette, materials,
   lighting; concept titles e.g. "VOLTAGE HALL") and `neutralSpatialMapping`.
+  `detectGenreFamily` (exported) scans genre **and style** tags, checking
+  texture families (jazz/soul/lo-fi/downtempo) before electronic so jazz
+  evidence containing "electro jazz" doesn't fall into the electronic family.
+- `lib/scene-params.ts` — `SceneParams` (crest/shadow colors, key-light K,
+  wave amplitude/speed, point density/size, reflectivity, openness, fog, bloom,
+  shadow depth, material language), `sceneParamsFromPayload(vibe)` with a
+  readable `rules` string per field, `neutralSceneParams()`, `blendHex`,
+  `kelvinToRgb`. Pure functions; consumed client-side by the hero and venue.
 - `lib/brief.ts` — `buildDesignBrief` (markdown export) + `downloadBrief`.
 
 ## State management
 
 Local React state in `app/page.tsx`: `vibe`, `isLoading`, `error`, `stage`
-(loading message index), `isAudioEnabled`; refs for request sequencing
-(`seqRef`) and abort (`abortRef`). No store, no context, no URL state.
+(loading message index), `isAudioEnabled`, `heroPhase`
+(`resonance`/`charging`/`forming`); refs for request sequencing (`seqRef`),
+abort (`abortRef`), and the shared audio `analyserRef`. WebGL support and
+prefers-reduced-motion come from `useSyncExternalStore`. No store, no context,
+no URL state.
 
 ## Data contracts
 
@@ -130,9 +165,17 @@ Request body: `{ userInput: string }` (`sliderVal` still accepted, unused).
 
 - Tailwind v4 via `@import "tailwindcss"` + design tokens (`--sa-*`) in
   `app/globals.css`; loaded through the `@tailwindcss/turbopack` loader rule.
-- Framer Motion for entrance/section transitions; canvas 2D for the resonance
-  field; SVG for the venue scene and moodboard. **No three.js / R3F** — chosen
-  deliberately (recorded in `DECISIONS.md`); a 3D venue remains a P2 option.
+- Framer Motion for entrance/section transitions; SVG for the venue fallback
+  and moodboard chrome.
+- **3D via react-three-fiber** for the hero membrane and the venue
+  (`components/three/*`), all imported with `next/dynamic` `ssr: false` and a
+  2D loading fallback; a WebGL availability probe + `WebGLBoundary` error
+  boundary route failures to `ResonanceField` (hero) / `VenueScene` SVG
+  (venue). Canvas-2D `ResonanceField` remains the no-WebGL path and the
+  loading state (decision 11 superseded by decision 18 in `DECISIONS.md`).
+- ESLint: `react-hooks/immutability` disabled **only** for
+  `components/three/**` — WebGL uniforms/cameras/canvas styles are mutated per
+  frame by design; UI code keeps the rule enabled.
 
 ## Important decisions encoded in code
 

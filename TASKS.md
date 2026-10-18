@@ -45,10 +45,17 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 
 ## P2 — Polish & optional enhancements
 
-- [ ] 3D venue with react-three-fiber (not installed): orbit/zoom/pan, walkthrough
-      camera, dollhouse view, dynamic lighting/materials, particles, reduced-motion support
-  (`VenueScene.tsx` is a rich 2D SVG scene with lighting states; not 3D)
-- [x] Architectural moodboard / design board alongside the venue (`DesignMoodboard.tsx`)
+- [x] **3D venue with react-three-fiber** (`components/three/Venue3D.tsx`):
+  hand-rolled orbit (explore/reset), light presets (morning/golden/peak), haze
+  toggle, gloss/matte floor, material-study panel, reduced-motion support;
+  SVG `VenueScene.tsx` kept as the WebGL-unavailable fallback
+- [x] **3D sound-reactive hero** (`components/three/SonicHero.tsx`): GLSL
+  membrane + contour lines, audio analyser reactivity, charging/forming
+  cinematic transition, Bloom/Vignette, WebGLBoundary → 2D ResonanceField
+- [x] **Deterministic scene parameters** (`lib/scene-params.ts`) with auditable
+  per-field `rules`, rendered in `SpatialTranslation` ("3D scene parameters")
+- [x] **Editorial moodboard rewrite** (`DesignMoodboard.tsx`) — layered
+  asymmetric panels, palette strip, material chips, lighting study
 - [x] Operational/design brief export (`lib/brief.ts` → markdown download + copy)
 - [x] Use more than the first `/search` result — multi-term input parsing
   (`lib/terms.ts`, up to 5 terms, one resolved entity per term) + search-hit tag

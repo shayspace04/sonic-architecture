@@ -12,7 +12,7 @@ export interface SpatialMapping {
   concept: DesignConcept;
 }
 
-type GenreFamily = "electronic" | "hiphop" | "punk" | "atmospheric" | "neutral";
+export type GenreFamily = "electronic" | "hiphop" | "punk" | "atmospheric" | "neutral";
 
 const FAMILY_TITLES: Record<GenreFamily, string> = {
   electronic: "VOLTAGE HALL",
@@ -51,9 +51,15 @@ const KNOWN_MOODS = [
   "atmospheric", "melodic", "uplifting",
 ];
 
-function detectFamily(evidence: CulturalEvidence): GenreFamily {
-  const genreText = evidence.genreTags.join(" ").toLowerCase();
+export function detectGenreFamily(evidence: CulturalEvidence): GenreFamily {
+  // styleTags are included because place-level matches often bury the genre
+  // (e.g. plain "jazz" resolves to a place entity whose genre tags are
+  // venues; the jazz signal lives in style tags like "jazz-like").
+  const genreText = [...evidence.genreTags, ...evidence.styleTags].join(" ").toLowerCase();
   const has = (words: string[]) => words.some((w) => genreText.includes(w));
+  // Texture-driven families first: jazz evidence frequently also contains
+  // "electronic"/"electro" (e.g. "electro jazz"), which would otherwise win.
+  if (has(["jazz", "soul", "lo-fi", "downtempo"])) return "atmospheric";
   if (has(["electronic", "house", "techno", "edm", "electro", "trance", "dubstep", "bass", "dance"])) return "electronic";
   if (has(["hip hop", "rap", "trap", "crunk"])) return "hiphop";
   if (has(["punk", "rock", "alternative", "hardcore", "grunge", "emo"])) return "punk";
@@ -97,7 +103,7 @@ export function mapFromEvidence(
   const moodEvidence = [...evidence.adjectives, ...evidence.characteristics].filter((t) => KNOWN_MOODS.includes(t));
   const matchedEvidence = [...new Set([...genreEvidence, ...moodEvidence])];
 
-  const family = detectFamily(evidence);
+  const family = detectGenreFamily(evidence);
   const rules: Record<string, string> = {};
 
   let primaryColorHex = "#808080";

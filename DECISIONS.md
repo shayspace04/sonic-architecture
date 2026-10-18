@@ -77,6 +77,39 @@ question. Do not invent history.
 17. **Multi-term input, one resolved entity per term** (up to 5 terms), with
     per-term unresolved tracking and honest partial payloads.
 
+## Decisions from the immersive 3D build (2026-10-19, visible in committed code)
+
+18. **react-three-fiber added for the hero and venue, superseding the
+    "canvas 2D only" stance of decision 11.** Rationale: the brief requires a
+    real 3D sound surface, a 3D venue centerpiece with live controls, and a
+    cinematic sound→architecture transition. Canvas 2D `ResonanceField` is
+    retained as the loading state and the no-WebGL / WebGL-failure fallback,
+    so nothing static is ever shown as a substitute. *(Supersedes decision 11;
+    closes open question 6 for real this time.)*
+19. **`@react-three/drei` installed then uninstalled.** Orbit controls are
+    hand-rolled (~60 lines in `Venue3D.tsx`): damped spherical drag, phi clamp,
+    `touch-action: pan-y` so mobile page scroll still works, auto-orbit only
+    while "explore" is active and never under reduced motion. Rationale:
+    smaller dependency surface for a hackathon demo.
+20. **Scene parameters are a pure client-side derivation from the payload**
+    (`lib/scene-params.ts`), not a new API field — the `/api/vibe` contract
+    stays stable; `sceneParamsFromPayload` carries a human-readable `rules`
+    string per parameter so the evidence→3D mapping is auditable in the UI
+    ("3D scene parameters" block).
+21. **Texture families (jazz/soul/lo-fi/downtempo) checked before electronic,
+    and style tags included in family detection.** Evidence: plain `jazz`
+    resolved to a place entity whose genre tags are venues (previously fell to
+    neutral), and jazz evidence contains "electro jazz"/"electronic" tags that
+    previously won the electronic branch (open observation from 2026-10-18
+    changelog, now fixed and documented in `detectGenreFamily`).
+22. **Audio reactivity uses a real `AnalyserNode` on the existing procedural
+    oscillator** — never fabricated data, never autoplay; the UI says exactly
+    that ("procedural oscillator; the field reacts to its real analyser signal").
+23. **`react-hooks/immutability` disabled only for `components/three/**`** in
+    `eslint.config.mjs` — per-frame mutation of uniforms/cameras/renderer DOM
+    is the R3F programming model; the UI-code findings were fixed properly with
+    `useSyncExternalStore` instead of blanket-disabling.
+
 ## Security decisions / required actions (pending user input)
 
 - **Rotate the Qloo API key — STILL PENDING.** The old key was committed in
@@ -108,5 +141,5 @@ question. Do not invent history.
    evidence links it to Qloo; assume separate until confirmed.
 5. Where is the approved concept image? It is not in the repo — should it be added
    under `public/` or a `docs/` folder for reference?
-6. ~~3D venue: R3F or lighter approach?~~ — **Resolved for now (decision 11):**
-   canvas 2D + SVG shipped; R3F remains a P2 option if time allows.
+6. ~~3D venue: R3F or lighter approach?~~ — **Resolved (decisions 11 → 18):**
+   shipped as R3F (hero + venue) with canvas 2D / SVG fallbacks retained.

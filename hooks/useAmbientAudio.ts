@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 
 const AudioContextCtor =
   typeof window !== "undefined"
@@ -8,7 +8,20 @@ const AudioContextCtor =
       (window as unknown as { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
     : undefined;
 
-export function useAmbientAudio(vibeScore: number, isAudioEnabled: boolean): void {
+/**
+ * Procedural ambient tone (sine oscillator -> lowpass -> gain).
+ * Never autoplays: sound only starts when `isAudioEnabled` becomes true.
+ *
+ * When `analyserRef` is provided it receives the AnalyserNode sitting between
+ * the gain and the destination, so visuals can read *real* frequency data of
+ * the tone that is actually being heard. When audio is off the analyser is
+ * null and visuals must fall back to their own procedural animation.
+ */
+export function useAmbientAudio(
+  vibeScore: number,
+  isAudioEnabled: boolean,
+  analyserRef?: MutableRefObject<AnalyserNode | null>
+): void {
   const ctxRef = useRef<AudioContext | null>(null);
   const oscRef = useRef<OscillatorNode | null>(null);
   const filterRef = useRef<BiquadFilterNode | null>(null);
@@ -29,6 +42,9 @@ export function useAmbientAudio(vibeScore: number, isAudioEnabled: boolean): voi
       const osc = ctx.createOscillator();
       const filter = ctx.createBiquadFilter();
       const gain = ctx.createGain();
+      const analyser = ctx.createAnalyser();
+      analyser.fftSize = 256;
+      analyser.smoothingTimeConstant = 0.82;
 
       osc.type = "sine";
       osc.frequency.value = 440;
@@ -41,7 +57,8 @@ export function useAmbientAudio(vibeScore: number, isAudioEnabled: boolean): voi
 
       osc.connect(filter);
       filter.connect(gain);
-      gain.connect(ctx.destination);
+      gain.connect(analyser);
+      analyser.connect(ctx.destination);
 
       osc.start();
 
@@ -49,13 +66,14 @@ export function useAmbientAudio(vibeScore: number, isAudioEnabled: boolean): voi
       oscRef.current = osc;
       filterRef.current = filter;
       gainRef.current = gain;
+      if (analyserRef) analyserRef.current = analyser;
     }
 
     const ctx = ctxRef.current;
     if (ctx && ctx.state === "suspended") {
       ctx.resume().catch(() => {});
     }
-  }, [isAudioEnabled]);
+  }, [isAudioEnabled, analyserRef]);
 
   useEffect(() => {
     const ctx = ctxRef.current;
@@ -97,10 +115,11 @@ export function useAmbientAudio(vibeScore: number, isAudioEnabled: boolean): voi
         gainRef.current.disconnect();
         gainRef.current = null;
       }
+      if (analyserRef) analyserRef.current = null;
       if (ctxRef.current) {
         ctxRef.current.close().catch(() => {});
         ctxRef.current = null;
       }
     };
-  }, []);
+  }, [analyserRef]);
 }

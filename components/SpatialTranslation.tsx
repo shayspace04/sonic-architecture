@@ -1,11 +1,15 @@
 "use client";
 
+import { useMemo } from "react";
 import type { VibePayload } from "@/lib/types";
+import { sceneParamsFromPayload } from "@/lib/scene-params";
 
 const STEPS = ["Cultural input", "Affinity signals", "Spatial translation", "Venue experience"];
 
 export default function SpatialTranslation({ vibe }: { vibe: VibePayload }) {
   const rules = Object.entries(vibe.reasoning.rules);
+  const sceneParams = useMemo(() => sceneParamsFromPayload(vibe), [vibe]);
+  const sceneRules = Object.entries(sceneParams.rules);
 
   return (
     <section id="translate" className="relative scroll-mt-24 border-y border-[#F4F0E8]/8 bg-[#151018]/40 py-24">
@@ -69,6 +73,21 @@ export default function SpatialTranslation({ vibe }: { vibe: VibePayload }) {
               ))}
             </ul>
           </div>
+        </div>
+        <div className="mt-16 border-t border-[#F4F0E8]/8 pt-10">
+          <h3 className="sa-label mb-4">3D scene parameters</h3>
+          <p className="mb-6 max-w-2xl text-xs leading-relaxed text-[#A6A0AA]">
+            The resonance field and venue above are driven by these deterministic parameters.
+            Qloo evidence sets the inputs; Sonic Architecture sets the scene.
+          </p>
+          <ul className="grid gap-x-8 gap-y-3 md:grid-cols-2 lg:grid-cols-3">
+            {sceneRules.map(([field, rule]) => (
+              <li key={field} className="border-l border-[#D5FF3F]/40 pl-3">
+                <p className="font-mono text-[10px] tracking-[0.2em] text-[#D5FF3F] uppercase">{field}</p>
+                <p className="mt-0.5 text-xs leading-relaxed text-[#F4F0E8]/80">{rule}</p>
+              </li>
+            ))}
+          </ul>
         </div>
       </div>
     </section>
