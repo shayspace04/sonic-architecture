@@ -2,6 +2,24 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-18 (later)
+
+### Changed
+- **Qloo live integration verified working** — after the user set Wi-Fi DNS to
+  `8.8.8.8` / `1.1.1.1`, `POST /api/vibe` returned `source: qloo`,
+  `fallback: false`, 5 artist recommendations, full palette/lighting mapping.
+  This closes the main P0 connectivity blocker. (One observation to investigate:
+  a "jazz" query matched the electronic/high-energy rule family — the mapping may
+  be coarse or Qloo's tags for the first hit were unexpected.)
+- **GitHub CLI installed and authenticated** — `gh` 2.102.0 via winget; logged in
+  as `shayspace04` (keyring; scopes repo/read:org/gist/workflow). gh is now the
+  preferred tool for remote operations.
+- Docs updated: `DECISIONS.md`, `TASKS.md` reflect the DNS fix, gh setup, and
+  verified Qloo status.
+
+### Still open
+- **Rotate the Qloo API key** (old key was exposed pre-baseline) and update `.env.local`.
+
 ## 2026-10-18
 
 ### Added

@@ -62,10 +62,13 @@ question. Do not invent history.
 - **Remote (decided 2026-10-18):** private repo
   `https://github.com/shayspace04/sonic-architecture.git` created via GitHub API
   using the already-stored Windows Credential Manager token (token never printed
-  or committed). gh CLI is not installed on this machine.
-- Local DNS workaround used once for the initial push (temporary `github.com`
-  hosts entry, removed afterward). Permanent fix recommended: set Wi-Fi DNS to
-  8.8.8.8 / 1.1.1.1.
+  or committed). GitHub CLI (`gh` 2.102.0) installed later via winget and
+  authenticated as `shayspace04` (keyring, scopes: repo/read:org/gist/workflow);
+  it is now the preferred tool for repo operations.
+- **DNS root cause fixed (2026-10-18):** hotspot DNS (`172.20.10.1`) was failing
+  to resolve `github.com` and resolving `hackathon.api.qloo.com` only to NAT64
+  IPv6. User set Wi-Fi DNS to `8.8.8.8` / `1.1.1.1` — both hosts now resolve to
+  IPv4 and **live Qloo calls work again** (`source: qloo`, 5 artist results).
 
 ## Open questions requiring user input
 

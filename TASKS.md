@@ -8,7 +8,7 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-18**, not pr
 - [x] Qloo `/search` + `/v2/insights` integration code path with server-side key — `app/api/vibe/route.ts`
 - [x] Provenance model (`qloo` / `qloo-partial` / `local-fallback`) with per-field rules and evidence
 - [x] Graceful fallback when Qloo is unusable (`fallbackPayload()`)
-- [!] **Live Qloo verification** — host resolves only to IPv6 NAT64 and connect-times-out; `/api/vibe` currently returns `local-fallback`. Needs network/DNS fix or a working network. See `QLOO_DEBUG.md`.
+- [x] **Live Qloo verification** — verified 2026-10-18 after DNS fix: `/api/vibe` returned `source: qloo`, `fallback: false`, 5 artist results, full palette mapping.
 - [!] **Rotate `QLOO_API_KEY`** — same value sits in git history inside `env.txt` (commit `610cf7c`) and was shown in terminal output during audit. Requires user decision (rotate + optional history purge). Repo has no remote, so risk is local today.
 - [x] Lint passes (`npm run lint`)
 - [x] Production build passes (`npm run build`, TypeScript clean, 5 routes)
@@ -49,4 +49,4 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-18**, not pr
 - [x] `.env.example` added (variable names only)
 - [x] Git set up: clean baseline on `main` (`d589bfd`), pushed to private remote `shayspace04/sonic-architecture`
 - [ ] **Rotate the Qloo API key** (old key was exposed; see `DECISIONS.md`) and update `.env.local`
-- [ ] Fix hotspot DNS permanently (set Wi-Fi DNS to 8.8.8.8 / 1.1.1.1) — fixes both GitHub push and Qloo
+- [x] Fix hotspot DNS (Wi-Fi DNS set to 8.8.8.8 / 1.1.1.1) — GitHub and Qloo both resolve; live Qloo verified working
