@@ -110,6 +110,42 @@ question. Do not invent history.
     is the R3F programming model; the UI-code findings were fixed properly with
     `useSyncExternalStore` instead of blanket-disabling.
 
+## Decisions from the quota-protection build (2026-10-19, visible in committed code)
+
+24. **Cache and budget live server-side, keyed on the full request URL.** The
+    response cache (`lib/qloo/cache.ts`) uses `search|<url>` / `insights|<url>`
+    keys with insight IDs **sorted and deduplicated** before building the URL, so
+    the request and its cache entry are order-independent and duplicate IDs can
+    never create a second entry. TTLs: search 24 h, insights 12 h. Rationale:
+    identical repeat profiles must cost zero upstream requests without ever
+    serving a wrong result.
+25. **The application ceiling defaults to 9000 and is hard-clamped to ≤9900**,
+    deliberately below the live-verified upstream `x-month-ratelimit-limit` of
+    10000 — a margin so the app falls back *before* the provider rejects calls.
+    The ceiling is enforced by `shouldStop` inside the HTTP layer (checked before
+    every attempt **and** every retry), not by a client-side counter, so retries
+    cannot slip past it.
+26. **Budget state is persisted per machine to `.qloo-usage.json`** (temp+rename,
+    git-ignored) so restarts don't forget the month, but this is explicitly
+    **per-process/per-machine, not a global cap** — the docs say so and no global
+    guarantee is claimed. Silently pretending otherwise was rejected.
+27. **Retries are narrow and bounded**: never retry 400/401/403/404 (invalid
+    request / auth failures are not transient), retry only 408/429/5xx plus
+    network/timeout and malformed-success bodies; honor `Retry-After` but abandon
+    the attempt if it exceeds 10 s rather than sleeping through a quota window.
+28. **Quota transparency is additive and honest**: `payload.quota` carries only
+    the headers the upstream response actually sent, only when that response
+    happened during this request (never on cache-only runs, never fabricated,
+    absent on the fallback path). The UI shows used/limit — not an invented
+    remaining budget.
+29. **Logging is content-free** (`kind`, cache source, status, attempts,
+    used/budget) — never API keys, auth headers, or request URLs containing user
+    terms, so operational visibility never leaks user input or secrets.
+30. **Tests use Node's built-in runner** (`node --test` on `tsconfig.test.json`
+    output) rather than adding Jest/Vitest — the repo had no runner configured,
+    the built-in one needs no new dependencies, and all new `lib/**` modules use
+    relative imports so they compile standalone without the `@/` alias.
+
 ## Security decisions / required actions (pending user input)
 
 - **Rotate the Qloo API key — STILL PENDING.** The old key was committed in

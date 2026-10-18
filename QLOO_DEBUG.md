@@ -37,21 +37,21 @@ Resolve-DnsName qloo.com
 ```
 
 ## Verified successful flow (current code)
-- `GET /search?query=cyberpunk&types=urn:entity:artist&limit=5` returns 200 with an artist entity and `entity_id`.
-- `GET /v2/insights?filter.type=urn:entity:artist&signal.interests.entities=<entity_id>&limit=5` returns 200 with `results.entities`.
-- `/api/vibe` now returns `fallback: false` and Qloo-derived tracks (e.g. Aerotronic, Mustard Pimp, Redial).
-- Colors/lighting/materials remain hash-derived from the resolved entity name; this is not yet fully Qloo-driven design.
+- `GET /search?query=cyberpunk&types=<supported URNs>&take=5` returns 200 with an entity and `entity_id`.
+- `GET /v2/insights?filter.type=urn:entity:artist&signal.interests.entities=<entity_id>&take=8` returns 200 with `results.entities` (`limit` is silently ignored; `take` is the valid param).
+- `/api/vibe` now returns `fallback: false` and Qloo-derived **artist** entities (never fabricated tracks).
+- Colors/lighting/materials come from the deterministic evidence→space rule table (`lib/spatial-rules.ts`).
 
 ## Commands
 ```powershell
 Invoke-WebRequest -Uri "http://localhost:3000/api/vibe" -Method POST -Headers @{"Content-Type"="application/json"} -Body '{"userInput":"cyberpunk","sliderVal":80}' -UseBasicParsing
 ```
-Check terminal for `Qloo /search status: 200` and `Qloo /v2/insights status: 200`.
+Check terminal for content-free lines such as `[qloo] kind=search cache=upstream` and the usage summary `[qloo] profile upstream=... resolved=...`.
 
 ## Provenance audit (current code)
-- `tracks` are populated only from Qloo `/v2/insights` `results.entities`.
-- Colors, lighting, flooring, and seating are now mapped from Qloo genre/style/theme/adjective evidence when a recognized genre family is found.
+- Artists are populated only from Qloo `/v2/insights` `results.entities` filtered to `urn:entity:artist`.
+- Colors, lighting, flooring, and seating are mapped from Qloo genre/style/theme/adjective evidence when a recognized genre family is found.
 - If no recognized genre family is found, the design uses a neutral default and `reasoning.source` becomes `qloo-partial`.
 - If Qloo is unavailable, `fallback: true` and `reasoning.source` is `local-fallback`.
-- `/api/vibe` response includes an additive `reasoning` object with `source`, `evidence`, and per-field `rules`.
-- Lint and build pass; live verification is currently blocked by the host connectivity failure.
+- `/api/vibe` response includes an additive `reasoning` object with `source`, `evidence`, and per-field `rules`, plus `quota` only when the upstream response carried quota headers.
+- Lint, tests (`npm test`), and build pass. Live verification works (DNS fixed 2026-10-18) and was re-run 2026-10-19 with quota protection: the orchestration/parsers now live in `lib/qloo/profile.ts`; the route wires `lib/qloo/{cache,usage}.ts`.

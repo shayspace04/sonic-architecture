@@ -60,8 +60,11 @@ separately and end up incoherent. We connect them into one experience.
 |---|---|---|
 | `app/page.tsx` | Cinematic landing + full journey orchestrator | New; race-safe fetch, staged loading, error/reset/export |
 | `app/studio/page.tsx` | Original 3-col dashboard (moved via `git mv`) | Preserved, still works (additive payload) |
-| `app/api/vibe/route.ts` | Qloo multi-domain search → insights → evidence → mapping | Live-verified 2026-10-19 |
+| `app/api/vibe/route.ts` | Qloo multi-domain search → insights → evidence → mapping | Live-verified 2026-10-19; wires module-scope cache + usage ceiling |
 | `lib/{types,terms,spatial-rules,scene-params,brief}.ts` | Shared types, term parsing, mapping rules, 3D scene params, brief export | New |
+| `lib/qloo/{cache,http,usage,profile}.ts` | TTL cache + single-flight, retry/timeout + quota headers, request ceiling + counters, extracted orchestration | New (quota protection) |
+| `lib/fallback.ts` | Honest `localFallbackPayload()` (extracted from route) | New |
+| `tests/*.test.ts` + `tsconfig.test.json` | `npm test` — 37 Node `node:test` cases (cache/http/usage/profile/fallback) | New |
 | `components/ResonanceField.tsx` | Signature canvas-2D wave field (fallback + loading) | New |
 | `components/three/{shared,SonicHero,Venue3D}.tsx` | 3D hero, 3D venue with controls, WebGL boundary/probes | New |
 | `components/{CulturalInput,ProvenanceIndicator,SignalAnalysis,SpatialTranslation,VenueScene,DesignMoodboard,SoundtrackSection,FinalCta}.tsx` | Journey sections | New |
@@ -78,7 +81,8 @@ separately and end up incoherent. We connect them into one experience.
 - **three 0.186.1, @react-three/fiber 9.8.2, @react-three/postprocessing 3.2.0,
   postprocessing** (drei installed then removed — orbit is hand-rolled; see
   `DECISIONS.md` 18–19).
-- Scripts: `dev`, `build`, `start`, `lint` (no test script, no test files).
+- Scripts: `dev`, `build`, `start`, `lint`, `test` (`npm test` = `tsc -p
+  tsconfig.test.json` + Node 24 `node --test`; no test framework dependency).
 
 ### Data flow (implemented, live-verified)
 
@@ -86,12 +90,15 @@ separately and end up incoherent. We connect them into one experience.
 userInput (free text) ──POST /api/vibe──▶ server
   1. parseTasteTerms() → up to 5 terms
   2. per term: GET /search?query=<term>&types=<supported URNs>&take=5
-     → first insights-supported hit (entity_id + types[] array)
+     (served from TTL cache when fresh; concurrent duplicates single-flight)
   3. group resolved entities by type → up to 3 GET /v2/insights
-     ?filter.type=<urn>&signal.interests.entities=<id,id>&take=8
+     ?filter.type=<urn>&signal.interests.entities=<id,id>&take=8 (sorted ids)
   4. artists = insights entities with subtype urn:entity:artist (never tracks)
   5. evidence = insights tags/adjectives/characteristics + search-hit tags
   6. mapFromEvidence() deterministic rules → design fields + rules text + concept
+  7. budget: every attempt counted; ceiling checked before each request/retry
+     (exhausted → labeled local-fallback, no upstream call)
+  8. payload.quota attached only if THIS request saw upstream quota headers
 client ──▶ sceneParamsFromPayload() → 3D hero/venue parameters
    staged loading ──▶ SignalAnalysis → SpatialTranslation → Venue3D (SVG
    fallback) → DesignMoodboard → SoundtrackSection → FinalCta (export/copy)
@@ -111,6 +118,15 @@ Provenance values: `qloo` (evidence-backed mapping), `qloo-partial`
   array; unfiltered searches match unsupported types (albums/actors) that
   insights reject with HTTP 400 — hence the `types` filter; `take` is the
   valid insights param (`limit` is silently ignored).
+- **Quota headers (live, 2026-10-18/19):** `x-month-ratelimit-limit: 10000`,
+  `x-month-ratelimit-remaining`, `x-month-ratelimit-reset` (delta-seconds),
+  `x-second-ratelimit-limit: 5`, `x-second-ratelimit-remaining`,
+  `x-second-ratelimit-reset`, `x-qloo-request-id`. No `Retry-After` observed on
+  200. These are what `parseQuotaHeaders` reads and what the UI surfaces.
+- **Quota-protection live check (2026-10-19, 2 requests, 1 term):** cold run →
+  `source: qloo`, 8 artists, real `quota` attached (limit 10000 / remaining
+  9877); immediate repeat → identical payload, **zero upstream calls**, no
+  `quota` field; `.qloo-usage.json` recorded `search 1 / insights 1 / 200×2`.
 
 ### Security
 
@@ -137,14 +153,26 @@ Provenance values: `qloo` (evidence-backed mapping), `qloo-partial`
 - Coarse mapping: genre-family rules can produce surprising-but-honest results
   (e.g. a "jazz" *place* match mapping to hospitality tags); texture families
   now checked before electronic (`detectGenreFamily`).
+- **Quota cache/budget are per-process** (module scope + `.qloo-usage.json` on
+  this machine). They cut duplicate and repeat spend but are **not a global
+  monthly cap** across hosts/instances — a shared atomic store would be needed
+  for that guarantee; none is claimed.
+- Response cache is cold on restart (memory only); the usage *counter* is
+  durable, the cached *responses* are not.
 
 ## Configuration (names only — never paste values)
 
 - `QLOO_API_URL` — default `https://hackathon.api.qloo.com`
 - `QLOO_API_KEY` — server-side only; **rotate it** (see Security)
+- `QLOO_APP_MONTHLY_BUDGET` — application request ceiling (default 9000, clamped ≤9900)
+- `QLOO_CACHE_TTL_SEARCH_S` / `QLOO_CACHE_TTL_INSIGHTS_S` — response cache TTLs (86400 / 43200)
+- `QLOO_CACHE_MAX_ENTRIES` — cache size bound (default 500)
+- `QLOO_USAGE_FILE` — counter file path (default `.qloo-usage.json`, git-ignored)
 
 ## Most important next tasks
 
 1. Rotate the Qloo API key (user decision) and update `.env.local`.
-2. Push the 3D milestone; verify remote state.
-3. P2 backlog: tests, `sliderVal`, `.env.example` maintenance — see `TASKS.md`.
+2. Decide whether the budget/cache need to be shared (multi-instance) — if so,
+   swap `.qloo-usage.json` for an atomic shared store; otherwise keep documenting
+   the per-process limitation. See `DECISIONS.md` 24–30.
+3. P2 backlog: `sliderVal` — see `TASKS.md`.

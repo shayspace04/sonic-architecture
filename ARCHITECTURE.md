@@ -97,6 +97,22 @@ Shared/legacy:
   shadow depth, material language), `sceneParamsFromPayload(vibe)` with a
   readable `rules` string per field, `neutralSceneParams()`, `blendHex`,
   `kelvinToRgb`. Pure functions; consumed client-side by the hero and venue.
+- `lib/qloo/cache.ts` — `TtlCache` (bounded TTL LRU + single-flight
+  `getOrLoad`; only successful loads are cached; injectable clock).
+- `lib/qloo/http.ts` — `qlooGet` (bounded timeout/attempts, backoff + jitter,
+  `Retry-After`, retryable-status policy, `onAttempt`/`shouldStop` hooks) and
+  `parseQuotaHeaders` (real `x-month-ratelimit-*` / `x-second-ratelimit-*` /
+  `x-qloo-request-id`).
+- `lib/qloo/usage.ts` — `UsageTracker`: per-process application ceiling
+  (`QLOO_APP_MONTHLY_BUDGET`, default 9000, clamped ≤9900), attempt/status
+  counters with UTC-month rollover, durable `.qloo-usage.json` (temp+rename,
+  memory-only fallback), content-free `logSummary`.
+- `lib/qloo/profile.ts` — `collectProfile(terms, deps)`: per-term `/search` +
+  grouped `/v2/insights` orchestration with cache, budget gates, sorted/deduped
+  insight IDs, and all response parsers (`parseSearchResults`, `extractArtists`,
+  `collectEvidence`, `hasAnyEvidence`) — injectable fetch/cache/usage for tests.
+- `lib/fallback.ts` — `localFallbackPayload` (labeled `local-fallback`, neutral
+  mapping, no fabricated entities).
 - `lib/brief.ts` — `buildDesignBrief` (markdown export) + `downloadBrief`.
 
 ## State management
@@ -124,6 +140,8 @@ interface VibePayload {
   entities: ResolvedEntity[]; unresolvedTerms: string[];
   evidence: CulturalEvidence; artists: ArtistRec[];
   concept: Concept; limitations: string[]; errors: string[];
+  quota?: QuotaInfo & { observedAt: string };   // additive; only when upstream
+                                                // headers were actually received
 }
 ```
 
@@ -147,15 +165,50 @@ Request body: `{ userInput: string }` (`sliderVal` still accepted, unused).
 - Artists = insights entities filtered to `urn:entity:artist` subtype only
   (results are cross-domain; non-artists are never mislabeled).
 - `mapFromEvidence` is a **deterministic, documented rule table** (no LLM).
-- Timeouts: 12 s per upstream call (`AbortSignal.timeout`).
+- Timeouts: 12 s per upstream call (`AbortSignal.timeout`), ≤3 attempts with
+  exponential backoff + jitter; `Retry-After` respected (give up over 10 s);
+  only 408/429/5xx are retried.
+- Requests are issued only on explicit user submit (`app/page.tsx`,
+  `app/studio/page.tsx`) — never on load, keystroke, hover, or animation frame.
+  Bounds per profile: ≤5 searches + ≤3 insights.
+
+### Qloo quota protection (added 2026-10-19)
+
+- **Response cache** (`lib/qloo/cache.ts`, module scope in `route.ts`): TTL LRU
+  (search 24 h, insights 12 h, 500 entries; `QLOO_CACHE_TTL_SEARCH_S`,
+  `QLOO_CACHE_TTL_INSIGHTS_S`, `QLOO_CACHE_MAX_ENTRIES`) with **single-flight**
+  dedupe — concurrent identical requests make one upstream call. Keys are
+  `search|<full url>` and `insights|<full url>` (insight IDs sorted + deduped,
+  so ordering cannot duplicate entries).
+- **Application ceiling** (`lib/qloo/usage.ts`): `QLOO_APP_MONTHLY_BUDGET`
+  (default 9000, hard-clamped ≤9900 — upstream `x-month-ratelimit-limit` is
+  10000), counted per actual attempt incl. retries, checked before every request
+  and every retry (`shouldStop`). Persisted to git-ignored `.qloo-usage.json`
+  (temp+rename; corrupt/unwritable → memory-only, logged once). UTC-month
+  rollover resets counters.
+- **Exhaustion → labeled fallback**: budget hit before/while profiling returns
+  `localFallbackPayload()` with an explicit limitation; no upstream call is made
+  once exhausted.
+- **Transparency**: real `x-month-ratelimit-*` values are attached as
+  `payload.quota` only when an upstream response actually carried them (absent on
+  cache-only runs) and rendered in `SignalAnalysis`.
+- **Logging** is content-free: kind, cache source, statuses, attempt counts,
+  used/budget — never keys, auth headers, URLs with user terms, or term text.
+- **LIMITATION (documented, not claimed away):** cache and budget are
+  **per-process and persisted per machine**. They reduce duplicate and repeat
+  spend but cannot guarantee a global monthly cap across multiple hosts or
+  instances; that would need shared atomic storage, which this project lacks.
 
 ## Failure & fallback ladder
 
 1. `QLOO_API_KEY` missing → `localFallbackPayload()`
-2. A term's `/search` fails → term marked unresolved (other terms continue)
-3. No term resolves → `localFallbackPayload()`
-4. Insights call(s) fail → recorded in `errors`, payload becomes `qloo-partial`
-5. Otherwise → mapped payload, `fallback: false`, `source: qloo` or
+2. **Application budget exhausted** (before start or mid-profile) →
+   `localFallbackPayload()` with explicit budget limitation; no further upstream
+   calls are made
+3. A term's `/search` fails → term marked unresolved (other terms continue)
+4. No term resolves → `localFallbackPayload()`
+5. Insights call(s) fail → recorded in `errors`, payload becomes `qloo-partial`
+6. Otherwise → mapped payload, `fallback: false`, `source: qloo` or
    `qloo-partial` (no evidence / partial signals)
 
 `localFallbackPayload()` = neutral mapping, empty evidence/artists,

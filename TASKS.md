@@ -18,6 +18,18 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 - [!] **Rotate `QLOO_API_KEY`** — same value sits in git history inside `env.txt`
   (old commit `610cf7c`, purged from local+remote history) and was shown in
   terminal output during the original audit. Requires user decision.
+- [x] **Qloo quota protection** (2026-10-19, on top of `f261d65`): bounded TTL
+  response cache + single-flight dedupe (`lib/qloo/cache.ts`); retry/timeout
+  HTTP layer reading real `x-month-ratelimit-*` headers (`lib/qloo/http.ts`);
+  per-process application ceiling `QLOO_APP_MONTHLY_BUDGET` (default 9000,
+  clamped ≤9900) with durable `.qloo-usage.json` counters (`lib/qloo/usage.ts`);
+  extracted testable orchestration (`lib/qloo/profile.ts`) + fallback
+  (`lib/fallback.ts`); additive `payload.quota` shown only when upstream
+  headers were received. **Live-verified:** cold request consumed upstream and
+  exposed real quota (limit 10000 / remaining 9877); immediate repeat was fully
+  cache-served (no upstream call, no `quota` field) with an identical payload.
+- [x] Unit/regression tests — 37 `node:test` cases over cache, http, usage,
+  profile, fallback (`npm test`, `tsconfig.test.json`; no new deps)
 - [x] Lint passes (`npm run lint`)
 - [x] Production build passes (`npm run build`, TypeScript clean, 4 routes:
   `/`, `/_not-found`, `/api/vibe`, `/studio`)
@@ -66,8 +78,10 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 - [x] Fix mojibake string (old dashboard moved to `/studio` unchanged; bug no
       longer in the live path — fix deferred in the preserved view)
 - [x] Real soundtrack section grounded in available API data (artist entities only)
-- [ ] `.env.example` maintenance
-- [ ] Tests (none exist; no test runner configured)
+- [x] `.env.example` maintenance — now also documents `QLOO_APP_MONTHLY_BUDGET`,
+  `QLOO_CACHE_TTL_SEARCH_S`, `QLOO_CACHE_TTL_INSIGHTS_S`, `QLOO_CACHE_MAX_ENTRIES`,
+  `QLOO_USAGE_FILE`
+- [x] Tests — `npm test` (tsc `tsconfig.test.json` + Node 24 `node:test`, 37 cases)
 
 ## Housekeeping / audit leftovers
 

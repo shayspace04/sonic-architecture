@@ -37,7 +37,15 @@ export default function SignalAnalysis({ vibe }: { vibe: VibePayload }) {
             What Qloo actually recognized
           </h2>
         </div>
-        <ProvenanceIndicator source={vibe.reasoning.source} />
+        <div className="flex flex-wrap items-end gap-5">
+          {vibe.quota && vibe.quota.monthLimit !== null && (
+            <p className="font-mono text-xs text-[#A6A0AA]">
+              upstream quota: {vibe.quota.monthLimit - (vibe.quota.monthRemaining ?? vibe.quota.monthLimit)}/
+              {vibe.quota.monthLimit} this month
+            </p>
+          )}
+          <ProvenanceIndicator source={vibe.reasoning.source} />
+        </div>
       </header>
 
       {vibe.fallback && (

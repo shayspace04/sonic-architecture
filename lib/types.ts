@@ -38,6 +38,20 @@ export interface DesignConcept {
   lightingDirection: string;
 }
 
+/**
+ * Upstream quota metadata, read from the real Qloo response headers
+ * (`x-month-ratelimit-*`, `x-second-ratelimit-*`, `x-qloo-request-id`).
+ * Exposed to the UI only when the upstream response actually carried them.
+ */
+export interface QuotaInfo {
+  monthLimit: number | null;
+  monthRemaining: number | null;
+  monthResetSeconds: number | null;
+  secondLimit: number | null;
+  secondRemaining: number | null;
+  requestId: string | null;
+}
+
 export interface VibePayload {
   primaryColorHex: string;
   accentColorHex: string;
@@ -58,4 +72,6 @@ export interface VibePayload {
   concept: DesignConcept;
   limitations: string[];
   errors: string[];
+  /** Optional + additive: present only when this request saw an upstream response carrying quota headers. */
+  quota?: QuotaInfo & { observedAt: string };
 }

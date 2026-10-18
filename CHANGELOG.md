@@ -2,6 +2,49 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-19 (quota protection)
+
+### Added — Qloo quota protection & tests
+
+- **Bounded TTL response cache with single-flight dedupe** (`lib/qloo/cache.ts`):
+  search responses 24 h, insights 12 h, LRU capped at 500 entries (env-
+  configurable); concurrent identical requests share one upstream call; failed
+  loads are never cached. Scoped to one server process (documented limitation).
+- **Retry/timeout-aware HTTP layer** (`lib/qloo/http.ts`): 12 s per-attempt
+  timeout, ≤3 attempts, exponential backoff + jitter, `Retry-After` respected
+  (gives up if > 10 s), retries only 408/429/5xx (never 400/401/403/404), drains
+  failed bodies, never throws. Reads the **real** Qloo quota headers
+  (`x-month-ratelimit-limit/remaining/reset`, `x-second-ratelimit-*`,
+  `x-qloo-request-id`).
+- **Application request ceiling** (`lib/qloo/usage.ts`): `QLOO_APP_MONTHLY_BUDGET`
+  (default 9000, clamped ≤9900 — below the upstream limit of 10000), counted per
+  actual attempt (retries included) with status histogram and UTC-month rollover;
+  durable counters in git-ignored `.qloo-usage.json` (temp+rename; corrupt or
+  unwritable file degrades to memory-only). Checked before **every** upstream
+  attempt via `shouldStop`.
+- **Extracted, testable profile orchestration** (`lib/qloo/profile.ts`) and
+  honest fallback (`lib/fallback.ts`); `app/api/vibe/route.ts` now wires
+  module-scope cache + usage tracker. Insights entity IDs are sorted and
+  deduplicated so request/cache keys are order-independent.
+- **Quota transparency (additive contract)**: `VibePayload.quota?` is attached
+  only when the request actually received upstream headers; shown in
+  `SignalAnalysis` as "upstream quota: used/limit this month". Never present on
+  cache-only runs, never on the fallback path.
+- **Tests**: 37 `node:test` cases (cache TTL/single-flight/LRU/eviction, HTTP
+  retries/backoff/Retry-After/shouldStop/quota parsing, usage budget/clamp/
+  rollover/persistence, profile reuse/caching/concurrency/budget, fallback
+  honesty) via `npm test` (`tsconfig.test.json` → Node 24 native runner, no new
+  deps).
+- **Live verification (2 requests, 1 term)**: cold run → `source: qloo`,
+  8 artists, real headers attached (`limit 10000, remaining 9877`); immediate
+  repeat → identical payload with **no upstream call and no quota field**;
+  `.qloo-usage.json` counted `search 1 / insights 1 / 200×2`.
+- **Docs/config**: `.env.example` documents all quota env vars; `.gitignore`
+  ignores `.qloo-usage.json` + `.test-dist/`; eslint ignores compiled tests.
+- **Limitation (explicit, not claimed away)**: cache and budget are
+  **per-process**, persisted per machine — this is not a global monthly cap
+  across hosts; shared atomic storage would be required for that.
+
 ## 2026-10-19 (later)
 
 ### Added — immersive 3D + sound redesign

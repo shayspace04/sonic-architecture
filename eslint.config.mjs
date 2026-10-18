@@ -22,6 +22,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Compiled test output (tsconfig.test.json outDir):
+    ".test-dist/**",
   ]),
 ]);
 

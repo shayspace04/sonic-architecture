@@ -43,3 +43,10 @@ next-env.d.ts
 
 # local env text
 env.txt
+
+# qloo quota tracking (local, per-machine; never committed)
+.qloo-usage.json
+.qloo-usage.json.tmp
+
+# compiled test output
+.test-dist/
