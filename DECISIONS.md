@@ -46,9 +46,36 @@ question. Do not invent history.
 - Next.js 16.4.2 breaking changes: consult `node_modules/next/dist/docs/` before
   writing Next-specific code (auto-added rule in `AGENTS.md`).
 - No tests or test runner exist; verification = lint + build + targeted live API calls.
-- Qloo host connectivity from this machine is intermittent (see `QLOO_DEBUG.md`);
-  plan for fallback states in demos.
-- Git repo has **no remote**; all work is local.
+- Qloo host connectivity from this machine is fixed (Wi-Fi DNS 8.8.8.8/1.1.1.1);
+  live calls verified working 2026-10-19.
+- Git remote exists: `https://github.com/shayspace04/sonic-architecture` (public),
+  branch `main`.
+
+## Decisions from the landing-page build (2026-10-19, visible in committed code)
+
+11. **Canvas 2D for the signature wave over three.js/R3F.** Rationale: no new
+    dependency, lighter for a hackathon demo, satisfies the "animated, not
+    static" requirement. 3D venue remains an open P2 option. *(Answer to old
+    open question 6.)*
+12. **Old dashboard preserved at `/studio`, not deleted.** Moved via `git mv`;
+    the API payload was extended additively so both views keep working.
+    *(Answer to old open question 3: kept as a secondary "control room" view.)*
+13. **Search requests are filtered to insights-supported `types`** and parsed
+    against the real response shape (`entity_id`, `types[]` array). Discovered
+    live: unfiltered searches match albums/actors that `/v2/insights` rejects
+    with HTTP 400 — this was the root cause of the earlier "Insights failed"
+    errors. *Verified in `route.ts` + live 2026-10-19.*
+14. **Insights `take` replaces `limit`.** `limit` is silently ignored by the
+    API; `take` is the documented parameter. *Verified live.*
+15. **Artist soundtrack = insights entities filtered to
+    `urn:entity:artist` subtype only.** Results are cross-domain (places,
+    brands, shows…); non-artists are never labeled as artists. Empty
+    soundtrack is an honest by-design state.
+16. **Search-hit tags count as Qloo evidence.** Genre/style/theme tags on the
+    matched search hits are merged into the evidence pool alongside insights
+    evidence (still real API data, still labeled provenance `qloo`).
+17. **Multi-term input, one resolved entity per term** (up to 5 terms), with
+    per-term unresolved tracking and honest partial payloads.
 
 ## Security decisions / required actions (pending user input)
 
@@ -71,14 +98,15 @@ question. Do not invent history.
 
 ## Open questions requiring user input
 
-1. Should the key be rotated now, and may I (or you) purge `env.txt` from history?
-2. What network/DNS fix made Qloo work previously (the Windows DNS change in
-   `QLOO_DEBUG.md`)? It is failing again and blocks live verification.
-3. Is the dashboard UI meant to be **kept as a secondary "control room" view**
-   alongside the new landing page, or **fully replaced** by it?
+1. ~~Should the key be rotated now…?~~ — **Rotation still pending user action**
+   (the purge already happened; only rotation remains).
+2. ~~What network/DNS fix made Qloo work…?~~ — **Resolved:** Wi-Fi DNS set to
+   `8.8.8.8` / `1.1.1.1`; live Qloo verified 2026-10-18 and again 2026-10-19.
+3. ~~Dashboard kept or replaced?~~ — **Resolved (decision 12):** kept at
+   `/studio` as a control-room view; `/` is the cinematic landing.
 4. Which provider did the recently expired/rotated OpenCode key belong to? No
    evidence links it to Qloo; assume separate until confirmed.
 5. Where is the approved concept image? It is not in the repo — should it be added
    under `public/` or a `docs/` folder for reference?
-6. 3D venue: is react-three-fiber acceptable, or is a lighter canvas-2D/WebGL
-   approach preferred for the particle wave first?
+6. ~~3D venue: R3F or lighter approach?~~ — **Resolved for now (decision 11):**
+   canvas 2D + SVG shipped; R3F remains a P2 option if time allows.

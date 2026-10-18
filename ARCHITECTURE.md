@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — Sonic Architecture
 
-Snapshot of the actual implementation (audited 2026-10-18). Next.js **16.4.2**
+Snapshot of the actual implementation (updated 2026-10-19). Next.js **16.4.2**
 with Turbopack, React 19.3, TypeScript strict, Tailwind v4, Framer Motion 14.
 
 > Note: `AGENTS.md` carries a Next.js warning that this version has breaking
@@ -14,103 +14,134 @@ with Turbopack, React 19.3, TypeScript strict, Tailwind v4, Framer Motion 14.
 
 | Route | File | Kind | Responsibility |
 |---|---|---|---|
-| `/` | `app/page.tsx` | client component page | Entire UI: input, generate button, 3-col dashboard, audio toggle, hour buttons |
+| `/` | `app/page.tsx` | client component page | Cinematic landing + full journey (hero, input, signals, translation, venue, moodboard, soundtrack, export) |
+| `/studio` | `app/studio/page.tsx` | client component page | Preserved original 3-column dashboard (control-room view) |
 | `/api/vibe` | `app/api/vibe/route.ts` | dynamic POST | Qloo integration + spatial translation; returns `VibePayload` |
-
-No other routes, layouts, or navigation exist.
 
 ## Components & hooks
 
-- `components/SpatialCanvas.tsx` — "use client". Pure **2D SVG** floor plan
-  (room outline, bar block, 6 seats, two glow lights, dimension ticks, footer
-  labels for flooring/seating/temp). Props: `primaryColorHex`, `accentColorHex`,
-  `lightingTemperatureK`, `flooringMaterial`, `seatingFabric`. Animates `fill`
-  and glow radius/opacity with Framer Motion. No interaction, no 3D.
-- `hooks/useAmbientAudio.ts` — "use client". Lazily creates an `AudioContext`
-  with a sine oscillator → lowpass → gain (0.06). `vibeScore` (0–100) maps to
-  frequency 440→120 Hz and cutoff 1200→300 Hz. Suspending/resuming on toggle;
-  full teardown on unmount.
+Landing journey (`/`):
+
+- `components/ResonanceField.tsx` — canvas-2D signature wave field: layered
+  undulating wave grids + drifting particles, DPR-aware, pointer parallax,
+  `intensity` prop (0–1; loading raises it), IntersectionObserver +
+  `document.visibilityState` pause, reduced-motion static frame, full cleanup.
+- `components/CulturalInput.tsx` — "What do you love?" textarea, Enter submit,
+  4 example chips that auto-submit, validation hint, TRANSLATE MY TASTE CTA.
+- `components/ProvenanceIndicator.tsx` — source badge (`qloo` /
+  `qloo-partial` / `local-fallback`).
+- `components/SignalAnalysis.tsx` — entered / resolved / unresolved columns,
+  evidence groups (genres, styles, themes, adjectives, characteristics),
+  limitations + errors, fallback banner.
+- `components/SpatialTranslation.tsx` — 4-step chain, concept thesis,
+  per-field mapping rules list.
+- `components/VenueScene.tsx` — rich 2D SVG venue scene (wash/beam/floor
+  gradients, bar, seats, pendants, glow pools, dust particles), lighting-state
+  presets (morning / golden hour / peak night) driven by `lightingTemperatureK`;
+  labeled "2D — not physically accurate".
+- `components/DesignMoodboard.tsx` — concept title/thesis, palette swatches,
+  materials/light, evidence tags, embedded mini ResonanceField.
+- `components/SoundtrackSection.tsx` — artist entities from insights (honest
+  copy: artists, not tracks; no playback), empty-by-design state with
+  limitation, ambient tone toggle.
+- `components/FinalCta.tsx` — "Step inside your taste." + ENTER VENUE anchor,
+  markdown brief download / copy, create-another-concept.
+
+Shared/legacy:
+
+- `components/SpatialCanvas.tsx` — original 2D SVG floor plan, used by `/studio`.
+- `hooks/useAmbientAudio.ts` — lazily created `AudioContext` sine oscillator →
+  lowpass → gain (0.06); `vibeScore` (0–100) maps to frequency 440→120 Hz and
+  cutoff 1200→300 Hz; play/pause on toggle; full teardown on unmount. Driven
+  from `/` by `lightingTemperatureK`.
+
+## Shared libraries
+
+- `lib/types.ts` — `VibePayload`, `ResolvedEntity`, `CulturalEvidence`,
+  `ArtistRec`, `Track`, `Concept`, `DesignReasoning` (single source of truth
+  imported by both route and UI).
+- `lib/terms.ts` — `parseTasteTerms` (up to `MAX_TERMS = 5`; separators
+  `+ , ; & and with`), `MAX_INPUT_LENGTH`.
+- `lib/spatial-rules.ts` — `mapFromEvidence` (deterministic family detection:
+  electronic / hip-hop / punk / atmospheric / neutral → palette, materials,
+  lighting; concept titles e.g. "VOLTAGE HALL") and `neutralSpatialMapping`.
+- `lib/brief.ts` — `buildDesignBrief` (markdown export) + `downloadBrief`.
 
 ## State management
 
-Local React state only, in `app/page.tsx`: `userInput`, `sliderVal`,
-`activeHour`, `isAudioEnabled`, `isLoading`, `isFallback`, `networkStatus`,
-`currentVibe` (initialized from `DEFAULT_VIBE`). No store, no context, no URL state.
+Local React state in `app/page.tsx`: `vibe`, `isLoading`, `error`, `stage`
+(loading message index), `isAudioEnabled`; refs for request sequencing
+(`seqRef`) and abort (`abortRef`). No store, no context, no URL state.
 
 ## Data contracts
 
-Shared shape (declared independently in both `route.ts` and `page.tsx` — not
-imported from a shared types module; keep them in sync or extract later):
+Declared once in `lib/types.ts` (route and UI import it):
 
 ```ts
-interface Track { title: string; artist: string }
-interface DesignReasoning {
-  source: "qloo" | "qloo-partial" | "local-fallback";
-  evidence: string[];              // matched Qloo tag/adjective names
-  rules: Record<string, string>;   // per-field human-readable rationale
-}
 interface VibePayload {
   primaryColorHex: string; accentColorHex: string;
   lightingTemperatureK: number;
   flooringMaterial: string; seatingFabric: string;
-  tracks: Track[]; menu: string; fallback: boolean;
-  reasoning: DesignReasoning;
+  tracks: Track[]; menu: string; fallback: boolean;   // legacy /studio compat
+  reasoning: DesignReasoning;                          // { source, evidence, rules }
+  // additive fields (new UI + richer API):
+  partial: boolean; submittedTerms: string[];
+  entities: ResolvedEntity[]; unresolvedTerms: string[];
+  evidence: CulturalEvidence; artists: ArtistRec[];
+  concept: Concept; limitations: string[]; errors: string[];
 }
 ```
 
-Request body: `{ userInput: string; sliderVal: number }` (slider currently unused).
+Request body: `{ userInput: string }` (`sliderVal` still accepted, unused).
 
 ## API integration (server-side only)
 
 - Base: `process.env.QLOO_API_URL` (default `https://hackathon.api.qloo.com`)
 - Auth: header `X-Api-Key: process.env.QLOO_API_KEY` — never sent to the client.
-- `GET /search?query=<seed>&types=urn:entity:artist&limit=5`
-- `GET /v2/insights?filter.type=urn:entity:artist&signal.interests.entities=<entityId>&limit=5`
-- Defensive parsing: `firstEntityId`/`firstEntityName` accept
-  `results|data|items|entities` arrays and `id|entity_id|qloo_id` fields, because
-  the exact response envelope has varied.
-- `extractTracks` pulls up to 5 entities → `{title: name|title|Insight N, artist: creator|artist|""}`.
-  In practice these are **artist** entities.
-- `collectEvidence` harvests `tags[].name` bucketed by `tags[].type`
-  (genre/style/theme) plus `properties.adjectives_for_music` and
-  `properties.characteristics`.
-- `mapFromEvidence` is a **deterministic, documented rule table** (no LLM):
-  genre families → palette/material; mood adjectives → lighting temperature.
-  Unrecognized input yields neutral defaults with `source: "qloo-partial"`.
+- `GET /search?query=<term>&types=<supported URN list>&take=5` — the `types`
+  filter limits matches to insights-supported entities; response items use
+  `entity_id` and a `types` **array** (both parsed; first insights-supported
+  type wins; hits with no supported type are skipped).
+- `GET /v2/insights?filter.type=<urn>&signal.interests.entities=<id,id,...>&take=8`
+  — up to `MAX_INSIGHT_CALLS = 3` calls, grouped by entity type, comma-joined
+  signal IDs. (Documented `take` replaces the previously used, silently
+  ignored `limit`.)
+- Evidence = insights tags (`genre`/`style`/`theme` buckets),
+  `properties.adjectives_for_music`, `properties.characteristics`, **plus**
+  genre/style/theme tags on the search hits themselves; merged with dedupe.
+- Artists = insights entities filtered to `urn:entity:artist` subtype only
+  (results are cross-domain; non-artists are never mislabeled).
+- `mapFromEvidence` is a **deterministic, documented rule table** (no LLM).
+- Timeouts: 12 s per upstream call (`AbortSignal.timeout`).
 
 ## Failure & fallback ladder
 
-1. `QLOO_API_KEY` missing → `fallbackPayload()`
-2. `/search` non-2xx or throws → `fallbackPayload()`
-3. No usable entity id → `fallbackPayload()`
-4. `/v2/insights` non-2xx or throws → `fallbackPayload()`
-5. Otherwise → mapped payload, `fallback:false`
+1. `QLOO_API_KEY` missing → `localFallbackPayload()`
+2. A term's `/search` fails → term marked unresolved (other terms continue)
+3. No term resolves → `localFallbackPayload()`
+4. Insights call(s) fail → recorded in `errors`, payload becomes `qloo-partial`
+5. Otherwise → mapped payload, `fallback: false`, `source: qloo` or
+   `qloo-partial` (no evidence / partial signals)
 
-`fallbackPayload()` = grey palette, 4500K, micro-cement/canvas, empty tracks,
-`menu: "Local fallback (Qloo unavailable)."`, `source: "local-fallback"`.
+`localFallbackPayload()` = neutral mapping, empty evidence/artists,
+`source: "local-fallback"`, `fallback: true`, with limitation copy.
 
 ## Rendering / animation strategy
 
-- Tailwind v4 via `@import "tailwindcss"` + `@theme inline` in `app/globals.css`;
-  loaded through the `@tailwindcss/turbopack` loader rule in `next.config.ts`.
-- Framer Motion for opacity/fill/glow tweens. No canvas, no WebGL, no Three.js.
-- The approved signature particle-wave animation will need a new rendering
-  layer (canvas 2D or WebGL/R3F) — nothing in the current stack provides it.
-
-## How the landing page should connect to the venue (target, not built)
-
-`/` becomes the cinematic landing page (hero + "What do you love?" input +
-particle-wave). Submitting the input POSTs to `/api/vibe` as today; the wave
-animation morphs into the venue stage; the 2D `SpatialCanvas` is superseded by
-(or embedded alongside) a 3D venue view; rationale/moodboard/soundtrack panels
-follow; final action "ENTER VENUE" opens the walkthrough. Keep `/api/vibe` and
-its provenance contract intact — only the presentation layer changes.
+- Tailwind v4 via `@import "tailwindcss"` + design tokens (`--sa-*`) in
+  `app/globals.css`; loaded through the `@tailwindcss/turbopack` loader rule.
+- Framer Motion for entrance/section transitions; canvas 2D for the resonance
+  field; SVG for the venue scene and moodboard. **No three.js / R3F** — chosen
+  deliberately (recorded in `DECISIONS.md`); a 3D venue remains a P2 option.
 
 ## Important decisions encoded in code
 
-- Spatial translation is a **local deterministic rule table**, deliberately not an
-  LLM, so every design field can be traced to a named Qloo tag (honesty requirement).
-- Provenance is first-class in the API response (`reasoning`) rather than an
-  afterthought, so the UI can display exactly how grounded a result is.
+- Spatial translation is a **local deterministic rule table**, deliberately not
+  an LLM, so every design field can be traced to a named Qloo tag (honesty
+  requirement).
+- Provenance is first-class in the API response (`reasoning.source`) rather
+  than an afterthought, so the UI can display exactly how grounded a result is.
 - Failing closed to a labeled `local-fallback` (instead of fabricating results)
   is a hard constraint.
+- The soundtrack never claims tracks/playback; only artist entities that
+  Qloo actually returned.
