@@ -2,6 +2,43 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-19 (cursor-reactive meadow world — real assets)
+
+### Changed — the landing is now a living 3D meadow the cursor can disturb
+
+- **`components/three/CloudWorld.tsx` deleted; new
+  `components/three/LandingWorld.tsx`** composes the landing world: displaced
+  meadow terrain + winding path, ~62k instanced wind-shaded grass blades, wild
+  flowers, scattered GLTF trees/bushes/rocks, a procedural concrete+wood
+  pavilion on a knoll, drifting cloud sprites, floating islands, pollen/petals,
+  and a skin-animated walker on the path. Sky HDRI provides image-based
+  lighting; ACES tone mapping, soft shadows, Bloom + Vignette.
+- **New `components/three/world/` module** — `scene.ts` (palette, seeded
+  noise/terrain/path maths, blade/flower geometry, shared `world` state,
+  `windify()` material injection), `assets.ts` (asset catalogue, surface/HDRI
+  loaders, GLTF merge), `Terrain.tsx`, `Vegetation.tsx`, `Sky.tsx`,
+  `Pavilion.tsx`, `Landmarks.tsx`, `Character.tsx`, `Atmosphere.tsx`,
+  `CameraRig.tsx`.
+- **Cursor reactivity is real, not decorative**: a `worldBend()` injection into
+  every foliage material bends grass/flowers away from the pointer (projected
+  onto the ground plane), and the camera adds damped pointer parallax. One
+  shared program (via `customProgramCacheKey`) keeps it cheap.
+- **New bundled CC0 assets** under `public/assets/` (~5.5 MB total): Poly Haven
+  sky HDRI (`env/sky_1k.hdr`), 53 Kenney Nature Kit GLTFs (`nature/`), a
+  Quaternius skinned `char/character.fbx` walker, and downscaled ambientCG
+  grass/ground/concrete/wood PBR maps (`textures/`). Full attribution in
+  `public/assets/ASSET_CREDITS.md` (16 MB → 2.07 MB after re-encoding).
+- **Real-browser verification** (headless Chrome, SwiftShader): zero console
+  errors after fixing an undeclared `uGradient` fragment uniform and migrating
+  `RGBELoader`→`HDRLoader`; scene confirmed rendering (sky ~46% of frame, meadow
+  ~33% green, dark tree/silhouette foreground, pale winding path, floating
+  islands) at 1600×900 and 390×844; pointer moves change **47–55 % of pixels**;
+  submit → labelled `local-fallback` mock venue → "Explore the concept ↓" works
+  with **0** console errors and zero Qloo calls (`?mock=1`).
+- **`components/three/LandingWorld.tsx`** re-exported `WorldPhase`; `app/page.tsx`
+  now imports it from there and the loading copy is "Composing your world…".
+  `components/CulturalInput.tsx` widened to `max-w-3xl`.
+
 ## 2026-10-19 (immersive cloud-world landing)
 
 ### Changed — the landing is now a bright 3D cloud world

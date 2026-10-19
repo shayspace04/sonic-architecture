@@ -1,6 +1,6 @@
 # ARCHITECTURE.md — Sonic Architecture
 
-Snapshot of the actual implementation (updated 2026-10-19, cloud-world landing
+Snapshot of the actual implementation (updated 2026-10-19, meadow-world landing
 added).
 Next.js **16.4.2** with Turbopack, React 19.3, TypeScript strict, Tailwind v4,
 Framer Motion 14, **three 0.186 + @react-three/fiber 9.8 +
@@ -17,7 +17,7 @@ Framer Motion 14, **three 0.186 + @react-three/fiber 9.8 +
 
 | Route | File | Kind | Responsibility |
 |---|---|---|---|
-| `/` | `app/page.tsx` | client component page | Immersive landing (cloud world + centred prompt) → submit → full-screen venue → signals, translation, moodboard, soundtrack, export. Modes `landing` / `travelling` / `venue` |
+| `/` | `app/page.tsx` | client component page | Immersive landing (cursor-reactive meadow world + centred prompt) → submit → full-screen venue → signals, translation, moodboard, soundtrack, export. Modes `landing` / `travelling` / `venue` |
 | `/studio` | `app/studio/page.tsx` | client component page | Preserved original 3-column dashboard (control-room view) |
 | `/api/vibe` | `app/api/vibe/route.ts` | dynamic POST | Qloo integration + spatial translation; returns `VibePayload` |
 
@@ -62,15 +62,33 @@ availability probe and error boundary):
 - `components/three/shared.tsx` — `WebGLBoundary` (class error boundary → 2D
   fallback), `usePrefersReducedMotion` / `useWebGLSupport`
   (`useSyncExternalStore`, SSR-safe).
-- `components/three/CloudWorld.tsx` — **the landing environment**: gradient/sun
-  sky dome, ~15 layered cloud billboards shaded by one CPU-built tiling
-  value-noise `DataTexture` (three small GLSL shaders, no assets), distant
-  floating pavilion + walkway + a tiny walking silhouette, drifting additive
-  dust, and a pointer-parallax camera rig. Phase prop `idle` / `charging` /
-  `travelling` drives speed, warmth and forward push; reduced motion never mounts
-  it (SkyFallback is used instead). Falls back to `SkyFallback`.
+- `components/three/LandingWorld.tsx` — **the landing environment**: the
+  `<Canvas>` composition (lighting, HDRI IBL, fog, Bloom/Vignette, phase-aware
+  `Canvas` settings) that mounts `components/three/world/*`, with a
+  `SilentBoundary` around optional scenery. Phase prop `idle` / `charging` /
+  `travelling`; reduced motion never mounts it (SkyFallback is used instead).
+  Deleted `CloudWorld.tsx` (decision 38).
+- `components/three/world/` — the landing world, split by concern:
+  - `scene.ts` — palette, seeded noise/terrain/path maths, blade/flower
+    geometry, the shared mutable `world` state + `windUniforms`, and `windify()`
+    (injects wind + pointer bend into any `MeshStandardMaterial` via
+    `onBeforeCompile`; one shared program via `customProgramCacheKey`).
+  - `assets.ts` — asset catalogue + groups, `useSurfaces()` (cloned PBR
+    textures), `useSkyEnvironment()` (HDRI → PMREM → `scene.environment`),
+    `useNatureModels()` (GLTF merge to vertex-coloured geometries).
+  - `Terrain.tsx` — displaced meadow plane + winding path ribbon.
+  - `Vegetation.tsx` — `GrassField` (instanced blades), `Blooms`, `NatureScatter`
+    (instanced GLTF trees/bushes/rocks/flowers/props).
+  - `Sky.tsx` — shader sky dome, sun sprite, drifting cloud sprites.
+  - `Pavilion.tsx` — procedural concrete+wood hero pavilion on the knoll.
+  - `Landmarks.tsx` — floating islands + horizon obelisk.
+  - `Character.tsx` — skinned FBX walker following the path (isolated behind
+    `SilentBoundary`).
+  - `Atmosphere.tsx` — pollen, petals, sun shafts.
+  - `CameraRig.tsx` — `WorldClock` (single writer of shared state) + the
+    pointer-parallax/travel camera.
 - `components/three/SonicHero.tsx` — **retained but no longer mounted** (the
-  cloud world replaced it on the landing; decision 36). The dark R3F sound
+  meadow world replaced it on the landing; decisions 36/38). The dark R3F sound
   membrane + `ResonanceField` remain available for reuse.
 - `components/three/Venue3D.tsx` — venue scene: architecture from
   `SceneParams` (columns by openness, portals, bar, seats, pendants), lighting
@@ -240,11 +258,12 @@ Request body: `{ userInput: string }` (`sliderVal` still accepted, unused).
   `app/globals.css`; loaded through the `@tailwindcss/turbopack` loader rule.
 - Framer Motion for entrance/section transitions + the cloud-wipe overlay; SVG
   for the venue fallback and moodboard chrome.
-- **Landing**: a fixed full-viewport `CloudWorld` behind centred copy; on submit
-  the `charging` phase reacts, then a white radial "cloud wipe" covers the
+- **Landing**: a fixed full-viewport `LandingWorld` (cursor-reactive meadow)
+  behind centred copy; pointer/touch move the camera and bend the foliage. On
+  submit the `charging` phase reacts, then a white radial "cloud wipe" covers the
   `travelling` push before the venue mounts. Reduced motion / no WebGL use the
   static `SkyFallback` instead.
-- **3D via react-three-fiber** for the landing cloud world and the venue
+- **3D via react-three-fiber** for the landing meadow world and the venue
   (`components/three/*`), all imported with `next/dynamic` `ssr: false` and a
   2D/CSS loading fallback; a WebGL availability probe + `WebGLBoundary` error
   boundary route failures to `SkyFallback` (landing) / `VenueScene` SVG

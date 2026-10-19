@@ -15,7 +15,7 @@ import { useAmbientAudio } from "@/hooks/useAmbientAudio";
 import type { VibePayload } from "@/lib/types";
 import { neutralSceneParams, sceneParamsFromPayload } from "@/lib/scene-params";
 import { usePrefersReducedMotion, useWebGLSupport } from "@/components/three/shared";
-import type { WorldPhase } from "@/components/three/CloudWorld";
+import type { WorldPhase } from "@/components/three/LandingWorld";
 import { devMockVibe, isDevMockRequested } from "@/lib/dev-mock";
 
 /**
@@ -32,7 +32,7 @@ import { devMockVibe, isDevMockRequested } from "@/lib/dev-mock";
  * keystroke, on hover or during animation ever calls the API.
  */
 
-const CloudWorld = dynamic(() => import("@/components/three/CloudWorld"), {
+const LandingWorld = dynamic(() => import("@/components/three/LandingWorld"), {
   ssr: false,
   loading: () => <SkyFallback />,
 });
@@ -169,7 +169,7 @@ export default function Page() {
       {showWorld && (
         <div className="fixed inset-0 z-0" aria-hidden>
           {webgl && !reducedMotion ? (
-            <CloudWorld phase={worldPhase} reducedMotion={reducedMotion} />
+            <LandingWorld phase={worldPhase} reducedMotion={reducedMotion} />
           ) : (
             <SkyFallback
               note={
@@ -301,7 +301,7 @@ export default function Page() {
                         exit={{ opacity: 0 }}
                         className="sa-ink font-mono text-[11px] tracking-[0.3em] uppercase"
                       >
-                        Finding your cultural frequency…
+                        Composing your world…
                       </motion.p>
                     )}
                     {!isLoading && error && (
@@ -325,9 +325,9 @@ export default function Page() {
             aria-hidden
             className="pointer-events-none fixed inset-0 z-40"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: [0, 0.12, 0.96] }}
             exit={{ opacity: 0 }}
-            transition={{ duration: reducedMotion ? 0.35 : 1.2, ease: EASE }}
+            transition={{ duration: reducedMotion ? 0.35 : 2, times: [0, 0.6, 1], ease: EASE }}
             style={{
               background:
                 "radial-gradient(70% 60% at 50% 46%, rgba(255,255,255,0.98) 0%, rgba(242,248,251,0.94) 42%, rgba(226,237,245,0.86) 100%)",

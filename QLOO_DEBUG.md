@@ -57,9 +57,12 @@ Check terminal for content-free lines such as `[qloo] kind=search cache=upstream
 - Lint, tests (`npm test`), and build pass. Live verification works (DNS fixed 2026-10-18) and was re-run 2026-10-19 with quota protection: the orchestration/parsers now live in `lib/qloo/profile.ts`; the route wires `lib/qloo/{cache,usage}.ts`.
 
 ## Landing request discipline (2026-10-19)
-- The cloud-world landing issues **no** Qloo requests on load, on typing, on
-  hover, or during any animation. Example chips only fill the input; a request
-  happens only on an explicit submit (Enter or `ENTER YOUR WORLD ↗`).
+- The meadow-world landing issues **no** Qloo requests on load, on typing, on
+  hover, on pointer movement, or during any animation. Example chips only fill
+  the input; a request happens only on an explicit submit (Enter or `ENTER YOUR
+  WORLD ↗`).
+- The cursor drives the world (foliage bends, camera parallaxes) through the
+  shared `world` object only — pointer/touch events never touch the network.
 - `generate()` in `app/page.tsx` is guarded by `isLoading`, so a duplicate submit
   while a request is in flight is ignored — one request per intentional submit.
 - `?mock=1` (dev only) short-circuits to `lib/dev-mock.ts` and makes **zero**

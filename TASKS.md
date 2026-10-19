@@ -47,8 +47,28 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
         venue sections + `/studio` (supersedes decision 3 for the landing only)
   - [x] Editorial typography + spaced uppercase labels + frosted/veiled surfaces
 
-- [x] **Immersive cloud-world landing rebuild** (2026-10-19) — `app/page.tsx` +
-  `components/three/CloudWorld.tsx`, `components/SkyFallback.tsx`,
+- [x] **Cursor-reactive meadow world** (2026-10-19) — supersedes the cloud-world
+      landing above. `components/three/LandingWorld.tsx` +
+      `components/three/world/*` (`scene`/`assets`/`Terrain`/`Vegetation`/`Sky`/
+      `Pavilion`/`Landmarks`/`Character`/`Atmosphere`/`CameraRig`);
+      `components/three/CloudWorld.tsx` deleted:
+  - [x] Real bundled CC0 assets (~5.5 MB): Poly Haven sky HDRI, 53 Kenney Nature
+        Kit GLTFs, a Quaternius skinned walker (FBX), downscaled ambientCG
+        grass/ground/concrete/wood PBR maps — all attributed in
+        `public/assets/ASSET_CREDITS.md`
+  - [x] Displaced meadow terrain + winding path, ~62k (18k mobile) instanced
+        wind-shaded grass blades, wild flowers, scattered trees/bushes/rocks,
+        procedural concrete+wood pavilion on a knoll, drifting clouds, floating
+        islands, pollen/petals, skinned walker on the path, HDRI IBL + ACES +
+        soft shadows + Bloom/Vignette
+  - [x] **Cursor-reactive** `worldBend()` foliage shader (pointer raycast onto
+        the ground) + damped camera parallax; one shared program via
+        `customProgramCacheKey`
+  - [x] Verified in headless Chrome: 0 console errors at 1600×900 and 390×844,
+        pointer moves change 47–55 % of pixels, submit journey reaches the
+        labelled mock venue with 0 errors and 0 Qloo calls
+- [x] **Immersive cloud-world landing rebuild** (superseded 2026-10-19) —
+  `app/page.tsx` + `components/three/CloudWorld.tsx`, `components/SkyFallback.tsx`,
   `components/CulturalInput.tsx`, `lib/dev-mock.ts`:
   - [x] Full-viewport procedural 3D sky: gradient/sun dome, ~15 layered
         noise-shader cloud billboards (different depths/speeds), distant floating

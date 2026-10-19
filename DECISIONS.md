@@ -192,6 +192,46 @@ question. Do not invent history.
     unavailable, and as the static frame under `prefers-reduced-motion` — never
     a blank or broken canvas.
 
+## Decisions from the meadow-world landing rebuild (2026-10-19, visible in committed code)
+
+38. **The landing world is now an asset-backed 3D meadow, not a procedural sky.**
+    `components/three/CloudWorld.tsx` was deleted and replaced by
+    `components/three/LandingWorld.tsx` + the `components/three/world/` module.
+    Supersedes decisions 32 and 36 for the landing: the brief asked for a lush,
+    grounded, cursor-reactive world built from *real* 3D assets rather than
+    billboard clouds. Decision 31 (bright airy palette) still holds.
+39. **Assets are reputable CC0 sources only, recorded in
+    `public/assets/ASSET_CREDITS.md`.** Poly Haven (Kloofendal sky HDRI, Greg
+    Zaal, CC0), Kenney Nature Kit GLTF (CC0), Quaternius Ultimate Animated
+    Character Pack FBX (CC0), ambientCG Grass003/Ground003/Concrete010/Wood013
+    (CC0). No login/paywall bypass — Sketchfab/Mixamo were rejected because they
+    require accounts. Textures were downscaled/re-encoded (16 MB → 2.07 MB);
+    total new payload ≈ 5.5 MB.
+40. **Cursor reactivity is a shader effect, not a gimmick.** `windify()` injects
+    a `worldBend()` into any `MeshStandardMaterial` via `onBeforeCompile`, so
+    instanced foliage bends away from the pointer (raycast onto the ground
+    plane) while keeping correct lighting, shadows, fog and tone mapping. All
+    windified materials share one program through
+    `customProgramCacheKey = "sonic-wind"`.
+41. **The pointer drives the camera and the foliage, but never the network.**
+    Pointer/touch listeners are attached at `window` level (so the HTML overlay
+    cannot swallow them) and only write to the shared `world` object. No
+    animation, cursor move, scroll or render ever issues a Qloo request;
+    `generate()` remains the single guarded submit path (decision 34 unchanged).
+42. **Shared mutable `world` state + a single writer.** `WorldClock` is the only
+    component that advances `world.time/travel/wind/warmth` and the shared
+    `windUniforms`; every other layer reads them. This keeps phases (`idle` /
+    `charging` / `travelling`) coherent without ref threading.
+43. **Mobile uses reduced counts, not a different scene.** Grass 62k→18k, blooms
+    4200→1400 and scatter counts drop via `window.innerWidth < 768`, and DPR is
+    capped at 1.5. Reduced motion mounts none of it and uses `SkyFallback`
+    instead, as before.
+44. **Verification is by rendered output, not build success.** The landing was
+    checked in headless Chrome (SwiftShader) with console capture and
+    pixel-statistics/pixel-diff analysis because a green build proves nothing
+    about the visual. Known visuals to remember: venue `peak night` is
+    intentionally near-black (`#0A0810`, ambient 0.15) per the mock preset.
+
 ## Security decisions / required actions (pending user input)
 
 - **Rotate the Qloo API key — STILL PENDING.** The old key was committed in

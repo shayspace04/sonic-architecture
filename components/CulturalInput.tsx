@@ -38,7 +38,7 @@ export default function CulturalInput({ onSubmit, isLoading, initial = "" }: Cul
   };
 
   return (
-    <div className="w-full max-w-2xl">
+    <div className="w-full max-w-3xl">
       <div
         className={`sa-frost sa-cast rounded-[26px] transition-all duration-300 ${
           isLoading ? "scale-[0.995] opacity-90" : "hover:shadow-[0_26px_80px_rgba(38,54,74,0.22)]"

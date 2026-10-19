@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md — Sonic Architecture
 
-Last audited: 2026-10-19 (after the immersive cloud-world landing rebuild).
+Last audited: 2026-10-19 (after the cursor-reactive meadow-world landing rebuild).
 Read this before making any change. Verify claims against code, not history.
 
 **Repo:** local `main` ↔ remote `https://github.com/shayspace04/sonic-architecture` (**public**)
@@ -40,17 +40,24 @@ Two registers, one journey. The **landing** is bright/airy; the **venue and
 `/studio`** keep the dark register, so entering the venue reads as emerging into
 another world.
 
-**Landing — immersive cloud world (updated 2026-10-19, supersedes the old
-dark hero for the landing only):**
+**Landing — cursor-reactive meadow world (updated 2026-10-19, supersedes the
+cloud world for the landing only):**
 
-- Bright, dreamlike, spatial: sky blue `#BFE8F5`, powder `#D9F1F7`, cloud white
-  `#F7FBFC`, misty lavender `#DCD8F4`, periwinkle `#AAA9EF`, peach sunlight
-  `#FFE1CB`, deep blue-grey type `#26364A`. **No black background, no
+- Bright, airy, grounded: sky blue, powder, cloud white, misty lavender,
+  periwinkle, peach sunlight, deep blue-grey type `#26364A`, with muted greens,
+  ivory and restrained acid-lime/UV accents. **No black background, no
   acid-lime/UV dominance on the landing.**
-- Full-viewport procedural 3D sky — `components/three/CloudWorld.tsx` (gradient/
-  sun sky dome, layered noise-shader cloud billboards, floating pavilion +
-  walkway + tiny silhouette, dust, pointer-parallax camera). Continuous slow
-  drift, never a reactive visualiser. No image/video assets.
+- Full-viewport **real 3D** world — `components/three/LandingWorld.tsx` +
+  `components/three/world/*`: displaced meadow terrain + winding path, ~62k
+  (~18k mobile) instanced wind-shaded grass blades, wild flowers, scattered GLTF
+  trees/bushes/rocks, a procedural pavilion on a knoll, drifting clouds,
+  floating islands, pollen/petals/light shafts, and a skinned walker on the
+  path. Poly Haven sky HDRI drives image-based lighting; ACES tone mapping,
+  soft shadows, Bloom + Vignette. **The cursor matters**: foliage bends away
+  from the pointer (raycast onto the ground) and the camera adds damped
+  parallax — but only pointer *input*, never a network call.
+- Bundled CC0 assets (~5.5 MB) under `public/assets/`, all attributed in
+  `public/assets/ASSET_CREDITS.md`.
 - Centred copy: eyebrow `A NEW WAY TO EXPERIENCE CULTURE`, `SONIC ARCHITECTURE`,
   "Your taste has a world of its own.", "Tell us what moves you…", the floating
   frosted prompt "A film, an artist, a place, a feeling..." and `ENTER YOUR
@@ -59,8 +66,9 @@ dark hero for the landing only):**
   **full-screen venue** (`Venue3D fill`) → "Explore the concept ↓" → signals →
   translation → moodboard → soundtrack → export.
 - Reduced motion / no WebGL / loading → intentional CSS `SkyFallback.tsx`.
-- `components/three/SonicHero.tsx` (dark sound-membrane hero) is **retained but
-  no longer mounted**; `ResonanceField.tsx` is still used by `DesignMoodboard`.
+- `components/three/CloudWorld.tsx` **deleted**; `components/three/SonicHero.tsx`
+  (dark sound-membrane hero) is **retained but no longer mounted**;
+  `ResonanceField.tsx` is still used by `DesignMoodboard`.
 
 **Venue sections & `/studio` — dark register (unchanged):**
 
@@ -77,14 +85,15 @@ dark hero for the landing only):**
 
 | Path | Role | State |
 |---|---|---|
-| `app/page.tsx` | Cloud-world landing + full journey orchestrator | Rewritten 2026-10-19; modes landing/travelling/venue, race-safe fetch, guarded single submit, error/reset/export |
+| `app/page.tsx` | Meadow-world landing + full journey orchestrator | Rewritten 2026-10-19; modes landing/travelling/venue, race-safe fetch, guarded single submit, error/reset/export |
 | `app/studio/page.tsx` | Original 3-col dashboard (moved via `git mv`) | Preserved, still works (additive payload) |
 | `app/api/vibe/route.ts` | Qloo multi-domain search → insights → evidence → mapping | Live-verified 2026-10-19; wires module-scope cache + usage ceiling |
 | `lib/{types,terms,spatial-rules,scene-params,brief}.ts` | Shared types, term parsing, mapping rules, 3D scene params, brief export | New |
 | `lib/qloo/{cache,http,usage,profile}.ts` | TTL cache + single-flight, retry/timeout + quota headers, request ceiling + counters, extracted orchestration | New (quota protection) |
 | `lib/fallback.ts` | Honest `localFallbackPayload()` (extracted from route) | New |
 | `tests/*.test.ts` + `tsconfig.test.json` | `npm test` — 37 Node `node:test` cases (cache/http/usage/profile/fallback) | New |
-| `components/three/CloudWorld.tsx` | Landing's full-viewport procedural cloud world (sky/clouds/structure/dust/camera) | New 2026-10-19 |
+| `components/three/LandingWorld.tsx` + `components/three/world/*` | Landing's full-viewport meadow world (terrain, instanced vegetation, pavilion, islands, walker, atmosphere, pointer-driven camera) | New 2026-10-19 (replaces `CloudWorld.tsx`) |
+| `public/assets/` | Bundled CC0 world assets (sky HDRI, Kenney GLTFs, Quaternius FBX, ambientCG PBR maps) + `ASSET_CREDITS.md` | New 2026-10-19 (~5.5 MB) |
 | `components/SkyFallback.tsx` | Pure-CSS sky for loading, no-WebGL and reduced-motion | New 2026-10-19 |
 | `lib/dev-mock.ts` | Dev-only `?mock=1` preview payload (labelled "not Qloo data") | New 2026-10-19 |
 | `components/ResonanceField.tsx` | Canvas-2D wave field (used by `DesignMoodboard`) | Existing |
@@ -121,7 +130,7 @@ userInput (free text) ──POST /api/vibe──▶ server
   7. budget: every attempt counted; ceiling checked before each request/retry
      (exhausted → labeled local-fallback, no upstream call)
   8. payload.quota attached only if THIS request saw upstream quota headers
-client ──▶ landing (CloudWorld sky + frosted prompt); on submit the world
+client ──▶ landing (cursor-reactive meadow world + frosted prompt); on submit the world
    reacts (charging) ──▶ forward push (travelling) + CSS cloud-wipe ──▶
    full-screen Venue3D (SVG fallback) [sceneParamsFromPayload() drives it] ──▶
    SignalAnalysis → SpatialTranslation → DesignMoodboard → SoundtrackSection →
@@ -170,14 +179,21 @@ Provenance values: `qloo` (evidence-backed mapping), `qloo-partial`
   (preserved view; the live `/` path uses `Venue3D` presets instead).
 - Venue is 3D via R3F with an SVG `VenueScene` fallback labeled "not
   physically accurate"; no first-person walkthrough (orbit only).
-- Headless screenshots were captured but **not visually inspected** in the
-  2026-10-19 session (verified only by pixel statistics). The cloud-world landing
-  was verified by SSR render + lint/test/build only — it has **not** been seen in
-  a real browser (WebGL visuals unconfirmed), and mobile/desktop composition of
-  the new scene still needs a visual pass.
-- Cloud-world cloud density/particle counts adapt once to `window.innerWidth`
-  (<768 px → fewer clouds); the scene is procedural, so tuning is by shader
-  constants in `components/three/CloudWorld.tsx`.
+- **Landing rendered-state was verified programmatically, not by a human eye.**
+  Headless Chrome (SwiftShader) + console capture confirmed: 0 console errors
+  after fixing an undeclared `uGradient` uniform and migrating `RGBELoader` →
+  `HDRLoader`; a plausible meadow composition at 1600×900 and 390×844 (sky
+  ~46 % / meadow green ~33 % / pale winding path / dark foreground tree);
+  pointer moves change **47–55 % of pixels** (reactivity); submit → labelled
+  `local-fallback` mock venue → "Explore the concept ↓" with 0 errors and 0
+  Qloo calls. The images themselves have **not** been seen by a human — art
+  direction, exact framing and polish are unconfirmed.
+- Venue `peak night` is intentionally near-black (`#0A0810`, ambient 0.15) —
+  the mock preset; other lighting presets are brighter.
+- Meadow vegetation counts adapt once to `window.innerWidth` (<768 px → ~18k
+  grass, fewer trees). Tuning lives in `components/three/world/*`
+  (`Vegetation.tsx` counts, `scene.ts` palette/terrain, `LandingWorld.tsx`
+  lighting/fog).
 - Soundtrack is empty when insights return no artist subtypes (honest
   empty-by-design; not a bug).
 - Coarse mapping: genre-family rules can produce surprising-but-honest results
