@@ -19,6 +19,9 @@ question. Do not invent history.
    input "What do you love?"; 7-part page narrative ending in "ENTER VENUE".
    A static image is **not** an acceptable substitute for the animation.
    *Source: handoff brief, stated as already approved.*
+   **Superseded for the landing only (see decision 31, 2026-10-19):** the
+   dark/acid-lime direction now applies to the venue sections and `/studio`;
+   the landing itself is a bright, airy cloud world.
 4. **The landing page must be animated**, cinematic, art-studio-like — explicitly
    not a SaaS landing page or analytics dashboard. *Source: handoff brief.*
 5. **Do not rebuild from scratch / do not duplicate the venue.** Extend what exists.
@@ -145,6 +148,49 @@ question. Do not invent history.
     output) rather than adding Jest/Vitest — the repo had no runner configured,
     the built-in one needs no new dependencies, and all new `lib/**` modules use
     relative imports so they compile standalone without the `@/` alias.
+
+## Decisions from the cloud-world landing rebuild (2026-10-19, visible in committed code)
+
+31. **The landing is now a bright, airy, dreamlike cloud world** — pale sky blue
+    `#BFE8F5`, powder `#D9F1F7`, cloud white `#F7FBFC`, misty lavender `#DCD8F4`,
+    periwinkle `#AAA9EF`, peach sunlight `#FFE1CB`, deep blue-grey type `#26364A`.
+    No black background, no acid-lime/UV dominance on the landing. This
+    **supersedes decision 3 for the landing only**: the venue sections and
+    `/studio` keep the dark direction, so the venue reads as "emerging into
+    another world". Light tokens live alongside the dark ones in `globals.css`
+    (`--sa-ink`, `--sa-*` atmosphere tokens), so nothing dark was removed.
+32. **The cloud world is fully procedural** — one CPU-built tiling value-noise
+    `DataTexture` (three shaders: sky dome gradient+sun, cloud billboards,
+    points dust), layers of transparent cloud planes at different depths and
+    speeds, distant floating architecture and a tiny silhouette on a walkway.
+    No image, video or stock assets. Rationale: no asset weight, art-directed
+    depth, and it is genuinely 3D rather than a scaled 2D backdrop.
+33. **States are a client machine `landing → travelling → venue`** in `app/page.tsx`.
+    The single `/api/vibe` request happens only on an explicit submit; while it
+    is in flight the world reacts (`CloudWorld` phase `charging`: thickens,
+    warms, slows), then `travelling` (forward camera push) is covered by a CSS
+    cloud-wipe before the venue mounts edge-to-edge. Nothing spins the camera
+    reactively per keystroke or per audio sample on the landing.
+34. **Qloo-safety on the landing**: example pills only *fill* the prompt (they
+    never submit), `generate()` is guarded by `isLoading` so a double submit is
+    ignored, and there are no mount/keystroke/hover/polling requests. A
+    `?mock=1` dev-only preview (`lib/dev-mock.ts`, gated on
+    `NODE_ENV !== "production"`) returns an explicitly labelled
+    `local-fallback` payload so the transition and venue can be iterated with
+    **zero** Qloo credits; it is never reachable in a production build and is
+    labelled "not Qloo data" wherever it surfaces.
+35. **`Venue3D` gained a `fill` prop** to render edge-to-edge (no aspect box,
+    no border) for the full-screen venue. The default (bordered aspect box) is
+    unchanged, so `/studio` is untouched.
+36. **`SonicHero.tsx` is retained but no longer mounted.** The landing hero is
+    now `CloudWorld`; the old dark R3F wave is kept in the tree (spec: do not
+    destroy existing work) rather than deleted. `ResonanceField` (canvas 2D) is
+    still used by `DesignMoodboard` and remains the honest 2D fallback.
+37. **Reduced motion and no-WebGL get the same intentional composition.**
+    `components/SkyFallback.tsx` (pure CSS sky: gradient, sun wash, drifting
+    blobs, distant pavilion) is used for the loading window, when WebGL is
+    unavailable, and as the static frame under `prefers-reduced-motion` — never
+    a blank or broken canvas.
 
 ## Security decisions / required actions (pending user input)
 

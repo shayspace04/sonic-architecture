@@ -1,6 +1,7 @@
 # ARCHITECTURE.md — Sonic Architecture
 
-Snapshot of the actual implementation (updated 2026-10-19, 3D layer added).
+Snapshot of the actual implementation (updated 2026-10-19, cloud-world landing
+added).
 Next.js **16.4.2** with Turbopack, React 19.3, TypeScript strict, Tailwind v4,
 Framer Motion 14, **three 0.186 + @react-three/fiber 9.8 +
 @react-three/postprocessing 3.2**.
@@ -16,7 +17,7 @@ Framer Motion 14, **three 0.186 + @react-three/fiber 9.8 +
 
 | Route | File | Kind | Responsibility |
 |---|---|---|---|
-| `/` | `app/page.tsx` | client component page | Cinematic landing + full journey (hero, input, signals, translation, venue, moodboard, soundtrack, export) |
+| `/` | `app/page.tsx` | client component page | Immersive landing (cloud world + centred prompt) → submit → full-screen venue → signals, translation, moodboard, soundtrack, export. Modes `landing` / `travelling` / `venue` |
 | `/studio` | `app/studio/page.tsx` | client component page | Preserved original 3-column dashboard (control-room view) |
 | `/api/vibe` | `app/api/vibe/route.ts` | dynamic POST | Qloo integration + spatial translation; returns `VibePayload` |
 
@@ -28,8 +29,10 @@ Landing journey (`/`):
   undulating wave grids + drifting particles, DPR-aware, pointer parallax,
   `intensity` prop (0–1; loading raises it), IntersectionObserver +
   `document.visibilityState` pause, reduced-motion static frame, full cleanup.
-- `components/CulturalInput.tsx` — "What do you love?" textarea, Enter submit,
-  4 example chips that auto-submit, validation hint, TRANSLATE MY TASTE CTA.
+- `components/CulturalInput.tsx` — the floating frosted prompt: single auto-grow
+  textarea (Enter submits, Shift+Enter newline), ink CTA "Enter your world ↗",
+  validation hint, and 4 example chips. Qloo-safety: the chips only **fill** the
+  field (no auto-submit) so a request still requires an explicit submit.
 - `components/ProvenanceIndicator.tsx` — source badge (`qloo` /
   `qloo-partial` / `local-fallback`).
 - `components/SignalAnalysis.tsx` — entered / resolved / unresolved columns,
@@ -49,22 +52,32 @@ Landing journey (`/`):
 - `components/FinalCta.tsx` — "Step inside your taste." + ENTER VENUE anchor,
   markdown brief download / copy, create-another-concept.
 
+- `components/SkyFallback.tsx` — pure-CSS sky (gradient, sun wash, drifting
+  blobs, distant pavilion). Used as the dynamic-import loading state, the
+  no-WebGL path, and the static frame under `prefers-reduced-motion`.
+
 3D layer (loaded with `next/dynamic` `ssr: false`; each behind a WebGL
 availability probe and error boundary):
 
 - `components/three/shared.tsx` — `WebGLBoundary` (class error boundary → 2D
   fallback), `usePrefersReducedMotion` / `useWebGLSupport`
   (`useSyncExternalStore`, SSR-safe).
-- `components/three/SonicHero.tsx` — hero scene: shared-GLSL sound membrane
-  (points + contour strips + dust), phase machine (`resonance` / `charging` /
-  `forming` morphing the field into three portal rings), damped camera rig with
-  pointer parallax and real `AnalyserNode` bass input, Bloom + Vignette.
-  Default export falls back to `ResonanceField`.
+- `components/three/CloudWorld.tsx` — **the landing environment**: gradient/sun
+  sky dome, ~15 layered cloud billboards shaded by one CPU-built tiling
+  value-noise `DataTexture` (three small GLSL shaders, no assets), distant
+  floating pavilion + walkway + a tiny walking silhouette, drifting additive
+  dust, and a pointer-parallax camera rig. Phase prop `idle` / `charging` /
+  `travelling` drives speed, warmth and forward push; reduced motion never mounts
+  it (SkyFallback is used instead). Falls back to `SkyFallback`.
+- `components/three/SonicHero.tsx` — **retained but no longer mounted** (the
+  cloud world replaced it on the landing; decision 36). The dark R3F sound
+  membrane + `ResonanceField` remain available for reuse.
 - `components/three/Venue3D.tsx` — venue scene: architecture from
   `SceneParams` (columns by openness, portals, bar, seats, pendants), lighting
   presets + haze + gloss/matte controls, hand-rolled orbit rig (exploring,
   `touch-action: pan-y` for mobile scroll, reduced-motion aware), material
-  study panel. Falls back to `VenueScene` SVG.
+  study panel. `fill` prop renders it edge-to-edge for the full-screen venue.
+  Falls back to `VenueScene` SVG.
 - `components/DesignMoodboard.tsx` — editorial layered grid (palette strip,
   CSS material chips from flooring/seating strings, lighting-study gradient,
   principles, cultural references).
@@ -114,15 +127,20 @@ Shared/legacy:
 - `lib/fallback.ts` — `localFallbackPayload` (labeled `local-fallback`, neutral
   mapping, no fabricated entities).
 - `lib/brief.ts` — `buildDesignBrief` (markdown export) + `downloadBrief`.
+- `lib/dev-mock.ts` — `isDevMockRequested(search)` / `devMockVibe()`: a
+  dev-only (`NODE_ENV !== "production"`) `?mock=1` preview payload, explicitly
+  labelled `local-fallback` / "not Qloo data". Lets the transition and venue be
+  iterated with **zero** Qloo credits; never reachable in a production build.
 
 ## State management
 
-Local React state in `app/page.tsx`: `vibe`, `isLoading`, `error`, `stage`
-(loading message index), `isAudioEnabled`, `heroPhase`
-(`resonance`/`charging`/`forming`); refs for request sequencing (`seqRef`),
-abort (`abortRef`), and the shared audio `analyserRef`. WebGL support and
-prefers-reduced-motion come from `useSyncExternalStore`. No store, no context,
-no URL state.
+Local React state in `app/page.tsx`: `mode` (`landing` / `travelling` /
+`venue`), `vibe`, `isLoading`, `error`, `isAudioEnabled`; refs for request
+sequencing (`seqRef`), abort (`abortRef`), the reveal timer (`timerRef`) and the
+shared audio `analyserRef`. WebGL support and prefers-reduced-motion come from
+`useSyncExternalStore`; the `?mock=1` dev flag is read with
+`useSyncExternalStore` (SSR snapshot `""`) to avoid hydration mismatch and
+setState-in-effect. No store, no context, no global URL state.
 
 ## Data contracts
 
@@ -169,8 +187,10 @@ Request body: `{ userInput: string }` (`sliderVal` still accepted, unused).
   exponential backoff + jitter; `Retry-After` respected (give up over 10 s);
   only 408/429/5xx are retried.
 - Requests are issued only on explicit user submit (`app/page.tsx`,
-  `app/studio/page.tsx`) — never on load, keystroke, hover, or animation frame.
-  Bounds per profile: ≤5 searches + ≤3 insights.
+  `app/studio/page.tsx`) — never on load, keystroke, hover, animation frame, or
+  when an example chip is clicked (chips only fill the field). `generate()` is
+  guarded by `isLoading` so a double submit is ignored; the `?mock=1` dev preview
+  issues no upstream request at all. Bounds per profile: ≤5 searches + ≤3 insights.
 
 ### Qloo quota protection (added 2026-10-19)
 
@@ -218,14 +238,18 @@ Request body: `{ userInput: string }` (`sliderVal` still accepted, unused).
 
 - Tailwind v4 via `@import "tailwindcss"` + design tokens (`--sa-*`) in
   `app/globals.css`; loaded through the `@tailwindcss/turbopack` loader rule.
-- Framer Motion for entrance/section transitions; SVG for the venue fallback
-  and moodboard chrome.
-- **3D via react-three-fiber** for the hero membrane and the venue
+- Framer Motion for entrance/section transitions + the cloud-wipe overlay; SVG
+  for the venue fallback and moodboard chrome.
+- **Landing**: a fixed full-viewport `CloudWorld` behind centred copy; on submit
+  the `charging` phase reacts, then a white radial "cloud wipe" covers the
+  `travelling` push before the venue mounts. Reduced motion / no WebGL use the
+  static `SkyFallback` instead.
+- **3D via react-three-fiber** for the landing cloud world and the venue
   (`components/three/*`), all imported with `next/dynamic` `ssr: false` and a
-  2D loading fallback; a WebGL availability probe + `WebGLBoundary` error
-  boundary route failures to `ResonanceField` (hero) / `VenueScene` SVG
-  (venue). Canvas-2D `ResonanceField` remains the no-WebGL path and the
-  loading state (decision 11 superseded by decision 18 in `DECISIONS.md`).
+  2D/CSS loading fallback; a WebGL availability probe + `WebGLBoundary` error
+  boundary route failures to `SkyFallback` (landing) / `VenueScene` SVG
+  (venue). Canvas-2D `ResonanceField` remains the honest 2D fallback still used
+  by `DesignMoodboard` (decisions 11 → 18 → 33 in `DECISIONS.md`).
 - ESLint: `react-hooks/immutability` disabled **only** for
   `components/three/**` — WebGL uniforms/cameras/canvas styles are mutated per
   frame by design; UI code keeps the rule enabled.

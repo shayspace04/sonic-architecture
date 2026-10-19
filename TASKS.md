@@ -33,14 +33,39 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 - [x] Lint passes (`npm run lint`)
 - [x] Production build passes (`npm run build`, TypeScript clean, 4 routes:
   `/`, `/_not-found`, `/api/vibe`, `/studio`)
+- [x] Landing rebuild re-verified: `npm run lint` clean, `npm test` 37/37,
+  `npm run build` clean; `/` and `/studio` both HTTP 200 in dev
 
 ## P1 — Essential demo experience
 
 - [x] **Cinematic landing page** as the entry point (`app/page.tsx`):
-  - [x] Hero: `SONIC ARCHITECTURE` / "Your taste has a frequency."
-  - [x] Input: "What do you love?" + supporting line + 4 example prompts
-  - [x] Near-black / acid-lime `#D5FF3F` / violet / warm-white design tokens in `globals.css`
-  - [x] Editorial typography + spaced uppercase labels + smoked-glass surfaces
+  - [x] Hero: `SONIC ARCHITECTURE` / "Your taste has a world of its own."
+  - [x] Input: "A film, an artist, a place, a feeling..." + supporting line + 4 example prompts
+  - [x] Design tokens in `globals.css` — **landing is now the bright cloud palette**
+        (sky/powder/cloud/lavender/periwinkle/peach/ink); the dark
+        near-black + acid-lime `#D5FF3F` + violet tokens remain and now style the
+        venue sections + `/studio` (supersedes decision 3 for the landing only)
+  - [x] Editorial typography + spaced uppercase labels + frosted/veiled surfaces
+
+- [x] **Immersive cloud-world landing rebuild** (2026-10-19) — `app/page.tsx` +
+  `components/three/CloudWorld.tsx`, `components/SkyFallback.tsx`,
+  `components/CulturalInput.tsx`, `lib/dev-mock.ts`:
+  - [x] Full-viewport procedural 3D sky: gradient/sun dome, ~15 layered
+        noise-shader cloud billboards (different depths/speeds), distant floating
+        pavilion + walkway + tiny walking silhouette, drifting dust,
+        pointer-parallax camera. No image/video assets, no new dependencies.
+  - [x] Continuous slow drift + gentle camera motion; never a reactive visualiser
+  - [x] Centred copy + frosted floating prompt (eyebrow, `SONIC ARCHITECTURE`,
+        "Your taste has a world of its own.", description, `ENTER YOUR WORLD ↗`)
+  - [x] Submit → `charging` world reaction → `travelling` forward push → CSS
+        cloud-wipe → full-screen venue (`Venue3D` `fill` prop) + "Explore the
+        concept ↓" then the existing editorial sections below
+  - [x] Reduced motion / no WebGL / loading → intentional CSS `SkyFallback`
+  - [x] Qloo-safety: example chips fill the field (no auto-submit), single
+        guarded request per submit, no load/keystroke/hover/poll requests;
+        `?mock=1` dev-only labelled preview for zero-credit iteration
+  - [x] `SonicHero.tsx` retained but no longer mounted; `ResonanceField` still
+        used by `DesignMoodboard`
 - [x] **Signature particle-wave animation** — `components/ResonanceField.tsx`
   (canvas 2D, layered undulating wave grids, pointer parallax, intensity prop,
   DPR-aware, reduced-motion static frame, IntersectionObserver + visibility

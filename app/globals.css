@@ -10,6 +10,19 @@
   --sa-line: rgba(244, 240, 232, 0.08);
   --sa-glass: rgba(21, 16, 24, 0.55);
 
+  /* Landing "cloud world" atmosphere (bright / airy). */
+  --sa-ink: #26364a;
+  --sa-ink-soft: #4a5b72;
+  --sa-sky-blue: #bfe8f5;
+  --sa-powder: #d9f1f7;
+  --sa-cloud: #f7fbfc;
+  --sa-lavender: #dcd8f4;
+  --sa-periwinkle: #aaa9ef;
+  --sa-peach: #ffe1cb;
+  --sa-frost: rgba(255, 255, 255, 0.42);
+  --sa-frost-line: rgba(255, 255, 255, 0.7);
+  --sa-frost-shadow: rgba(38, 54, 74, 0.18);
+
   --background: var(--sa-charcoal);
   --foreground: var(--sa-white);
 
@@ -28,6 +41,14 @@
   --color-muted: var(--sa-gray);
   --color-plum: var(--sa-plum);
   --color-line: var(--sa-line);
+  --color-ink: var(--sa-ink);
+  --color-inksoft: var(--sa-ink-soft);
+  --color-sky: var(--sa-sky-blue);
+  --color-powder: var(--sa-powder);
+  --color-cloud: var(--sa-cloud);
+  --color-lavender: var(--sa-lavender);
+  --color-periwinkle: var(--sa-periwinkle);
+  --color-peach: var(--sa-peach);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
 }
@@ -83,4 +104,105 @@ body {
 
 .sa-rule {
   border-color: var(--sa-line);
+}
+
+/* ---------------------------------------------------------------------------
+   Landing atmosphere — bright, airy, dreamlike ("cloud world").
+   Token-based so the dark venue sections below keep their own look.
+--------------------------------------------------------------------------- */
+
+.sa-ink {
+  color: var(--sa-ink);
+}
+
+.sa-ink-soft {
+  color: var(--sa-ink-soft);
+}
+
+/* Frosted translucent surface used by the floating prompt object. */
+.sa-frost {
+  background: var(--sa-frost);
+  border: 1px solid var(--sa-frost-line);
+  backdrop-filter: blur(20px) saturate(1.25);
+  -webkit-backdrop-filter: blur(20px) saturate(1.25);
+  box-shadow:
+    0 22px 70px var(--sa-frost-shadow),
+    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+}
+
+/* Soft local light behind the centred copy so text stays legible on cloud. */
+.sa-veil {
+  background: radial-gradient(
+    62% 58% at 50% 46%,
+    rgba(255, 255, 255, 0.5) 0%,
+    rgba(255, 255, 255, 0.16) 46%,
+    rgba(255, 255, 255, 0) 74%
+  );
+}
+
+/* Long, soft ground/wash shadow under floating objects. */
+.sa-cast {
+  filter: drop-shadow(0 30px 60px rgba(38, 54, 74, 0.16));
+}
+
+.sa-cloud-a,
+.sa-cloud-b,
+.sa-cloud-c {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(28px);
+  will-change: transform;
+}
+
+.sa-cloud-a {
+  background: rgba(255, 255, 255, 0.78);
+  animation: sa-drift-a 64s ease-in-out infinite;
+}
+
+.sa-cloud-b {
+  background: rgba(220, 216, 244, 0.62);
+  animation: sa-drift-b 84s ease-in-out infinite;
+}
+
+.sa-cloud-c {
+  background: rgba(247, 251, 252, 0.72);
+  animation: sa-drift-c 104s ease-in-out infinite;
+}
+
+@keyframes sa-drift-a {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(4%, -2%, 0) scale(1.06);
+  }
+}
+
+@keyframes sa-drift-b {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1.04);
+  }
+  50% {
+    transform: translate3d(-5%, 1.5%, 0) scale(1);
+  }
+}
+
+@keyframes sa-drift-c {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  50% {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sa-cloud-a,
+  .sa-cloud-b,
+  .sa-cloud-c {
+    animation: none;
+  }
 }

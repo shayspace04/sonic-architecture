@@ -13,9 +13,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Sonic Architecture — Your Taste Has a Frequency",
+  title: "Sonic Architecture — Your Taste Has a World of Its Own",
   description:
-    "From cultural taste to a space you can walk through. Enter the artists, films, places, and moods you love and discover the venue your cultural world would create.",
+    "A new way to experience culture. Tell us what moves you — a film, an artist, a place, a feeling — and discover the space your cultural world would create.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

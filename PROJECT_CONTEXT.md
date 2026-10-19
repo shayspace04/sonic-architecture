@@ -1,6 +1,6 @@
 # PROJECT_CONTEXT.md — Sonic Architecture
 
-Last audited: 2026-10-19 (live-verified after the immersive 3D + sound build).
+Last audited: 2026-10-19 (after the immersive cloud-world landing rebuild).
 Read this before making any change. Verify claims against code, not history.
 
 **Repo:** local `main` ↔ remote `https://github.com/shayspace04/sonic-architecture` (**public**)
@@ -36,20 +36,39 @@ separately and end up incoherent. We connect them into one experience.
 
 ## Approved visual direction (user-approved, implemented 2026-10-19)
 
-- Near-black `#0B0A0D` background with plum `#151018` surfaces
-- Acid-lime `#D5FF3F`; ultraviolet `#8B5CF6`; warm white `#F4F0E8`; muted `#A6A0AA`
-- Fine borders, smoked glass, restrained translucency; editorial typography;
-  spaced uppercase labels; atmospheric lighting
-- Signature: **3D sound-membrane hero** — `components/three/SonicHero.tsx`
-  (R3F + GLSL: point/line/dust field reacting to a real `AnalyserNode`,
-  charging/forming transition into portal rings). Canvas-2D
-  `components/ResonanceField.tsx` retained as loading + no-WebGL/WebGL-failure
-  fallback. Audio never autoplays.
-- Copy: `SONIC ARCHITECTURE` / "Your taste has a frequency." /
-  input "What do you love?" / 4 example prompts (chips that auto-submit)
-- Page narrative (implemented): hero+input → 4-step process band → signals →
-  translation → venue scene → moodboard → soundtrack → final CTA (ENTER VENUE,
-  export brief, copy, new concept)
+Two registers, one journey. The **landing** is bright/airy; the **venue and
+`/studio`** keep the dark register, so entering the venue reads as emerging into
+another world.
+
+**Landing — immersive cloud world (updated 2026-10-19, supersedes the old
+dark hero for the landing only):**
+
+- Bright, dreamlike, spatial: sky blue `#BFE8F5`, powder `#D9F1F7`, cloud white
+  `#F7FBFC`, misty lavender `#DCD8F4`, periwinkle `#AAA9EF`, peach sunlight
+  `#FFE1CB`, deep blue-grey type `#26364A`. **No black background, no
+  acid-lime/UV dominance on the landing.**
+- Full-viewport procedural 3D sky — `components/three/CloudWorld.tsx` (gradient/
+  sun sky dome, layered noise-shader cloud billboards, floating pavilion +
+  walkway + tiny silhouette, dust, pointer-parallax camera). Continuous slow
+  drift, never a reactive visualiser. No image/video assets.
+- Centred copy: eyebrow `A NEW WAY TO EXPERIENCE CULTURE`, `SONIC ARCHITECTURE`,
+  "Your taste has a world of its own.", "Tell us what moves you…", the floating
+  frosted prompt "A film, an artist, a place, a feeling..." and `ENTER YOUR
+  WORLD ↗`; 4 example chips that **fill the field only** (no auto-submit).
+- Transition: `charging` world reaction → forward push → CSS cloud-wipe →
+  **full-screen venue** (`Venue3D fill`) → "Explore the concept ↓" → signals →
+  translation → moodboard → soundtrack → export.
+- Reduced motion / no WebGL / loading → intentional CSS `SkyFallback.tsx`.
+- `components/three/SonicHero.tsx` (dark sound-membrane hero) is **retained but
+  no longer mounted**; `ResonanceField.tsx` is still used by `DesignMoodboard`.
+
+**Venue sections & `/studio` — dark register (unchanged):**
+
+- Near-black `#0B0A0D` background with plum `#151018` surfaces; acid-lime
+  `#D5FF3F`; ultraviolet `#8B5CF6`; warm white `#F4F0E8`; muted `#A6A0AA`;
+  fine borders, smoked glass, editorial typography; atmospheric lighting.
+- Audio never autoplays (procedural oscillator, real `AnalyserNode`).
+
 - Feel: experimental digital art studio × futuristic architecture studio.
 
 ## Current state (verified 2026-10-19)
@@ -58,16 +77,19 @@ separately and end up incoherent. We connect them into one experience.
 
 | Path | Role | State |
 |---|---|---|
-| `app/page.tsx` | Cinematic landing + full journey orchestrator | New; race-safe fetch, staged loading, error/reset/export |
+| `app/page.tsx` | Cloud-world landing + full journey orchestrator | Rewritten 2026-10-19; modes landing/travelling/venue, race-safe fetch, guarded single submit, error/reset/export |
 | `app/studio/page.tsx` | Original 3-col dashboard (moved via `git mv`) | Preserved, still works (additive payload) |
 | `app/api/vibe/route.ts` | Qloo multi-domain search → insights → evidence → mapping | Live-verified 2026-10-19; wires module-scope cache + usage ceiling |
 | `lib/{types,terms,spatial-rules,scene-params,brief}.ts` | Shared types, term parsing, mapping rules, 3D scene params, brief export | New |
 | `lib/qloo/{cache,http,usage,profile}.ts` | TTL cache + single-flight, retry/timeout + quota headers, request ceiling + counters, extracted orchestration | New (quota protection) |
 | `lib/fallback.ts` | Honest `localFallbackPayload()` (extracted from route) | New |
 | `tests/*.test.ts` + `tsconfig.test.json` | `npm test` — 37 Node `node:test` cases (cache/http/usage/profile/fallback) | New |
-| `components/ResonanceField.tsx` | Signature canvas-2D wave field (fallback + loading) | New |
-| `components/three/{shared,SonicHero,Venue3D}.tsx` | 3D hero, 3D venue with controls, WebGL boundary/probes | New |
-| `components/{CulturalInput,ProvenanceIndicator,SignalAnalysis,SpatialTranslation,VenueScene,DesignMoodboard,SoundtrackSection,FinalCta}.tsx` | Journey sections | New |
+| `components/three/CloudWorld.tsx` | Landing's full-viewport procedural cloud world (sky/clouds/structure/dust/camera) | New 2026-10-19 |
+| `components/SkyFallback.tsx` | Pure-CSS sky for loading, no-WebGL and reduced-motion | New 2026-10-19 |
+| `lib/dev-mock.ts` | Dev-only `?mock=1` preview payload (labelled "not Qloo data") | New 2026-10-19 |
+| `components/ResonanceField.tsx` | Canvas-2D wave field (used by `DesignMoodboard`) | Existing |
+| `components/three/{shared,SonicHero,Venue3D}.tsx` | 3D venue with controls + `fill` mode, WebGL boundary/probes; `SonicHero` retained but no longer mounted | Existing (Venue3D updated) |
+| `components/{CulturalInput,ProvenanceIndicator,SignalAnalysis,SpatialTranslation,VenueScene,DesignMoodboard,SoundtrackSection,FinalCta}.tsx` | Journey sections (`CulturalInput` rewritten as the frosted landing prompt) | Updated |
 | `components/SpatialCanvas.tsx` | 2D SVG floor plan | Legacy; used by `/studio` |
 | `hooks/useAmbientAudio.ts` | WebAudio oscillator; vibeScore→freq/cutoff | Wired from `/` (audio toggle) |
 | `app/globals.css` | `--sa-*` design tokens, `sa-label`/`sa-glass`, reduced-motion | New |
@@ -99,9 +121,11 @@ userInput (free text) ──POST /api/vibe──▶ server
   7. budget: every attempt counted; ceiling checked before each request/retry
      (exhausted → labeled local-fallback, no upstream call)
   8. payload.quota attached only if THIS request saw upstream quota headers
-client ──▶ sceneParamsFromPayload() → 3D hero/venue parameters
-   staged loading ──▶ SignalAnalysis → SpatialTranslation → Venue3D (SVG
-   fallback) → DesignMoodboard → SoundtrackSection → FinalCta (export/copy)
+client ──▶ landing (CloudWorld sky + frosted prompt); on submit the world
+   reacts (charging) ──▶ forward push (travelling) + CSS cloud-wipe ──▶
+   full-screen Venue3D (SVG fallback) [sceneParamsFromPayload() drives it] ──▶
+   SignalAnalysis → SpatialTranslation → DesignMoodboard → SoundtrackSection →
+   FinalCta (export/copy). Reduced motion / no WebGL → SkyFallback + SVG.
 ```
 
 Provenance values: `qloo` (evidence-backed mapping), `qloo-partial`
@@ -147,7 +171,13 @@ Provenance values: `qloo` (evidence-backed mapping), `qloo-partial`
 - Venue is 3D via R3F with an SVG `VenueScene` fallback labeled "not
   physically accurate"; no first-person walkthrough (orbit only).
 - Headless screenshots were captured but **not visually inspected** in the
-  2026-10-19 session (verified only by pixel statistics).
+  2026-10-19 session (verified only by pixel statistics). The cloud-world landing
+  was verified by SSR render + lint/test/build only — it has **not** been seen in
+  a real browser (WebGL visuals unconfirmed), and mobile/desktop composition of
+  the new scene still needs a visual pass.
+- Cloud-world cloud density/particle counts adapt once to `window.innerWidth`
+  (<768 px → fewer clouds); the scene is procedural, so tuning is by shader
+  constants in `components/three/CloudWorld.tsx`.
 - Soundtrack is empty when insights return no artist subtypes (honest
   empty-by-design; not a bug).
 - Coarse mapping: genre-family rules can produce surprising-but-honest results

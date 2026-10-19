@@ -2,6 +2,57 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-19 (immersive cloud-world landing)
+
+### Changed — the landing is now a bright 3D cloud world
+
+- **`app/page.tsx` rewritten** as a client state machine `landing → travelling →
+  venue`. A fixed full-viewport sky sits behind centred copy; submitting issues
+  **one** `/api/vibe` request, the world reacts (`charging`), then a forward push
+  (`travelling`) is covered by a CSS cloud-wipe and the **venue fills the
+  screen** edge-to-edge before the existing editorial sections (signals →
+  translation → moodboard → soundtrack → export). `/studio` is untouched.
+- **New `components/three/CloudWorld.tsx`** — fully procedural, full-viewport 3D
+  sky: gradient/sun sky dome, ~15 layered cloud billboards shaded by a single
+  CPU-built tiling value-noise `DataTexture` (three small GLSL shaders; no image,
+  video or stock assets), a distant floating pavilion + walkway with a tiny
+  walking silhouette, drifting additive dust and a pointer-parallax camera rig.
+  Phase prop drives speed/warmth/forward push. Dynamically imported (`ssr:
+  false`), no new dependencies.
+- **New `components/SkyFallback.tsx`** — pure-CSS dreamlike sky used for the
+  dynamic-import loading window, the no-WebGL path, and the static frame under
+  `prefers-reduced-motion` (never a blank canvas).
+- **`components/CulturalInput.tsx` rewritten** as the floating frosted prompt
+  ("A film, an artist, a place, a feeling...", `ENTER YOUR WORLD ↗`). Example
+  chips now only **fill** the field — they never auto-submit (Qloo-safety).
+- **`components/three/Venue3D.tsx`**: added a `fill` prop to render the venue
+  edge-to-edge for the full-screen reveal; default bordered aspect box (used by
+  the journey) unchanged.
+- **New `lib/dev-mock.ts`** — dev-only `?mock=1` preview payload (explicitly
+  labelled `local-fallback` / "not Qloo data", gated on
+  `NODE_ENV !== "production"`) so the transition and venue can be iterated with
+  **zero** Qloo credits.
+- **`app/globals.css`**: added the light atmosphere tokens (`--sa-ink`,
+  sky/powder/cloud/lavender/periwinkle/peach, `--sa-frost*`) plus `.sa-frost`,
+  `.sa-veil`, `.sa-cloud-*` and their keyframes; the dark tokens are kept and now
+  style the venue sections + `/studio`. **Supersedes decision 3 for the landing
+  only** (see `DECISIONS.md` #31).
+- **`app/layout.tsx`** metadata updated to the new landing voice.
+- **`components/three/SonicHero.tsx` retained but no longer mounted** (the cloud
+  world replaced it); `ResonanceField` remains the honest 2D fallback used by
+  `DesignMoodboard`.
+
+### Qloo-safety (unchanged guarantees, re-verified)
+
+- No request on load, keystroke, hover, animation frame or example-chip click;
+  one guarded request per explicit submit (double submits ignored); `?mock=1`
+  makes none. Provenance/fallback honesty untouched.
+
+### Verification
+
+- `npm run lint` clean · `npm test` 37/37 · `npm run build` clean (4 routes) ·
+  `/` and `/studio` return HTTP 200 in dev.
+
 ## 2026-10-19 (quota protection)
 
 ### Added — Qloo quota protection & tests

@@ -16,6 +16,8 @@ export type LightingPreset = "morning" | "golden" | "peak";
 interface Venue3DProps {
   vibe: VibePayload;
   params: SceneParams;
+  /** Render edge-to-edge filling the parent (used for the full-screen venue). */
+  fill?: boolean;
 }
 
 interface LightTargets {
@@ -413,7 +415,7 @@ function OrbitRig({
   return null;
 }
 
-function VenueCanvas({ vibe, params }: Venue3DProps) {
+function VenueCanvas({ vibe, params, fill = false }: Venue3DProps) {
   const reducedMotion = usePrefersReducedMotion();
   const [preset, setPreset] = useState<LightingPreset>(() => defaultPreset(params.keyLightKelvin));
   const [haze, setHaze] = useState(true);
@@ -430,9 +432,13 @@ function VenueCanvas({ vibe, params }: Venue3DProps) {
   const toggleLabel = exploring ? "Stop exploring" : "Explore space";
 
   return (
-    <div className="relative">
+    <div className={fill ? "relative h-full w-full" : "relative"}>
       <div
-        className="relative aspect-[16/10] w-full overflow-hidden rounded-sm border border-[#F4F0E8]/10 bg-[#0A0810] md:aspect-[16/9]"
+        className={
+          fill
+            ? "relative h-full w-full overflow-hidden bg-[#0A0810]"
+            : "relative aspect-[16/10] w-full overflow-hidden rounded-sm border border-[#F4F0E8]/10 bg-[#0A0810] md:aspect-[16/9]"
+        }
         role="img"
         aria-label={`3D venue for ${vibe.concept.title}: ${vibe.concept.atmosphere}`}
       >
@@ -456,7 +462,11 @@ function VenueCanvas({ vibe, params }: Venue3DProps) {
           </Canvas>
         </WebGLBoundary>
 
-        <div className="pointer-events-none absolute top-3 left-3 z-10 font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase">
+        <div
+          className={`pointer-events-none absolute left-3 z-10 font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase ${
+            fill ? "top-16" : "top-3"
+          }`}
+        >
           {vibe.concept.title} — {preset === "peak" ? "peak night" : preset === "golden" ? "golden hour" : "morning"} ·{" "}
           {haze ? "haze" : "clear"} · {gloss ? "gloss" : "matte"} {exploring && "· orbiting"}
         </div>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import CulturalInput from "@/components/CulturalInput";
@@ -10,84 +10,117 @@ import DesignMoodboard from "@/components/DesignMoodboard";
 import SoundtrackSection from "@/components/SoundtrackSection";
 import FinalCta from "@/components/FinalCta";
 import VenueScene from "@/components/VenueScene";
-import ResonanceField from "@/components/ResonanceField";
+import SkyFallback from "@/components/SkyFallback";
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
 import type { VibePayload } from "@/lib/types";
 import { neutralSceneParams, sceneParamsFromPayload } from "@/lib/scene-params";
 import { usePrefersReducedMotion, useWebGLSupport } from "@/components/three/shared";
-import type { HeroPhase } from "@/components/three/SonicHero";
+import type { WorldPhase } from "@/components/three/CloudWorld";
+import { devMockVibe, isDevMockRequested } from "@/lib/dev-mock";
 
-const SonicHero = dynamic(() => import("@/components/three/SonicHero"), {
+/**
+ * Landing page — "enter the cloud world".
+ *
+ * Modes:
+ *   landing    — full-viewport sky, centred prompt.
+ *   travelling — one /api/vibe request in flight; world reacts, camera pushes.
+ *   venue      — the venue fills the screen, then the editorial sections below.
+ *
+ * Qloo-safety invariant: `generate()` is the *only* place that issues a
+ * request, it is reachable only from an explicit submit, and it is guarded so
+ * that a duplicate submit while in flight is ignored. Nothing on mount, on
+ * keystroke, on hover or during animation ever calls the API.
+ */
+
+const CloudWorld = dynamic(() => import("@/components/three/CloudWorld"), {
   ssr: false,
-  loading: () => (
-    <div className="absolute inset-0">
-      <ResonanceField intensity={0.5} />
-    </div>
-  ),
+  loading: () => <SkyFallback />,
 });
 
 const Venue3D = dynamic(() => import("@/components/three/Venue3D"), {
   ssr: false,
   loading: () => (
-    <div className="flex aspect-[16/10] w-full items-center justify-center rounded-sm border border-[#F4F0E8]/10 bg-[#0A0810] font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase md:aspect-[16/9]">
-      Loading venue…
+    <div className="flex h-full w-full items-center justify-center bg-[#0A0810] font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase">
+      Forming venue…
     </div>
   ),
 });
 
-const STAGES = [
-  "READING YOUR CULTURAL SIGNALS...",
-  "RESOLVING ENTITIES IN QLOO...",
-  "TRANSLATING AFFINITY INTO SPACE...",
-];
+type Mode = "landing" | "travelling" | "venue";
 
-const CHAIN = ["Cultural input", "Affinity signals", "Spatial translation", "Venue experience"];
+const EASE = [0.22, 1, 0.36, 1] as const;
 
-const FORMING_MS = 2600;
+const subscribeNoop = () => () => {};
 
 export default function Page() {
+  const [mode, setMode] = useState<Mode>("landing");
   const [vibe, setVibe] = useState<VibePayload | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [stage, setStage] = useState(0);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
-  const [heroPhase, setHeroPhase] = useState<HeroPhase>("resonance");
   const webgl = useWebGLSupport();
+  const reducedMotion = usePrefersReducedMotion();
   const seqRef = useRef(0);
   const abortRef = useRef<AbortController | null>(null);
+  const timerRef = useRef<number | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const reducedMotion = usePrefersReducedMotion();
 
   const sceneParams = useMemo(() => (vibe ? sceneParamsFromPayload(vibe) : neutralSceneParams()), [vibe]);
-
   const energyScore = vibe
     ? Math.min(100, Math.max(0, Math.round(((vibe.lightingTemperatureK - 2500) / 4000) * 100)))
     : 50;
   useAmbientAudio(energyScore, isAudioEnabled, analyserRef);
 
-  useEffect(() => {
-    if (!isLoading) return;
-    let i = 0;
-    const id = window.setInterval(() => {
-      i = Math.min(i + 1, STAGES.length - 1);
-      setStage(i);
-    }, 2400);
-    return () => window.clearInterval(id);
-  }, [isLoading]);
+  // Client-only: was ?mock=1 requested? (never true in production builds).
+  // useSyncExternalStore renders the server snapshot ("") first, then the real
+  // location, so there is no hydration mismatch and no setState-in-effect.
+  const search = useSyncExternalStore(
+    subscribeNoop,
+    () => window.location.search,
+    () => ""
+  );
+  const devMock = isDevMockRequested(search);
 
-  useEffect(() => () => abortRef.current?.abort(), []);
+  useEffect(() => () => {
+    abortRef.current?.abort();
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+  }, []);
+
+  const worldPhase: WorldPhase = isLoading
+    ? "charging"
+    : mode === "travelling"
+      ? "travelling"
+      : "idle";
+
+  const revealVenue = (seq: number) => {
+    setMode("travelling");
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    timerRef.current = window.setTimeout(
+      () => {
+        if (seq !== seqRef.current) return;
+        setMode("venue");
+        setIsLoading(false);
+        window.scrollTo({ top: 0, behavior: "auto" });
+      },
+      reducedMotion ? 900 : 2000
+    );
+  };
 
   const generate = async (input: string) => {
+    if (isLoading) return; // one request per intentional submit
     abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
     const seq = ++seqRef.current;
-
     setIsLoading(true);
     setError(null);
-    setVibe(null);
-    setStage(0);
-    setHeroPhase("charging");
+
+    if (devMock) {
+      setVibe(devMockVibe());
+      revealVenue(seq);
+      return;
+    }
+
+    const controller = new AbortController();
+    abortRef.current = controller;
 
     try {
       const res = await fetch("/api/vibe", {
@@ -100,214 +133,252 @@ export default function Page() {
       if (seq !== seqRef.current) return;
       if (!res.ok || data.error || typeof data.primaryColorHex !== "string") {
         setError(data.error ?? "The translation failed. Try again in a moment.");
-        setHeroPhase("resonance");
+        setIsLoading(false);
         return;
       }
       setVibe(data);
-      setHeroPhase("forming");
-      window.setTimeout(() => {
-        if (seq !== seqRef.current) return;
-        setHeroPhase("resonance");
-        document.getElementById("signals")?.scrollIntoView({ behavior: "smooth", block: "start" });
-      }, reducedMotion ? 400 : FORMING_MS);
+      revealVenue(seq);
     } catch (err) {
       if (controller.signal.aborted || seq !== seqRef.current) return;
-      setHeroPhase("resonance");
       setError(
         err instanceof Error && err.message.includes("abort")
           ? "Request cancelled."
           : "Could not reach the translation service. Check your connection and retry."
       );
-    } finally {
-      if (seq === seqRef.current) setIsLoading(false);
+      setIsLoading(false);
     }
   };
 
   const reset = () => {
     seqRef.current += 1;
     abortRef.current?.abort();
+    if (timerRef.current) window.clearTimeout(timerRef.current);
+    setMode("landing");
     setVibe(null);
     setError(null);
     setIsLoading(false);
-    setHeroPhase("resonance");
     window.scrollTo({ top: 0, behavior: reducedMotion ? "auto" : "smooth" });
   };
 
-  const hero = webgl === false ? (
-    <div className="absolute inset-0">
-      <ResonanceField intensity={heroPhase === "charging" ? 0.9 : 0.55} />
-      <p className="absolute right-4 bottom-4 font-mono text-[9px] tracking-[0.2em] text-[#A6A0AA] uppercase">
-        WebGL unavailable — 2D resonance field
-      </p>
-    </div>
-  ) : webgl ? (
-    <div className="absolute inset-0">
-      <SonicHero params={sceneParams} phase={heroPhase} analyserRef={analyserRef} reducedMotion={reducedMotion} />
-    </div>
-  ) : null;
+  const inVenue = mode === "venue";
+  const showWorld = !inVenue;
 
   return (
-    <main className="min-h-screen bg-[#0B0A0D] text-[#F4F0E8]">
-      <header className="fixed inset-x-0 top-0 z-50 border-b border-[#F4F0E8]/8 bg-[#0B0A0D]/80 backdrop-blur-md">
+    <main className={`min-h-screen ${inVenue ? "bg-[#0B0A0D] text-[#F4F0E8]" : "sa-ink"}`}>
+      {/* --- Immersive sky: fixed, full-viewport, behind everything ---------- */}
+      {showWorld && (
+        <div className="fixed inset-0 z-0" aria-hidden>
+          {webgl && !reducedMotion ? (
+            <CloudWorld phase={worldPhase} reducedMotion={reducedMotion} />
+          ) : (
+            <SkyFallback
+              note={
+                reducedMotion
+                  ? "Reduced motion — static atmosphere"
+                  : webgl === false
+                    ? "WebGL unavailable — static atmosphere"
+                    : undefined
+              }
+            />
+          )}
+        </div>
+      )}
+
+      {/* --- Minimal overlay nav -------------------------------------------- */}
+      <header
+        className={`fixed inset-x-0 top-0 z-50 transition-colors duration-500 ${
+          inVenue ? "border-b border-[#F4F0E8]/10 bg-[#0B0A0D]/70 backdrop-blur-md" : "border-b border-transparent"
+        }`}
+      >
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-3.5">
-          <a href="#top" className="font-mono text-[11px] tracking-[0.3em] text-[#A6A0AA] uppercase transition-colors hover:text-[#F4F0E8]">
+          <a
+            href="#top"
+            className={`font-mono text-[11px] tracking-[0.3em] uppercase transition-colors ${
+              inVenue ? "text-[#F4F0E8]" : "sa-ink"
+            }`}
+          >
             Sonic Architecture
           </a>
-          <nav aria-label="Sections" className="hidden gap-6 md:flex">
-            {[["#signals", "Signals"], ["#translate", "Translate"], ["#venue", "Venue"], ["#moodboard", "Moodboard"], ["#soundtrack", "Soundtrack"]].map(([href, label]) => (
-              <a key={href} href={href} className="font-mono text-[10px] tracking-[0.22em] text-[#A6A0AA] uppercase transition-colors hover:text-[#D5FF3F]">
-                {label}
+          <nav aria-label="Sections" className="flex items-center gap-3 sm:gap-6">
+            <a
+              href={inVenue ? "#signals" : "#enter"}
+              className={`hidden font-mono text-[10px] tracking-[0.22em] uppercase transition-colors sm:inline ${
+                inVenue ? "text-[#A6A0AA] hover:text-[#F4F0E8]" : "sa-ink-soft hover:text-[#26364a]"
+              }`}
+            >
+              The Experience
+            </a>
+            {inVenue && (
+              <a
+                href="#soundtrack"
+                className="hidden font-mono text-[10px] tracking-[0.22em] text-[#A6A0AA] uppercase transition-colors hover:text-[#F4F0E8] md:inline"
+              >
+                Soundtrack
               </a>
-            ))}
-          </nav>
-          <div className="flex items-center gap-3">
+            )}
             <button
               type="button"
               onClick={() => setIsAudioEnabled((v) => !v)}
               aria-pressed={isAudioEnabled}
-              className="rounded-full border border-[#F4F0E8]/12 px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] text-[#A6A0AA] uppercase transition-colors hover:border-[#D5FF3F]/60 hover:text-[#F4F0E8]"
+              className={`rounded-full border px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] uppercase transition-colors ${
+                inVenue
+                  ? "border-[#F4F0E8]/15 text-[#A6A0AA] hover:border-[#AAA9EF]/60 hover:text-[#F4F0E8]"
+                  : "border-white/70 bg-white/30 text-[#26364a] backdrop-blur-sm hover:bg-white/55"
+              }`}
             >
-              Audio {isAudioEnabled ? "on" : "off"}
+              Sound {isAudioEnabled ? "on" : "off"}
             </button>
             {vibe && (
               <button
                 type="button"
                 onClick={reset}
-                className="rounded-full border border-[#D5FF3F]/50 px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] text-[#D5FF3F] uppercase transition-colors hover:bg-[#D5FF3F]/10"
+                className={`rounded-full border px-3 py-1.5 font-mono text-[10px] tracking-[0.2em] uppercase transition-colors ${
+                  inVenue
+                    ? "border-[#D5FF3F]/50 text-[#D5FF3F] hover:bg-[#D5FF3F]/10"
+                    : "border-[#26364a]/40 text-[#26364a] hover:bg-[#26364a]/10"
+                }`}
               >
-                New concept
+                New world
               </button>
             )}
-          </div>
+            <a
+              href="/studio"
+              className={`hidden font-mono text-[10px] tracking-[0.22em] uppercase transition-colors lg:inline ${
+                inVenue ? "text-[#A6A0AA] hover:text-[#F4F0E8]" : "sa-ink-soft hover:text-[#26364a]"
+              }`}
+            >
+              Studio
+            </a>
+          </nav>
         </div>
       </header>
 
-      <section id="top" className="relative flex min-h-[92vh] items-center overflow-hidden pt-20">
-        {hero}
-        <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-[#0A0810]/85 via-[#0A0810]/40 to-transparent" />
-        <div className="relative z-10 mx-auto w-full max-w-6xl px-6">
-          <motion.div
-            initial={{ opacity: 0, y: 24 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.9, ease: [0.22, 1, 0.36, 1] }}
-          >
-            <p className="sa-label mb-6 text-[#D5FF3F]">Culture, translated into space.</p>
-            <h1 className="text-[13vw] leading-[0.92] font-light tracking-[-0.02em] text-[#F4F0E8] md:text-7xl lg:text-8xl">
-              SONIC
-              <br />
-              ARCHITECTURE
-            </h1>
-            <p className="mt-6 font-mono text-xs tracking-[0.34em] text-[#8B5CF6] uppercase md:text-sm">
-              Your taste has a frequency.
-            </p>
-            <p className="mt-6 max-w-lg text-sm leading-relaxed text-[#A6A0AA] md:text-base">
-              A film. An artist. A place. A feeling. Discover the space your cultural world would create.
-            </p>
-            <div className="mt-12">
-              <CulturalInput onSubmit={generate} isLoading={isLoading} />
-            </div>
-            <p className="mt-5 font-mono text-[10px] leading-relaxed tracking-[0.18em] text-[#A6A0AA]/80 uppercase">
-              {isAudioEnabled
-                ? "Ambient tone on — a procedural oscillator; the field reacts to its real analyser signal."
-                : "Sound off — the field runs on procedural waves. No autoplay, ever."}
-            </p>
-          </motion.div>
-        </div>
-      </section>
-
-      <section id="how" className="scroll-mt-24 border-y border-[#F4F0E8]/8 py-14">
-        <div className="mx-auto grid w-full max-w-6xl gap-6 px-6 md:grid-cols-4">
-          {CHAIN.map((step, i) => (
-            <div key={step}>
-              <p className="font-mono text-[10px] tracking-[0.28em] text-[#D5FF3F]">{String(i + 1).padStart(2, "0")}</p>
-              <p className="mt-1.5 text-sm uppercase tracking-[0.12em]">{step}</p>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <div aria-live="polite" role="status" className="sr-only">
-        {isLoading ? STAGES[stage] : error ? error : vibe ? "Concept ready." : ""}
-      </div>
-
-      <AnimatePresence mode="wait">
-        {isLoading && (
+      {/* --- State A: landing ------------------------------------------------- */}
+      <AnimatePresence>
+        {showWorld && (
           <motion.section
-            key="loading"
+            key="landing"
+            id="top"
             initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            animate={{ opacity: mode === "travelling" ? 0 : 1 }}
             exit={{ opacity: 0 }}
-            className="mx-auto flex w-full max-w-6xl flex-col items-center px-6 py-32 text-center"
+            transition={{ duration: reducedMotion ? 0.3 : 0.9, ease: EASE }}
+            className="relative z-10 flex min-h-[100svh] flex-col justify-center"
           >
-            <div className="mb-8 flex gap-1.5" aria-hidden="true">
-              {[0, 1, 2].map((i) => (
-                <motion.span
-                  key={i}
-                  className="h-1 w-10 bg-[#D5FF3F]"
-                  animate={{ opacity: [0.25, 1, 0.25] }}
-                  transition={{ duration: 1.4, repeat: Infinity, delay: i * 0.22 }}
-                />
-              ))}
-            </div>
-            <p className="font-mono text-xs tracking-[0.3em] text-[#F4F0E8] uppercase">{STAGES[stage]}</p>
-            <p className="mt-4 max-w-sm text-xs text-[#A6A0AA]">
-              Real Qloo requests are running server-side. Nothing is fabricated while you wait.
-            </p>
-          </motion.section>
-        )}
-
-        {!isLoading && error && (
-          <motion.section
-            key="error"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="mx-auto w-full max-w-6xl px-6 py-24"
-          >
-            <div className="max-w-lg rounded-sm border border-[#FF3366]/40 bg-[#151018] p-8">
-              <p className="sa-label mb-3 text-[#FF3366]">Translation failed</p>
-              <p className="text-sm leading-relaxed text-[#F4F0E8]">{error}</p>
-              <button
-                type="button"
-                onClick={() => setError(null)}
-                className="mt-6 rounded-sm border border-[#F4F0E8]/20 px-5 py-2.5 text-xs tracking-[0.2em] uppercase transition-colors hover:border-[#D5FF3F]/60"
+            <div className="mx-auto w-full max-w-3xl px-6 pb-24 pt-28 text-center">
+              <motion.div
+                initial={{ opacity: 0, y: 26 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 1, ease: EASE }}
               >
-                Dismiss
-              </button>
+                <div className="sa-veil pointer-events-none absolute inset-x-0 top-0 -z-10 h-[70%]" />
+                <p className="sa-ink-soft mb-7 font-mono text-[10px] tracking-[0.34em] uppercase">
+                  A new way to experience culture
+                </p>
+                <h1 className="sa-ink text-[15vw] leading-[0.92] font-light tracking-[-0.02em] md:text-[7.5rem]">
+                  SONIC
+                  <br />
+                  ARCHITECTURE
+                </h1>
+                <p className="sa-ink mt-8 text-lg font-light md:text-2xl">
+                  Your taste has a world of its own.
+                </p>
+                <p className="sa-ink-soft mx-auto mt-3 max-w-xl text-sm leading-relaxed md:text-base">
+                  Tell us what moves you. Discover the space it creates.
+                </p>
+
+                <div id="enter" className="mt-12 flex flex-col items-center scroll-mt-28">
+                  <CulturalInput onSubmit={generate} isLoading={isLoading} />
+                </div>
+
+                <div className="mt-8 min-h-[1.5rem]" role="status" aria-live="polite">
+                  <AnimatePresence mode="wait">
+                    {isLoading && (
+                      <motion.p
+                        key="finding"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        className="sa-ink font-mono text-[11px] tracking-[0.3em] uppercase"
+                      >
+                        Finding your cultural frequency…
+                      </motion.p>
+                    )}
+                    {!isLoading && error && (
+                      <motion.p key="error" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} role="alert" className="text-sm text-[#b4485f]">
+                        {error}
+                      </motion.p>
+                    )}
+                  </AnimatePresence>
+                </div>
+              </motion.div>
             </div>
           </motion.section>
         )}
+      </AnimatePresence>
 
-        {!isLoading && !error && vibe && (
-          <motion.div key="results" initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.6 }}>
+      {/* --- Cloud wipe: the world accelerates forward, then whites out -------- */}
+      <AnimatePresence>
+        {mode === "travelling" && (
+          <motion.div
+            key="wash"
+            aria-hidden
+            className="pointer-events-none fixed inset-0 z-40"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reducedMotion ? 0.35 : 1.2, ease: EASE }}
+            style={{
+              background:
+                "radial-gradient(70% 60% at 50% 46%, rgba(255,255,255,0.98) 0%, rgba(242,248,251,0.94) 42%, rgba(226,237,245,0.86) 100%)",
+            }}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* --- State C: the venue fills the screen, sections follow ------------- */}
+      {inVenue && vibe && (
+        <motion.div
+          id="top"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: reducedMotion ? 0.3 : 1, ease: EASE }}
+        >
+          <section id="venue" className="relative h-[100svh] w-full overflow-hidden">
+            {webgl === false ? (
+              <VenueScene vibe={vibe} />
+            ) : webgl ? (
+              <Venue3D vibe={vibe} params={sceneParams} fill />
+            ) : (
+              <div className="flex h-full w-full items-center justify-center bg-[#0A0810] font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase">
+                Preparing venue…
+              </div>
+            )}
+
+            <div className="pointer-events-none absolute inset-x-0 top-24 z-20 flex justify-center px-6">
+              <div className="max-w-2xl text-center">
+                <p className="sa-label mb-2 text-[#D5FF3F]">
+                  {devMock ? "Development preview — not Qloo data" : "Your cultural world"}
+                </p>
+                <h2 className="text-2xl font-light tracking-tight text-[#F4F0E8] md:text-3xl">
+                  {vibe.concept.title}
+                </h2>
+              </div>
+            </div>
+
+            <div className="pointer-events-none absolute inset-x-0 bottom-20 z-20 flex justify-center">
+              <a
+                href="#signals"
+                className="pointer-events-auto rounded-full border border-[#F4F0E8]/20 bg-[#0B0A0D]/40 px-4 py-2 font-mono text-[10px] tracking-[0.24em] text-[#F4F0E8] uppercase backdrop-blur-sm transition-colors hover:border-[#AAA9EF]/60"
+              >
+                Explore the concept ↓
+              </a>
+            </div>
+          </section>
+
+          <div className="relative z-10">
             <SignalAnalysis vibe={vibe} />
             <SpatialTranslation vibe={vibe} />
-            <section id="venue" className="mx-auto w-full max-w-6xl scroll-mt-24 px-6 py-24">
-              <header className="mb-10 flex flex-wrap items-end justify-between gap-4">
-                <div>
-                  <p className="sa-label mb-3">03 — Venue installation</p>
-                  <h2 className="text-3xl font-light tracking-tight text-[#F4F0E8] md:text-4xl">
-                    {vibe.concept.title}
-                  </h2>
-                  <p className="mt-3 max-w-2xl text-sm leading-relaxed text-[#A6A0AA]">
-                    {vibe.concept.atmosphere}
-                  </p>
-                </div>
-                <p className="max-w-xs text-xs leading-relaxed text-[#A6A0AA]">
-                  Drag to look around. The controls change lighting, atmosphere and materials live —
-                  every parameter comes from your cultural profile.
-                </p>
-              </header>
-              {webgl === false ? (
-                <VenueScene vibe={vibe} />
-              ) : webgl ? (
-                <Venue3D vibe={vibe} params={sceneParams} />
-              ) : (
-                <div className="flex aspect-[16/10] w-full items-center justify-center rounded-sm border border-[#F4F0E8]/10 bg-[#0A0810] font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase">
-                  Preparing venue…
-                </div>
-              )}
-            </section>
             <DesignMoodboard vibe={vibe} />
             <SoundtrackSection
               vibe={vibe}
@@ -315,33 +386,23 @@ export default function Page() {
               onToggleAudio={() => setIsAudioEnabled((v) => !v)}
             />
             <FinalCta vibe={vibe} onReset={reset} />
-          </motion.div>
-        )}
+          </div>
 
-        {!isLoading && !error && !vibe && (
-          <motion.section
-            key="idle"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="mx-auto w-full max-w-6xl px-6 py-24 text-center"
-          >
-            <p className="text-sm text-[#A6A0AA]">
-              Enter your cultural world above — the venue, moodboard, and soundtrack appear here.
-            </p>
-          </motion.section>
-        )}
-      </AnimatePresence>
-
-      <footer className="border-t border-[#F4F0E8]/8 py-10">
-        <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-6">
-          <p className="font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase">
-            Cultural evidence by Qloo · Spatial translation by Sonic Architecture
-          </p>
-          <a href="/studio" className="font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase underline-offset-4 hover:text-[#F4F0E8] hover:underline">
-            Studio view
-          </a>
-        </div>
-      </footer>
+          <footer className="border-t border-[#F4F0E8]/8 py-10">
+            <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center justify-between gap-4 px-6">
+              <p className="font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase">
+                Cultural evidence by Qloo · Spatial translation by Sonic Architecture
+              </p>
+              <a
+                href="/studio"
+                className="font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase underline-offset-4 hover:text-[#F4F0E8] hover:underline"
+              >
+                Studio view
+              </a>
+            </div>
+          </footer>
+        </motion.div>
+      )}
     </main>
   );
 }
