@@ -24,6 +24,8 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Compiled test output (tsconfig.test.json outDir):
     ".test-dist/**",
+    // Vendored runtime kept byte-for-byte under public/ (Three.js r149 UMD):
+    "public/sylva/**",
   ]),
 ]);
 

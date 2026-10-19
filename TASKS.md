@@ -61,6 +61,29 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
         the ground) + damped camera parallax; one shared program via
         `customProgramCacheKey`
 
+- [x] **Landing background — Sylva Living Green** (2026-10-20) — the minted
+      `SylvaLivingWorldScene` (Three.js r149 procedural moss-root world) replaces
+      the previous landing 3D scene as the full-viewport, click-through
+      background:
+  - [x] Bundle shipped verbatim under `public/sylva/` (`inner-green-3d.html`
+        197914 B, `inner-green-assets/three.min.js` 608081 B, `threeui.css`
+        40715 B); `components/three/SylvaLivingWorldScene.tsx` adapts the
+        authored component — Vite `?raw` imports → one-time runtime `fetch()`;
+        sandboxed `srcDoc` iframe, document splice, styles, reduced-motion loop
+        guard and visibility/intersection gating preserved
+  - [x] Decorative + non-blocking: host `aria-hidden` + `pointer-events: none`;
+        cursor reaction preserved via a parent `postMessage` → inlined
+        `POINTER_BRIDGE` re-emitting synthetic pointer events in the scene
+  - [x] Old angular terrain/islands/obelisk/pavilion are no longer mounted;
+        `LandingWorld.tsx` + `world/*` left on disk (dead code, removal deferred)
+  - [x] Verified in headless Chrome @1280×800: `data-state="ready"`, canvas
+        fills viewport, input on top + focusable + typeable, submit → travelling
+        → labelled mock venue, 0 exceptions; bridge proven end-to-end on the app
+        origin with a real sandboxed iframe — event-level attribution shows the
+        scene receives 4 moves + 1 leave with the bridge and 0 without;
+        0 `/api/vibe` + 0 Qloo calls during render/cursor; `npm run lint` clean,
+        `npm test` 37/37, `npm run build` clean
+
 - [x] **Organic meadow redesign** (2026-10-19) — replaces the angular/sci-fi
       read (floating rectangles, portal, obelisk, pavilion) with a lush grounded
       meadow:

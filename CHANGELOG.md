@@ -2,6 +2,50 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-20 (landing background — Sylva Living Green moss-root world)
+
+### Changed — the landing background is now the minted Sylva procedural scene
+
+- **New landing background**: the "Living Green" procedural moss-root world
+  (`SylvaLivingWorldScene`, Three.js r149) replaces the angular terrain /
+  floating islands / obelisk / pavilion as the full-viewport background behind
+  the existing hero. There is never more than one 3D background mounted, and the
+  scene is unmounted in the venue state.
+- **Integration without Vite or dependency changes.** The four bundle files are
+  shipped verbatim under `public/sylva/`
+  (`sources/inner-green-3d.html` — 197914 B, `sources/inner-green-assets/
+  three.min.js` — 608081 B, `threeui.css` — 40715 B; byte sizes match the
+  bundle's stated sizes and the HTML/CSS/`three.min.js` decode cleanly).
+  `components/three/SylvaLivingWorldScene.tsx` is the adapted component: the
+  authored Vite `?raw` imports are replaced with a one-time runtime `fetch()`
+  of those files (documented in the component header). The sandboxed-`srcDoc`
+  iframe architecture (`sandbox="allow-scripts"`), the scene-only document
+  splice, the injected styles, the variant styles, the reduced-motion loop
+  guard, and the IntersectionObserver + `visibilitychange` + matchMedia gating
+  are all preserved from the source.
+- **Cursor reaction preserved without stealing clicks.** The host is `aria-hidden`
+  and `pointer-events: none`, so the page keeps every click. Because a
+  click-through iframe receives no pointer events, the parent forwards its
+  pointer position over `postMessage` and a small inlined bridge
+  (`POINTER_BRIDGE`) re-emits synthetic `pointermove` / `pointerleave` events on
+  the scene's own `window`, which is what the authored listeners read.
+- **Qloo safety unchanged**: rendering and cursor interaction issue **zero**
+  `/api/vibe` and **zero** Qloo calls (only an explicit submit does).
+- **ESLint**: `public/sylva/**` added to `globalIgnores` (the vendored r149 UMD
+  is not app code).
+- **Verified in headless Chrome @1280×800**: scene host `data-state="ready"`,
+  canvas fills the viewport, input is on top and focuses on click + accepts
+  text, submit → travelling → labelled mock venue with 0 exceptions; the
+  `postMessage` bridge was proven end-to-end (parent payload →
+  `pointermove`/`pointerleave` with correct coordinates) against a real
+  `sandbox="allow-scripts"` iframe on the app origin, and an event-level
+  attribution run (bridge ON vs OFF, ambient animation irrelevant) confirmed the
+  scene's own `window` receives 4 moves + 1 leave with the bridge and **0** with
+  it disabled. `npm run lint` clean, `npm test` 37/37, `npm run build` clean
+  (4 routes).
+  The old `LandingWorld.tsx` + `world/*` files remain on disk but are no longer
+  mounted (dead code; removal deferred to keep this change small/reversible).
+
 ## 2026-10-19 (organic meadow redesign — fox + Gobkit)
 
 ### Changed — the landing is now a lush, organic meadow, not an angular field

@@ -15,7 +15,6 @@ import { useAmbientAudio } from "@/hooks/useAmbientAudio";
 import type { VibePayload } from "@/lib/types";
 import { neutralSceneParams, sceneParamsFromPayload } from "@/lib/scene-params";
 import { usePrefersReducedMotion, useWebGLSupport } from "@/components/three/shared";
-import type { WorldPhase } from "@/components/three/LandingWorld";
 import { devMockVibe, isDevMockRequested } from "@/lib/dev-mock";
 
 /**
@@ -32,7 +31,7 @@ import { devMockVibe, isDevMockRequested } from "@/lib/dev-mock";
  * keystroke, on hover or during animation ever calls the API.
  */
 
-const LandingWorld = dynamic(() => import("@/components/three/LandingWorld"), {
+const SylvaLivingWorldScene = dynamic(() => import("@/components/three/SylvaLivingWorldScene").then((m) => m.SylvaLivingWorldScene), {
   ssr: false,
   loading: () => <SkyFallback />,
 });
@@ -85,12 +84,6 @@ export default function Page() {
     abortRef.current?.abort();
     if (timerRef.current) window.clearTimeout(timerRef.current);
   }, []);
-
-  const worldPhase: WorldPhase = isLoading
-    ? "charging"
-    : mode === "travelling"
-      ? "travelling"
-      : "idle";
 
   const revealVenue = (seq: number) => {
     setMode("travelling");
@@ -169,7 +162,7 @@ export default function Page() {
       {showWorld && (
         <div className="fixed inset-0 z-0" aria-hidden>
           {webgl && !reducedMotion ? (
-            <LandingWorld phase={worldPhase} reducedMotion={reducedMotion} />
+            <SylvaLivingWorldScene variant="living-green" />
           ) : (
             <SkyFallback
               note={
