@@ -6,22 +6,29 @@ import * as THREE from "three";
  * Everything here is deterministic (seeded) and free of React so it can be
  * unit-reasoned about and reused by every layer of the scene. Nothing in this
  * module touches the network or the Qloo API.
+ *
+ * The stylised blade / terrain / wildflower techniques are adapted from the
+ * MIT-licensed "three-stylized" meadow by Steve245270533
+ * (https://github.com/Steve245270533/three-stylized), re-implemented here on
+ * top of the project's own lighting, fog and cursor-reactive wind pipeline.
  */
 
-/** Bright, airy, cinematic palette. Restrained acid-lime / ultraviolet accents. */
+/** Bright, airy, cinematic palette. Natural greens, sky blue, warm sunlight. */
 export const PALETTE = {
-  skyTop: "#7fb9e6",
-  skyUpper: "#a9d8ef",
-  skyMid: "#cfe9f4",
-  horizon: "#eef7f8",
-  lowWarm: "#fdf1e3",
-  sun: "#fff3dc",
-  lavender: "#d9d6f2",
-  fog: "#dfeef4",
-  grassDeep: "#4f7b3f",
-  grassBase: "#6f9a4c",
-  grassTip: "#b6d183",
-  meadowTint: "#8fae62",
+  skyTop: "#3f86c9",
+  skyUpper: "#7bb6e4",
+  skyMid: "#c3e2f2",
+  horizon: "#eaf6f7",
+  lowWarm: "#ffeccd",
+  sun: "#fff6df",
+  lavender: "#d6d3f2",
+  fog: "#cfe6ef",
+  grassDeep: "#3d5c21",
+  grassBase: "#5d8a33",
+  grassTip: "#c3dd6e",
+  meadowTint: "#7fa14a",
+  soil: "#8a6a3f",
+  soilDeep: "#5f4a2c",
   ivory: "#f2ece0",
   concrete: "#d9d3c6",
   wood: "#a97c4e",
@@ -30,6 +37,9 @@ export const PALETTE = {
   violet: "#8b5cf6",
   periwinkle: "#aaa9ef",
 } as const;
+
+/** Exponential fog density for the meadow; shared so shaders stay in sync. */
+export const FOG_DENSITY = 0.0026;
 
 /* ------------------------------------------------------------------ random -- */
 
@@ -90,8 +100,15 @@ export function fbm(x: number, y: number, octaves = 4): number {
   return sum / norm;
 }
 
+/** Domain-warped fBm — organic, non-repeating patches. */
+function warpedFbm(x: number, y: number, seed: number, warp = 1.2): number {
+  const wx = fbm(x + 11.3 + seed, y + 2.7 - seed, 3);
+  const wy = fbm(x + 5.9 - seed, y + 17.1 + seed, 3);
+  return fbm(x + (wx - 0.5) * warp, y + (wy - 0.5) * warp, 4);
+}
+
 /** Direction towards the sun (upper-right, slightly forward). */
-export const SUN_DIR = new THREE.Vector3(0.62, 0.66, 0.42).normalize();
+export const SUN_DIR = new THREE.Vector3(0.62, 0.6, 0.5).normalize();
 
 export function smoothstep(edge0: number, edge1: number, x: number): number {
   const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
@@ -100,19 +117,24 @@ export function smoothstep(edge0: number, edge1: number, x: number): number {
 
 /* ----------------------------------------------------------------- terrain -- */
 
-/** The pavilion sits on a raised knoll here. */
-export const KNOLL = { x: 7, z: -34 };
+/** The hero landmark sits on a raised knoll here. */
+export const KNOLL = { x: 8, z: -40 };
 
-/** Height field for the meadow. Gentle rolling hills with a knoll for the pavilion. */
+/**
+ * Height field for the meadow. Gentle rolling hills with a swell for the
+ * landmark knoll; the immediate foreground is kept calm so the ground cover
+ * stays readable.
+ */
 export function terrainHeight(x: number, z: number): number {
   const d = Math.hypot(x, z);
-  const flatten = smoothstep(0, 30, d); // keep the foreground calmer
-  const rolling = (fbm(x * 0.018 + 4.2, z * 0.018 - 1.7, 4) - 0.5) * 2 * 3.1;
-  const detail = (fbm(x * 0.075 + 31, z * 0.075 - 17, 3) - 0.5) * 2 * 0.5;
-  const swell = rolling * (0.4 + 0.6 * flatten) + detail * 0.6;
+  const flatten = smoothstep(0, 34, d); // keep the foreground calmer
+  const rolling = (fbm(x * 0.017 + 4.2, z * 0.017 - 1.7, 4) - 0.5) * 2 * 3.4;
+  const mid = (fbm(x * 0.05 - 8.5, z * 0.05 + 6.1, 3) - 0.5) * 2 * 1.15;
+  const detail = (fbm(x * 0.09 + 31, z * 0.09 - 17, 3) - 0.5) * 2 * 0.32;
+  const swell = rolling * (0.35 + 0.65 * flatten) + mid * (0.4 + 0.6 * flatten) + detail * 0.7;
   const kx = x - KNOLL.x;
   const kz = z - KNOLL.z;
-  const knoll = 5.2 * Math.exp(-(kx * kx + kz * kz) / (2 * 13 * 13));
+  const knoll = 6.2 * Math.exp(-(kx * kx + kz * kz) / (2 * 16 * 16));
   return swell + knoll;
 }
 
@@ -124,17 +146,35 @@ export function terrainNormal(x: number, z: number, e = 0.6): THREE.Vector3 {
   return new THREE.Vector3(hL - hR, 2 * e, hD - hU).normalize();
 }
 
+/**
+ * 0 for meadow, 1 for irregular, exposed earth patches. Adapted from
+ * three-stylized's terrain shader.
+ */
+export function terrainDirtAmount(x: number, z: number, seed = 17): number {
+  const macro = warpedFbm(x * 0.16, z * 0.16, seed, 1.6);
+  const edge = warpedFbm(x * 0.44 + 13.1, z * 0.44 - 8.7, seed + 31, 0.85);
+  const overspray = fbm(x * 0.95 - 4.2 + seed, z * 0.95 + 19.6 - seed, 3);
+  const paint = macro * 0.7 + edge * 0.22 + overspray * 0.08;
+  return smoothstep(0.5, 0.72, paint);
+}
+
+/** How strongly ground cover grows at a point (denser in clear meadow). */
+export function grassCoverage(x: number, z: number, seed = 17): number {
+  const meadowVariation = 0.6 + fbm(x * 0.34, z * 0.34, 3) * 0.4;
+  return (1 - terrainDirtAmount(x, z, seed)) * meadowVariation;
+}
+
 /* -------------------------------------------------------------------- path -- */
 
-/** A winding path from the camera vantage up to the pavilion knoll. */
+/** A winding path from the camera vantage up to the landmark knoll. */
 export const pathCurve = new THREE.CatmullRomCurve3(
   [
-    new THREE.Vector3(0.5, 0, 14),
-    new THREE.Vector3(-3.5, 0, 6),
-    new THREE.Vector3(-1.5, 0, -3),
-    new THREE.Vector3(3.5, 0, -14),
-    new THREE.Vector3(2.5, 0, -24),
-    new THREE.Vector3(7, 0, -34),
+    new THREE.Vector3(1.5, 0, 15),
+    new THREE.Vector3(-4.5, 0, 6),
+    new THREE.Vector3(-2.0, 0, -4),
+    new THREE.Vector3(4.0, 0, -15),
+    new THREE.Vector3(3.0, 0, -26),
+    new THREE.Vector3(8, 0, -40),
   ].map((p) => new THREE.Vector3(p.x, terrainHeight(p.x, p.z), p.z)),
   false,
   "catmullrom",
@@ -163,12 +203,17 @@ export function distanceToPath(x: number, z: number): number {
 
 /* -------------------------------------------------------------- geometry ---- */
 
-/** A single tapered grass blade: unit width, unit height (y in [0,1]). */
+/**
+ * A single tapered grass blade: unit width, unit height (y in [0,1]), with a
+ * natural taper across four segments. `uv.y` carries the blade height so the
+ * shader can grow colour and wind bend towards the tip.
+ */
 export function makeBladeGeometry(): THREE.BufferGeometry {
   const rows = [
     { y: 0.0, w: 0.5 },
-    { y: 0.42, w: 0.34 },
-    { y: 0.75, w: 0.18 },
+    { y: 0.26, w: 0.44 },
+    { y: 0.53, w: 0.33 },
+    { y: 0.79, w: 0.19 },
     { y: 1.0, w: 0.0 },
   ];
   const pos: number[] = [];
@@ -185,7 +230,6 @@ export function makeBladeGeometry(): THREE.BufferGeometry {
     const a = i * 2;
     idx.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
   }
-  // The last row collapses to a point; drop the degenerate right vertex.
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
   geo.setAttribute("normal", new THREE.Float32BufferAttribute(nor, 3));
@@ -218,24 +262,22 @@ export function makeFlowerGeometry(petals = 5): THREE.BufferGeometry {
   head.userData.tint = [1.0, 0.82, 0.32];
   parts.push(head);
 
-  // Manual merge with per-part vertex colour.
   const pos: number[] = [];
   const nor: number[] = [];
   const col: number[] = [];
   const uv: number[] = [];
   for (const g of parts) {
-    const ng = g;
-    const p = ng.getAttribute("position");
-    const n = ng.getAttribute("normal");
-    const u = ng.getAttribute("uv");
-    const t = (ng.userData.tint as number[]) ?? [1, 1, 1];
+    const p = g.getAttribute("position");
+    const n = g.getAttribute("normal");
+    const u = g.getAttribute("uv");
+    const t = (g.userData.tint as number[]) ?? [1, 1, 1];
     for (let i = 0; i < p.count; i++) {
       pos.push(p.getX(i), p.getY(i), p.getZ(i));
       nor.push(n.getX(i), n.getY(i), n.getZ(i));
       col.push(t[0], t[1], t[2]);
       uv.push(u ? u.getX(i) : 0, u ? u.getY(i) : 0);
     }
-    ng.dispose();
+    g.dispose();
   }
   const geo = new THREE.BufferGeometry();
   geo.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3));
@@ -320,10 +362,10 @@ const windVertexHeader = /* glsl */ `
     float gust = uWind * (0.55 + 0.45 * wave) * (0.8 + 0.4 * wave2);
     vec2 toP = baseW.xz - uPointer.xz;
     float pd = length(toP);
-    float pin = smoothstep(2.6, 0.0, pd) * uPointerActive;
+    float pin = smoothstep(3.2, 0.0, pd) * uPointerActive;
     vec2 pinDir = pd > 0.001 ? toP / pd : vec2(0.0);
     float bend = pow(h, 1.6);
-    return (windDir * gust * uSway + pinDir * pin * uSway * 2.4) * bend;
+    return (windDir * gust * uSway + pinDir * pin * uSway * 2.6) * bend;
   }
 `;
 
@@ -374,9 +416,9 @@ export function windify(
       .replace(
         "#include <map_fragment>",
         /* glsl */ `#include <map_fragment>
-        vec3 tintLo = mix(vec3(1.0), vec3(0.34, 0.5, 0.21), uGradient);
-        diffuseColor.rgb *= mix(tintLo, vec3(1.0, 1.14, 0.72), vH);
-        diffuseColor.rgb *= (0.82 + 0.34 * vTint);`
+        vec3 tintLo = mix(vec3(1.0), vec3(0.28, 0.42, 0.16), uGradient);
+        diffuseColor.rgb *= mix(tintLo, vec3(1.0, 1.16, 0.66), vH);
+        diffuseColor.rgb *= (0.78 + 0.4 * vTint);`
       );
   };
   // All windified materials share one compiled program (variation is via uniforms).

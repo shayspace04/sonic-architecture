@@ -69,21 +69,30 @@ availability probe and error boundary):
   `travelling`; reduced motion never mounts it (SkyFallback is used instead).
   Deleted `CloudWorld.tsx` (decision 38).
 - `components/three/world/` — the landing world, split by concern:
-  - `scene.ts` — palette, seeded noise/terrain/path maths, blade/flower
-    geometry, the shared mutable `world` state + `windUniforms`, and `windify()`
-    (injects wind + pointer bend into any `MeshStandardMaterial` via
-    `onBeforeCompile`; one shared program via `customProgramCacheKey`).
-  - `assets.ts` — asset catalogue + groups, `useSurfaces()` (cloned PBR
-    textures), `useSkyEnvironment()` (HDRI → PMREM → `scene.environment`),
-    `useNatureModels()` (GLTF merge to vertex-coloured geometries).
-  - `Terrain.tsx` — displaced meadow plane + winding path ribbon.
-  - `Vegetation.tsx` — `GrassField` (instanced blades), `Blooms`, `NatureScatter`
-    (instanced GLTF trees/bushes/rocks/flowers/props).
-  - `Sky.tsx` — shader sky dome, sun sprite, drifting cloud sprites.
-  - `Pavilion.tsx` — procedural concrete+wood hero pavilion on the knoll.
-  - `Landmarks.tsx` — floating islands + horizon obelisk.
-  - `Character.tsx` — skinned FBX walker following the path (isolated behind
-    `SilentBoundary`).
+  - `scene.ts` — palette (`PALETTE`) + shared `FOG_DENSITY`, seeded
+    noise/terrain/path maths, blade/flower geometry, the shared mutable `world`
+    state + `windUniforms`, and `windify()` (injects wind + pointer bend into any
+    `MeshStandardMaterial` via `onBeforeCompile`; one shared program via
+    `customProgramCacheKey`).
+  - `assets.ts` — `MEADOW` catalogue (`/assets/meadow/*.glb`) + groups,
+    `FOX_URL`, `useSurfaces()` (cloned PBR textures), `useSkyEnvironment()`
+    (HDRI → PMREM → `scene.environment`), `useMeadowModels()` / `useModel()`
+    (GLTF merge → one vertex-coloured, ground-centred geometry per model; the
+    centimetre-authored Gobkit props are scaled to metres here via `UNIT`).
+  - `flowerMask.ts` — the wildflower shader's atlas mask + colour palettes.
+  - `Terrain.tsx` — displaced, vertex-coloured meadow plane + soil patches +
+    winding path ribbon.
+  - `Vegetation.tsx` — `GrassField` (instanced wind-shaded blades, 82k desktop /
+    26k mobile), `WildflowerField` (instanced billboard flowers, 4.2k / 1.4k),
+    `MeadowPlants` (instanced GLTF trees/bushes/reeds/rocks placed off the path),
+    and `HeroTree` (a single large tree on the knoll).
+  - `Sky.tsx` — 4-stop shader sky dome (sun-ward warm glow + fog bleed), sun
+    sprite, drifting cumulus cloud sprites.
+  - `Landmarks.tsx` — `Horizon`: three instanced bands of fog-tinted distant
+    hills/mountains (replaces the old floating islands + obelisk).
+  - `Character.tsx` — Quaternius **fox** protagonist (`fox.glb`): `Idle`↔`Walk`
+    blend, walks the path when travelling, idles at home with cursor gaze
+    (isolated behind `SilentBoundary`).
   - `Atmosphere.tsx` — pollen, petals, sun shafts.
   - `CameraRig.tsx` — `WorldClock` (single writer of shared state) + the
     pointer-parallax/travel camera.

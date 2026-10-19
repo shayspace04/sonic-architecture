@@ -12,97 +12,40 @@ import type { GLTF } from "three/examples/jsm/loaders/GLTFLoader.js";
  * vertex-coloured, instancing-friendly geometry per model.
  */
 
-export const NATURE = {
-  tree_default: "/assets/nature/tree_default.glb",
-  tree_detailed: "/assets/nature/tree_detailed.glb",
-  tree_oak: "/assets/nature/tree_oak.glb",
-  tree_fat: "/assets/nature/tree_fat.glb",
-  tree_thin: "/assets/nature/tree_thin.glb",
-  tree_small: "/assets/nature/tree_small.glb",
-  tree_pineRoundC: "/assets/nature/tree_pineRoundC.glb",
-  tree_pineTallB_detailed: "/assets/nature/tree_pineTallB_detailed.glb",
-  tree_blocks: "/assets/nature/tree_blocks.glb",
-  plant_bush: "/assets/nature/plant_bush.glb",
-  plant_bushDetailed: "/assets/nature/plant_bushDetailed.glb",
-  plant_bushLarge: "/assets/nature/plant_bushLarge.glb",
-  plant_flatTall: "/assets/nature/plant_flatTall.glb",
-  plant_flatShort: "/assets/nature/plant_flatShort.glb",
-  grass: "/assets/nature/grass.glb",
-  grass_large: "/assets/nature/grass_large.glb",
-  grass_leafs: "/assets/nature/grass_leafs.glb",
-  grass_leafsLarge: "/assets/nature/grass_leafsLarge.glb",
-  flower_purpleA: "/assets/nature/flower_purpleA.glb",
-  flower_redA: "/assets/nature/flower_redA.glb",
-  flower_yellowA: "/assets/nature/flower_yellowA.glb",
-  flower_purpleC: "/assets/nature/flower_purpleC.glb",
-  flower_redC: "/assets/nature/flower_redC.glb",
-  rock_largeA: "/assets/nature/rock_largeA.glb",
-  rock_largeB: "/assets/nature/rock_largeB.glb",
-  rock_smallA: "/assets/nature/rock_smallA.glb",
-  rock_smallB: "/assets/nature/rock_smallB.glb",
-  rock_tallA: "/assets/nature/rock_tallA.glb",
-  stone_smallA: "/assets/nature/stone_smallA.glb",
-  stone_tallA: "/assets/nature/stone_tallA.glb",
-  log: "/assets/nature/log.glb",
-  log_large: "/assets/nature/log_large.glb",
-  stump_round: "/assets/nature/stump_round.glb",
-  mushroom_red: "/assets/nature/mushroom_red.glb",
-  mushroom_tan: "/assets/nature/mushroom_tan.glb",
-  statue_column: "/assets/nature/statue_column.glb",
-  statue_ring: "/assets/nature/statue_ring.glb",
-  statue_obelisk: "/assets/nature/statue_obelisk.glb",
-  statue_block: "/assets/nature/statue_block.glb",
-  bridge_wood: "/assets/nature/bridge_wood.glb",
-  bridge_side_wood: "/assets/nature/bridge_side_wood.glb",
-  platform_stone: "/assets/nature/platform_stone.glb",
-  platform_grass: "/assets/nature/platform_grass.glb",
-  cliff_block_rock: "/assets/nature/cliff_block_rock.glb",
-  cliff_top_rock: "/assets/nature/cliff_top_rock.glb",
-  cliff_waterfall_rock: "/assets/nature/cliff_waterfall_rock.glb",
-  fence_simple: "/assets/nature/fence_simple.glb",
+/* ------------------------------------------------------------------ meadow -- */
+
+/** Curated CC0 low-poly nature from the Gobkit free-assets kit. */
+export const MEADOW = {
+  tree_high: "/assets/meadow/TreeHigh001.glb",
+  tree_med: "/assets/meadow/TreeMed001.glb",
+  tree_low: "/assets/meadow/TreeLow001.glb",
+  bush_a: "/assets/meadow/Bush001.glb",
+  bush_b: "/assets/meadow/Bush002.glb",
+  reed: "/assets/meadow/Reed001.glb",
+  rock: "/assets/meadow/Rock001.glb",
+  hill: "/assets/meadow/Hill001.glb",
+  mountain: "/assets/meadow/Mountain001.glb",
+  mountain_far: "/assets/meadow/MountainFar001.glb",
 } as const;
 
-export type NatureKey = keyof typeof NATURE;
+export type MeadowKey = keyof typeof MEADOW;
 
-export const NATURE_KEYS = Object.keys(NATURE) as NatureKey[];
-export const NATURE_URLS = NATURE_KEYS.map((k) => NATURE[k]);
+export const MEADOW_KEYS = Object.keys(MEADOW) as MeadowKey[];
+export const MEADOW_URLS = MEADOW_KEYS.map((k) => MEADOW[k]);
 
-export const TREES: NatureKey[] = [
-  "tree_default",
-  "tree_detailed",
-  "tree_oak",
-  "tree_fat",
-  "tree_thin",
-  "tree_small",
-  "tree_pineRoundC",
-  "tree_pineTallB_detailed",
-  "tree_blocks",
-];
-export const BUSHES: NatureKey[] = [
-  "plant_bush",
-  "plant_bushDetailed",
-  "plant_bushLarge",
-  "plant_flatTall",
-  "plant_flatShort",
-];
-export const TUFTS: NatureKey[] = ["grass", "grass_large", "grass_leafs", "grass_leafsLarge"];
-export const FLOWERS: NatureKey[] = [
-  "flower_purpleA",
-  "flower_redA",
-  "flower_yellowA",
-  "flower_purpleC",
-  "flower_redC",
-];
-export const ROCKS: NatureKey[] = [
-  "rock_largeA",
-  "rock_largeB",
-  "rock_smallA",
-  "rock_smallB",
-  "rock_tallA",
-  "stone_smallA",
-  "stone_tallA",
-];
-export const PROPS: NatureKey[] = ["log", "log_large", "stump_round", "mushroom_red", "mushroom_tan"];
+export const TREES: MeadowKey[] = ["tree_high", "tree_med", "tree_low"];
+export const BUSHES: MeadowKey[] = ["bush_a", "bush_b"];
+export const REEDS: MeadowKey[] = ["reed"];
+export const ROCKS: MeadowKey[] = ["rock"];
+export const HILLS: MeadowKey[] = ["hill", "mountain", "mountain_far"];
+
+/** The hero landmark tree — a large, warm-lit tree on the knoll. */
+export const HERO_TREE_URL = "/assets/meadow/TreeHigh001.glb";
+
+/* --------------------------------------------------------------- character -- */
+
+/** Quaternius "Animated Fox" (CC0) — the tiny orange protagonist. */
+export const FOX_URL = "/assets/char/fox.glb";
 
 /* ------------------------------------------------------------- surfaces ---- */
 
@@ -113,9 +56,6 @@ export const SURFACE_URLS = {
   groundColor: "/assets/textures/ground/ground_Color.jpg",
   groundNormal: "/assets/textures/ground/ground_NormalGL.jpg",
   groundRough: "/assets/textures/ground/ground_Roughness.jpg",
-  concreteColor: "/assets/textures/concrete/concrete_Color.jpg",
-  concreteNormal: "/assets/textures/concrete/concrete_NormalGL.jpg",
-  concreteRough: "/assets/textures/concrete/concrete_Roughness.jpg",
   woodColor: "/assets/textures/wood/wood_Color.jpg",
   woodNormal: "/assets/textures/wood/wood_NormalGL.jpg",
   woodRough: "/assets/textures/wood/wood_Roughness.jpg",
@@ -136,7 +76,7 @@ function configure(source: THREE.Texture, srgb: boolean, repeat: number): THREE.
   return t;
 }
 
-const SRGB_KEYS: SurfaceKey[] = ["grassColor", "groundColor", "concreteColor", "woodColor"];
+const SRGB_KEYS: SurfaceKey[] = ["grassColor", "groundColor", "woodColor"];
 
 /** Loads + configures the PBR surface maps (colour maps in sRGB). */
 export function useSurfaces(repeat = 1): Surfaces {
@@ -164,7 +104,7 @@ export function useSkyEnvironment(url = "/assets/env/sky_1k.hdr"): THREE.Texture
     const rt = pmrem.fromEquirectangular(hdr);
     const env = rt.texture;
     scene.environment = env;
-    scene.environmentIntensity = 0.5;
+    scene.environmentIntensity = 0.6;
     return () => {
       scene.environment = null;
       rt.dispose();
@@ -182,16 +122,22 @@ export interface ModelGeo {
 }
 
 /**
- * Loads every nature model and returns one merged, vertex-coloured,
+ * Loads every meadow model and returns one merged, vertex-coloured,
  * ground-centred geometry per model (ready for `InstancedMesh`).
  */
-export function useNatureModels(): Record<string, ModelGeo> {
-  const gltfs = useLoader(GLTFLoader, NATURE_URLS) as GLTF[];
+export function useMeadowModels(): Record<string, ModelGeo> {
+  const gltfs = useLoader(GLTFLoader, MEADOW_URLS) as GLTF[];
   const out: Record<string, ModelGeo> = {};
-  NATURE_KEYS.forEach((key, i) => {
+  MEADOW_KEYS.forEach((key, i) => {
     out[key] = flatten(gltfs[i]);
   });
   return out;
+}
+
+/** Loads a single flattened model geometry (used for the hero landmark). */
+export function useModel(url: string): ModelGeo {
+  const gltf = useLoader(GLTFLoader, url) as GLTF;
+  return flatten(gltf);
 }
 
 function flatten(gltf: GLTF): ModelGeo {
@@ -208,13 +154,15 @@ function flatten(gltf: GLTF): ModelGeo {
     const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
     const col = (mat as THREE.MeshStandardMaterial | undefined)?.color ?? new THREE.Color(0xbfc4c0);
     const count = g.getAttribute("position").count;
-    const colors = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) {
-      colors[i * 3] = col.r;
-      colors[i * 3 + 1] = col.g;
-      colors[i * 3 + 2] = col.b;
+    if (!g.getAttribute("color")) {
+      const colors = new Float32Array(count * 3);
+      for (let i = 0; i < count; i++) {
+        colors[i * 3] = col.r;
+        colors[i * 3 + 1] = col.g;
+        colors[i * 3 + 2] = col.b;
+      }
+      g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     }
-    g.setAttribute("color", new THREE.BufferAttribute(colors, 3));
     // drop everything we do not need, so the geometries merge cleanly
     for (const name of Object.keys(g.attributes)) {
       if (!["position", "normal", "color"].includes(name)) g.deleteAttribute(name);
@@ -229,7 +177,12 @@ function flatten(gltf: GLTF): ModelGeo {
   const center = new THREE.Vector3();
   box.getCenter(center);
   merged.translate(-center.x, -box.min.y, -center.z);
+
+  // The Gobkit kit is authored in centimetres; convert to metres (uniform, so
+  // relative proportions between models are preserved).
+  const UNIT = 0.01;
+  merged.scale(UNIT, UNIT, UNIT);
   merged.computeBoundingBox();
-  const height = Math.max(0.2, (merged.boundingBox?.max.y ?? 1));
+  const height = Math.max(0.05, merged.boundingBox?.max.y ?? 1);
   return { geometry: merged, height };
 }

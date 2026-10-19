@@ -96,13 +96,13 @@ export function Pollen({ reducedMotion }: { reducedMotion: boolean }) {
 
 export function Petals({ reducedMotion }: { reducedMotion: boolean }) {
   const mobile = useMemo(() => (typeof window === "undefined" ? false : window.innerWidth < 768), []);
-  const count = mobile ? 90 : 220;
+  const count = mobile ? 80 : 190;
 
   const mesh = useMemo(() => {
     const rng = mulberry32(31337);
     const geo = new THREE.PlaneGeometry(0.16, 0.1);
     const mat = new THREE.MeshStandardMaterial({
-      color: new THREE.Color("#ffe7f0"),
+      color: new THREE.Color("#ffeacb"),
       roughness: 0.7,
       metalness: 0,
       side: THREE.DoubleSide,

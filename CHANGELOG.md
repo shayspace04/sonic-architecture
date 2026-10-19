@@ -2,7 +2,44 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-19 (organic meadow redesign — fox + Gobkit)
+
+### Changed — the landing is now a lush, organic meadow, not an angular field
+
+- **Killed the angular/sci-fi read.** `Pavilion.tsx` deleted; `Landmarks.tsx`
+  rewritten from floating islands + obelisk to a single `Horizon` of three
+  fog-tinted instanced bands (hills / mountains / far mountains). No more
+  floating rectangles or portal.
+- **Fox protagonist.** `Character.tsx` now loads the Quaternius CC0
+  `char/fox.glb` (1848 tris): `AnimationMixer` blends `Idle`↔`Walk` on
+  `world.travel`, walks the path when travelling and idles at home with cursor
+  gaze. `char/character.fbx` (humanoid) removed.
+- **New CC0 nature kit**: `public/assets/meadow/*.glb` (Gobkit free library,
+  CC0 1.0) — `tree_high/med/low`, bushes, reed, rock, hill, mountain,
+  mountain_far. The unused Kenney `public/assets/nature/` GLTs were deleted.
+  `public/assets/ASSET_CREDITS.md` rewritten for the fox + Gobkit sets.
+- **Rewritten world**: `scene.ts` (new airy palette, terrain/path maths, blade/
+  flower geometry, exported `FOG_DENSITY`), new `flowerMask.ts`, `Terrain.tsx`
+  (vertex-coloured meadow + soil patches + path ribbon), `Vegetation.tsx`
+  (`GrassField` 82k/26k, `WildflowerField` 4.2k/1.4k, `MeadowPlants`, `HeroTree`),
+  `Sky.tsx` (4-stop dome + sun glow + cumulus sprites), `Landmarks.tsx`
+  (`Horizon`), `Character.tsx` (fox), retuned `CameraRig.tsx`.
+- **Bug fixed (world was invisible)**: the Gobkit GLBs are authored in
+  centimetres (`TreeHigh001` ≈ 849 units). Without normalisation every plant
+  stood hundreds of metres tall and filled the camera with flat grey. `assets.ts`
+  `flatten()` now applies a uniform `UNIT = 0.01` (proportions preserved) and
+  group scales act on metre-sized geometry. Root cause confirmed by bisecting
+  components against a magenta test background in canvas-only captures.
+- **Tuning**: shared `FOG_DENSITY` (scene `fogExp2` + wildflower shader), bloom
+  `0.28→0.16` / threshold `0.9→0.95`, desktop `DepthOfField` in the composer.
+- **Verified**: `npm run lint`, `npx tsc --noEmit`, `npm test` (37/37),
+  `npm run build` all clean; full-scene capture ≈35 % green / ≈20 % sky with the
+  HUD legible; pointer moves change frames (mean-abs-diff 9–27); 0 console errors.
+
 ## 2026-10-19 (cursor-reactive meadow world — real assets)
+
+> **Superseded** by the organic meadow redesign above for the landing world, the
+> asset set, and the protagonist.
 
 ### Changed — the landing is now a living 3D meadow the cursor can disturb
 

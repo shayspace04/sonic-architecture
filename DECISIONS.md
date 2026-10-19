@@ -251,6 +251,31 @@ question. Do not invent history.
   IPv6. User set Wi-Fi DNS to `8.8.8.8` / `1.1.1.1` — both hosts now resolve to
   IPv4 and **live Qloo calls work again** (`source: qloo`, 5 artist results).
 
+## Decisions from the organic-meadow redesign (2026-10-19)
+
+44. **The landing is a lush organic meadow with a fox, not an angular field.**
+    The angular/sci-fi read (floating rectangles, portal, obelisk, pavilion) was
+    removed: `Pavilion.tsx` deleted; `Landmarks.tsx` rewritten to a single
+    `Horizon` of fog-tinted distant hills/mountains. A Quaternius CC0 **fox**
+    (`char/fox.glb`) replaced the humanoid walker as the cursor-aware
+    protagonist. New palette + vertex-coloured terrain target a soft, airy
+    storybook look.
+45. **Gobkit CC0 nature props replaced the Kenney Nature Kit; the humanoid FBX was
+    removed.** `public/assets/meadow/*.glb` (Gobkit `freebies`, CC0 1.0) plus
+    `char/fox.glb`. The unused `public/assets/nature/` tree and the
+    `char/character.fbx` walker were deleted (no code referenced them). Credits
+    updated in `public/assets/ASSET_CREDITS.md`.
+46. **Gobkit props are authored in centimetres; `assets.ts` normalises to metres.**
+    The raw GLBs measure hundreds of units tall (e.g. `TreeHigh001` ≈ 849). A
+    single uniform `UNIT = 0.01` scale in `flatten()` preserves relative
+    proportions between models; per-group scale factors then act on metre-sized
+    geometry. (Missing this made every plant hundreds of metres tall and hid the
+    whole world behind foliage — the "grey frame" bug.)
+47. **One shared `FOG_DENSITY` for the scene and custom shaders.** The wildflower
+    `ShaderMaterial` fogs itself in the fragment stage, so it reads the same
+    exported `FOG_DENSITY` as the `fogExp2` on the `Canvas`; bloom was toned down
+    (`0.28 → 0.16`, threshold `0.9 → 0.95`) to keep the meadow from washing out.
+
 ## Open questions requiring user input
 
 1. ~~Should the key be rotated now…?~~ — **Rotation still pending user action**

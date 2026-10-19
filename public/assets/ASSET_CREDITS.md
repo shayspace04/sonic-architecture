@@ -13,17 +13,17 @@ login-gated, or license-unclear content was used.
 | --- | --- | --- | --- | --- | --- |
 | Kloofendal 48d (Partly Cloudy) — Pure Sky, 1k | `env/sky_1k.hdr` | https://polyhaven.com/a/kloofendal_48d_partly_cloudy_puresky | Greg Zaal / Poly Haven | CC0 | Radiance `.hdr`, used as `scene.environment` (image-based lighting) via `PMREMGenerator`. 1.4 MB, unmodified. |
 
-## Animated character
+## Animated character (protagonist)
 
 | Asset | File | Source | Creator | License | Notes |
 | --- | --- | --- | --- | --- | --- |
-| Ultimate Animated Character Pack (Nov 2019) | `char/character.fbx` | https://opengameart.org/content/animated-characters-pack | Quaternius | CC0 | One character ("Casual_Male") extracted from the pack. Contains a skinned rig with `Idle`/`Walk`/`Run`/`Sit`/`Stand`/`Victory` clips. 1.5 MB. |
+| Animated Fox | `char/fox.glb` | https://quaternius.com/ | Quaternius | CC0 | Skinned, animated fox (`AnimalArmature`; clips `Idle`, `Walk`, `Gallop`, `Attack`, `Death`, `Eating`, …). FBX2glTF v0.9.7 binary glTF, 1848 tris, no embedded textures. Used as the meadow protagonist via `Character.tsx` (`Idle`↔`Walk` blend). |
 
 ## Nature / environment models
 
 | Asset | Source | Creator | License | Notes |
 | --- | --- | --- | --- | --- |
-| Nature Kit — GLTF models (53 selected: trees, bushes, plants, grass tufts, flowers, rocks, stones, logs, stumps, mushrooms, column/ring/obelisk/block statue pieces, wood bridge sections, floating platforms, cliff chunks) | https://kenney.nl/assets/nature-kit | Kenney | CC0 | `nature/*.glb`. Selected subset of the 329-model pack, kept in the kit's single cohesive low-poly style. ~474 KB total. |
+| Gobkit free library — nature props (`meadow/*.glb`: `TreeHigh001`, `TreeMed001`, `TreeLow001`, `Bush001`, `Bush002`, `Reed001`, `Rock001`, `Hill001`, `Mountain001`, `MountainFar001`; `Cloud001`/`Cloud002` bundled but currently unused) | https://gobkit.com/freebies | Gobkit (Alsomind Tech Co., Ltd.) | CC0 1.0 | Static props, ~15 KB each, authored in centimetres and normalised to metres at load time in `assets.ts` (`UNIT`). Fetched via the unauthenticated `https://gobkit.com/api/urls?kind=props` endpoint. |
 
 ## PBR surface textures
 
@@ -37,6 +37,13 @@ All from [ambientCG](https://ambientcg.com/) (CC0), 1K-JPG PBR sets. Only the
 | Ground 003 | `textures/ground/` | https://ambientcg.com/a/Ground003 | `ground_Color`, `ground_NormalGL`, `ground_Roughness` |
 | Concrete 010 | `textures/concrete/` | https://ambientcg.com/a/Concrete010 | `concrete_Color`, `concrete_NormalGL`, `concrete_Roughness` |
 | Wood 013 | `textures/wood/` | https://ambientcg.com/a/Wood013 | `wood_Color`, `wood_NormalGL`, `wood_Roughness` |
+
+## Superseded / removed
+
+- The earlier **Kenney Nature Kit** GLTFs (`nature/*.glb`, CC0) and the
+  **Quaternius Ultimate Animated Character Pack** walker (`char/character.fbx`,
+  CC0) were removed during the meadow redesign — they are no longer referenced by
+  any code. Their licences (CC0) placed no attribution obligation on them.
 
 ## Not used / unavailable
 

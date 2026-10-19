@@ -48,15 +48,17 @@ cloud world for the landing only):**
   ivory and restrained acid-lime/UV accents. **No black background, no
   acid-lime/UV dominance on the landing.**
 - Full-viewport **real 3D** world — `components/three/LandingWorld.tsx` +
-  `components/three/world/*`: displaced meadow terrain + winding path, ~62k
-  (~18k mobile) instanced wind-shaded grass blades, wild flowers, scattered GLTF
-  trees/bushes/rocks, a procedural pavilion on a knoll, drifting clouds,
-  floating islands, pollen/petals/light shafts, and a skinned walker on the
-  path. Poly Haven sky HDRI drives image-based lighting; ACES tone mapping,
-  soft shadows, Bloom + Vignette. **The cursor matters**: foliage bends away
-  from the pointer (raycast onto the ground) and the camera adds damped
-  parallax — but only pointer *input*, never a network call.
-- Bundled CC0 assets (~5.5 MB) under `public/assets/`, all attributed in
+  `components/three/world/*`: displaced, vertex-coloured meadow terrain + winding
+  path, ~82k (~26k mobile) instanced wind-shaded grass blades, instanced
+  wildflowers, scattered Gobkit trees/bushes/reeds/rocks, a single hero tree and
+  a fog-tinted `Horizon` of distant hills/mountains, cumulus cloud sprites,
+  pollen/petals/light shafts, and a Quaternius **fox** protagonist on the path.
+  Poly Haven sky HDRI drives image-based lighting; ACES tone mapping, soft
+  shadows, Bloom/Vignette + a desktop depth-of-field. **The cursor matters**:
+  foliage bends away from the pointer (raycast onto the ground) and the camera
+  adds damped parallax — but only pointer *input*, never a network call.
+- Bundled CC0 assets under `public/assets/` (Poly Haven HDRI, Gobkit meadow
+  props, Quaternius fox, ambientCG PBR maps), all attributed in
   `public/assets/ASSET_CREDITS.md`.
 - Centred copy: eyebrow `A NEW WAY TO EXPERIENCE CULTURE`, `SONIC ARCHITECTURE`,
   "Your taste has a world of its own.", "Tell us what moves you…", the floating
@@ -92,8 +94,8 @@ cloud world for the landing only):**
 | `lib/qloo/{cache,http,usage,profile}.ts` | TTL cache + single-flight, retry/timeout + quota headers, request ceiling + counters, extracted orchestration | New (quota protection) |
 | `lib/fallback.ts` | Honest `localFallbackPayload()` (extracted from route) | New |
 | `tests/*.test.ts` + `tsconfig.test.json` | `npm test` — 37 Node `node:test` cases (cache/http/usage/profile/fallback) | New |
-| `components/three/LandingWorld.tsx` + `components/three/world/*` | Landing's full-viewport meadow world (terrain, instanced vegetation, pavilion, islands, walker, atmosphere, pointer-driven camera) | New 2026-10-19 (replaces `CloudWorld.tsx`) |
-| `public/assets/` | Bundled CC0 world assets (sky HDRI, Kenney GLTFs, Quaternius FBX, ambientCG PBR maps) + `ASSET_CREDITS.md` | New 2026-10-19 (~5.5 MB) |
+| `components/three/LandingWorld.tsx` + `components/three/world/*` | Landing's full-viewport meadow world (terrain, instanced grass/flowers/plants, fox protagonist, horizon hills, atmosphere, pointer-driven camera) | Meadow redesign 2026-10-19 (replaces `CloudWorld.tsx`) |
+| `public/assets/` | Bundled CC0 world assets (Poly Haven sky HDRI, Gobkit meadow GLBs, Quaternius `fox.glb`, ambientCG PBR maps) + `ASSET_CREDITS.md` | Meadow redesign 2026-10-19 |
 | `components/SkyFallback.tsx` | Pure-CSS sky for loading, no-WebGL and reduced-motion | New 2026-10-19 |
 | `lib/dev-mock.ts` | Dev-only `?mock=1` preview payload (labelled "not Qloo data") | New 2026-10-19 |
 | `components/ResonanceField.tsx` | Canvas-2D wave field (used by `DesignMoodboard`) | Existing |

@@ -52,18 +52,37 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
       `components/three/world/*` (`scene`/`assets`/`Terrain`/`Vegetation`/`Sky`/
       `Pavilion`/`Landmarks`/`Character`/`Atmosphere`/`CameraRig`);
       `components/three/CloudWorld.tsx` deleted:
-  - [x] Real bundled CC0 assets (~5.5 MB): Poly Haven sky HDRI, 53 Kenney Nature
-        Kit GLTFs, a Quaternius skinned walker (FBX), downscaled ambientCG
-        grass/ground/concrete/wood PBR maps — all attributed in
-        `public/assets/ASSET_CREDITS.md`
-  - [x] Displaced meadow terrain + winding path, ~62k (18k mobile) instanced
-        wind-shaded grass blades, wild flowers, scattered trees/bushes/rocks,
-        procedural concrete+wood pavilion on a knoll, drifting clouds, floating
-        islands, pollen/petals, skinned walker on the path, HDRI IBL + ACES +
-        soft shadows + Bloom/Vignette
+  - [x] ~~Real bundled CC0 assets: Poly Haven sky HDRI, 53 Kenney Nature Kit
+        GLTFs, a Quaternius skinned walker (FBX), downscaled ambientCG PBR
+        maps~~ — **superseded by the organic redesign below**
+  - [x] ~~Displaced meadow terrain + winding path, ~62k instanced grass blades,
+        pavilion on a knoll, floating islands, skinned walker…~~ — **superseded**
   - [x] **Cursor-reactive** `worldBend()` foliage shader (pointer raycast onto
         the ground) + damped camera parallax; one shared program via
         `customProgramCacheKey`
+
+- [x] **Organic meadow redesign** (2026-10-19) — replaces the angular/sci-fi
+      read (floating rectangles, portal, obelisk, pavilion) with a lush grounded
+      meadow:
+  - [x] `Pavilion.tsx` deleted; `Landmarks.tsx` rewritten to `Horizon` (three
+        fog-tinted instanced bands of distant hills/mountains)
+  - [x] Quaternius CC0 **fox** (`char/fox.glb`) protagonist — `Idle`↔`Walk`
+        blend, walks the path when travelling, idles at home with cursor gaze
+  - [x] Assets: Gobkit CC0 nature props (`meadow/*.glb`, normalised cm→m in
+        `assets.ts`) + `fox.glb`; unused Kenney `nature/` GLTs and the humanoid
+        `character.fbx` removed; `ASSET_CREDITS.md` updated
+  - [x] Rewritten palette/terrain/vegetation/sky (`scene`, `Terrain`,
+        `Vegetation`, `Sky`, `flowerMask.ts`); shared `FOG_DENSITY`; toned-down
+        Bloom; desktop depth-of-field
+  - [x] **Root-cause fix**: Gobkit GLBs are centimetre-authored — the missing
+        `UNIT = 0.01` normalisation made every plant hundreds of metres tall and
+        occluded the whole world. Diagnosed by bisecting components with
+        canvas-only captures (terrain-only frame rendered green + magenta test
+        background; re-adding `MeadowPlants` restored the grey occlusion).
+  - [x] Verified: `npm run lint` clean, `npx tsc --noEmit` clean, `npm test`
+        37/37, `npm run build` clean; full-scene capture ≈35% green / ≈20% sky
+        with the HUD legible; cursor moves change ~9–27 mean-abs-diff across
+        frames; 0 console errors
   - [x] Verified in headless Chrome: 0 console errors at 1600×900 and 390×844,
         pointer moves change 47–55 % of pixels, submit journey reaches the
         labelled mock venue with 0 errors and 0 Qloo calls

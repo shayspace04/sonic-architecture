@@ -3,14 +3,13 @@
 import { Suspense, Component, useRef, type ReactNode } from "react";
 import * as THREE from "three";
 import { Canvas, useFrame } from "@react-three/fiber";
-import { EffectComposer, Bloom, Vignette } from "@react-three/postprocessing";
-import { PALETTE, SUN_DIR, world, type WorldPhase } from "./world/scene";
+import { EffectComposer, Bloom, Vignette, DepthOfField } from "@react-three/postprocessing";
+import { FOG_DENSITY, PALETTE, SUN_DIR, world, type WorldPhase } from "./world/scene";
 import { useSkyEnvironment } from "./world/assets";
 import Terrain from "./world/Terrain";
-import { Blooms, GrassField, NatureScatter } from "./world/Vegetation";
+import { GrassField, WildflowerField, MeadowPlants, HeroTree } from "./world/Vegetation";
 import { SkyDome, Sun, Clouds } from "./world/Sky";
-import Pavilion from "./world/Pavilion";
-import FloatingIslands from "./world/Landmarks";
+import Horizon from "./world/Landmarks";
 import Character from "./world/Character";
 import { Petals, Pollen, SunShafts } from "./world/Atmosphere";
 import { WorldClock, CameraRig } from "./world/CameraRig";
@@ -73,7 +72,15 @@ function Lighting() {
   );
 }
 
-function World({ phase, reducedMotion }: { phase: WorldPhase; reducedMotion: boolean }) {
+function World({
+  phase,
+  reducedMotion,
+  mobile,
+}: {
+  phase: WorldPhase;
+  reducedMotion: boolean;
+  mobile: boolean;
+}) {
   return (
     <>
       <WorldClock phase={phase} reducedMotion={reducedMotion} />
@@ -89,10 +96,10 @@ function World({ phase, reducedMotion }: { phase: WorldPhase; reducedMotion: boo
       <Suspense fallback={<SkyDome />}>
         <Terrain />
         <GrassField />
-        <Blooms />
-        <NatureScatter />
-        <Pavilion reducedMotion={reducedMotion} />
-        <FloatingIslands reducedMotion={reducedMotion} />
+        <WildflowerField />
+        <MeadowPlants />
+        <HeroTree />
+        <Horizon />
         <SilentBoundary>
           <Suspense fallback={null}>
             <Character reducedMotion={reducedMotion} />
@@ -104,7 +111,10 @@ function World({ phase, reducedMotion }: { phase: WorldPhase; reducedMotion: boo
       </Suspense>
 
       <EffectComposer multisampling={0}>
-        <Bloom intensity={0.32} luminanceThreshold={0.9} luminanceSmoothing={0.45} mipmapBlur />
+        <Bloom intensity={0.16} luminanceThreshold={0.95} luminanceSmoothing={0.35} mipmapBlur />
+        {!mobile && (
+          <DepthOfField target={[0, 1.2, -18]} focalLength={0.02} bokehScale={2.2} />
+        )}
         <Vignette offset={0.32} darkness={0.5} />
       </EffectComposer>
     </>
@@ -122,14 +132,14 @@ export default function LandingWorld({
   return (
     <div className="absolute inset-0">
       <Canvas
-        shadows="percentage"
         dpr={[1, mobile ? 1.5 : 1.75]}
+        shadows="percentage"
         gl={{ antialias: true, powerPreference: "high-performance" }}
-        camera={{ position: [0, 2.4, 13.5], fov: 46, near: 0.1, far: 600 }}
+        camera={{ position: [0, 2.7, 14.5], fov: 44, near: 0.1, far: 700 }}
       >
         <color attach="background" args={[PALETTE.skyMid]} />
-        <fogExp2 attach="fog" args={[PALETTE.fog, 0.0032]} />
-        <World phase={phase} reducedMotion={reducedMotion} />
+        <fogExp2 attach="fog" args={[PALETTE.fog, FOG_DENSITY]} />
+        <World phase={phase} reducedMotion={reducedMotion} mobile={mobile} />
       </Canvas>
     </div>
   );

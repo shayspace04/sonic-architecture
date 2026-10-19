@@ -43,8 +43,8 @@ const hit = new THREE.Vector3();
 export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
   const camera = useThree((s) => s.camera);
   const targetNDC = useRef(new THREE.Vector2(0, 0));
-  const pos = useRef(new THREE.Vector3(0, 2.4, 13.5));
-  const look = useRef(new THREE.Vector3(1.2, 1.05, -8));
+  const pos = useRef(new THREE.Vector3(0, 2.7, 14.5));
+  const look = useRef(new THREE.Vector3(1.0, 1.15, -9));
 
   useEffect(() => {
     const apply = (x: number, y: number) => {
@@ -76,19 +76,19 @@ export function CameraRig({ reducedMotion }: { reducedMotion: boolean }) {
     const py = world.pointer.y;
     const t = world.time;
 
-    const baseX = px * 2.8 * (1 - travel * 0.55) + Math.sin(t * 0.22) * 0.25 * (1 - travel);
-    const baseY = 2.4 - py * 1.15 + travel * 1.4 + Math.sin(t * 0.5) * 0.08 * (1 - travel);
-    const baseZ = 13.5 - travel * 24;
-    pos.current.lerp(new THREE.Vector3(baseX, Math.max(1.2, baseY), baseZ), k);
+    const baseX = px * 2.3 * (1 - travel * 0.55) + Math.sin(t * 0.22) * 0.22 * (1 - travel);
+    const baseY = 2.7 - py * 1.05 + travel * 1.4 + Math.sin(t * 0.5) * 0.07 * (1 - travel);
+    const baseZ = 14.5 - travel * 26;
+    pos.current.lerp(new THREE.Vector3(baseX, Math.max(1.3, baseY), baseZ), k);
     camera.position.copy(pos.current);
 
     look.current.lerp(
-      new THREE.Vector3(px * 3.4 + 1.2, 1.05 - py * 0.9 + travel * 1.1, -8 - travel * 21),
+      new THREE.Vector3(px * 2.9 + 1.0, 1.15 - py * 0.8 + travel * 1.1, -9 - travel * 23),
       k
     );
     camera.lookAt(look.current);
 
-    const targetFov = 46 - travel * 5;
+    const targetFov = 44 - travel * 5;
     const pc = camera as THREE.PerspectiveCamera;
     pc.fov += (targetFov - pc.fov) * d * 1.5;
     pc.updateProjectionMatrix();
