@@ -12,6 +12,7 @@ import { WebGLBoundary, usePrefersReducedMotion } from "./shared";
 import VenueScene from "@/components/VenueScene";
 import type { SceneSpec, SpatialObject, SpatialZone } from "@/lib/scene-spec";
 import { generateSceneSpec } from "@/lib/scene-spec";
+import { captureViewportSnapshot } from "@/lib/brief";
 
 export type LightingPreset = "morning" | "golden" | "midnight";
 export type CameraViewPreset = "orbit" | "plan" | "exploded" | "eye" | "focal";
@@ -22,6 +23,12 @@ interface Venue3DProps {
   spec?: SceneSpec;
   promptText?: string;
   fill?: boolean;
+  selectedObjectId?: string | null;
+  onSelectObject?: (obj: SpatialObject | null) => void;
+  layoutMode?: "banquet" | "theatre" | "cocktail" | "lounge" | "ceremony";
+  onLayoutModeChange?: (mode: "banquet" | "theatre" | "cocktail" | "lounge" | "ceremony") => void;
+  guestCount?: number;
+  onGuestCountChange?: (count: number) => void;
 }
 
 interface LightTargets {
@@ -169,7 +176,48 @@ function VenueLighting({
         decay={2}
         intensity={targets.accent * 0.75}
       />
+      {preset === "midnight" && <CelestialStars visible={true} />}
     </>
+  );
+}
+
+const CELESTIAL_POSITIONS = (() => {
+  const starCount = 1200;
+  const positions = new Float32Array(starCount * 3);
+  let seed = 42;
+  const rnd = () => {
+    seed = (seed * 16807) % 2147483647;
+    return (seed - 1) / 2147483646;
+  };
+  for (let i = 0; i < starCount; i++) {
+    const u = rnd() * 0.85 + 0.15;
+    const theta = rnd() * Math.PI * 2;
+    const radius = 65 + rnd() * 45;
+    const qq = Math.sqrt(1 - u * u);
+    positions[i * 3] = Math.cos(theta) * qq * radius;
+    positions[i * 3 + 1] = u * radius + 5;
+    positions[i * 3 + 2] = Math.sin(theta) * qq * radius;
+  }
+  return positions;
+})();
+
+function CelestialStars({ visible }: { visible: boolean }) {
+  const geo = useMemo(() => {
+    const g = new THREE.BufferGeometry();
+    g.setAttribute("position", new THREE.BufferAttribute(CELESTIAL_POSITIONS, 3));
+    return g;
+  }, []);
+
+  return (
+    <points geometry={geo} visible={visible}>
+      <pointsMaterial
+        color="#DCE8FF"
+        size={0.65}
+        transparent
+        opacity={visible ? 0.9 : 0}
+        depthWrite={false}
+      />
+    </points>
   );
 }
 
@@ -184,6 +232,7 @@ function ArchitecturalShell({
   showRoof = true,
   showWalls = true,
   showPlanGrid = false,
+  showDimensions = false,
   activeZoneId = null,
   onSelectZone,
 }: {
@@ -193,6 +242,7 @@ function ArchitecturalShell({
   showRoof?: boolean;
   showWalls?: boolean;
   showPlanGrid?: boolean;
+  showDimensions?: boolean;
   activeZoneId?: string | null;
   onSelectZone?: (zone: SpatialZone) => void;
 }) {
@@ -379,6 +429,118 @@ function ArchitecturalShell({
               </mesh>
             </group>
           ))}
+        </group>
+      )}
+
+      {/* --- Architectural Dimension Annotations (Lintel-style Sheet Callouts) --- */}
+      {showDimensions && (
+        <group>
+          {/* Front Width Dimension Line & End Ticks */}
+          <group position={[0, 0.08, halfD + 1.25]}>
+            {/* Main horizontal dimension line */}
+            <mesh>
+              <boxGeometry args={[W, 0.025, 0.025]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Left end tick mark */}
+            <mesh position={[-halfW, 0, 0]}>
+              <boxGeometry args={[0.025, 0.025, 0.35]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Right end tick mark */}
+            <mesh position={[halfW, 0, 0]}>
+              <boxGeometry args={[0.025, 0.025, 0.35]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Witness extension lines from building corners to dimension line */}
+            <mesh position={[-halfW, 0, -0.625]}>
+              <boxGeometry args={[0.015, 0.015, 1.25]} />
+              <meshBasicMaterial color="#D9532B" transparent opacity={0.4} />
+            </mesh>
+            <mesh position={[halfW, 0, -0.625]}>
+              <boxGeometry args={[0.015, 0.015, 1.25]} />
+              <meshBasicMaterial color="#D9532B" transparent opacity={0.4} />
+            </mesh>
+            {/* Dimension Badge Plane */}
+            <group position={[0, 0.02, 0]} rotation-x={-Math.PI / 2}>
+              <mesh>
+                <planeGeometry args={[2.2, 0.65]} />
+                <meshBasicMaterial color="#EEE8DC" />
+              </mesh>
+              <lineSegments>
+                <edgesGeometry args={[new THREE.PlaneGeometry(2.2, 0.65)]} />
+                <lineBasicMaterial color="#D9532B" />
+              </lineSegments>
+            </group>
+          </group>
+
+          {/* Right Depth Dimension Line & End Ticks */}
+          <group position={[halfW + 1.25, 0.08, 0]}>
+            {/* Main longitudinal dimension line */}
+            <mesh>
+              <boxGeometry args={[0.025, 0.025, D]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Near end tick */}
+            <mesh position={[0, 0, -halfD]}>
+              <boxGeometry args={[0.35, 0.025, 0.025]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Far end tick */}
+            <mesh position={[0, 0, halfD]}>
+              <boxGeometry args={[0.35, 0.025, 0.025]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Witness extension lines */}
+            <mesh position={[-0.625, 0, -halfD]}>
+              <boxGeometry args={[1.25, 0.015, 0.015]} />
+              <meshBasicMaterial color="#D9532B" transparent opacity={0.4} />
+            </mesh>
+            <mesh position={[-0.625, 0, halfD]}>
+              <boxGeometry args={[1.25, 0.015, 0.015]} />
+              <meshBasicMaterial color="#D9532B" transparent opacity={0.4} />
+            </mesh>
+            {/* Dimension Badge Plane */}
+            <group position={[0, 0.02, 0]} rotation-x={-Math.PI / 2} rotation-z={Math.PI / 2}>
+              <mesh>
+                <planeGeometry args={[2.2, 0.65]} />
+                <meshBasicMaterial color="#EEE8DC" />
+              </mesh>
+              <lineSegments>
+                <edgesGeometry args={[new THREE.PlaneGeometry(2.2, 0.65)]} />
+                <lineBasicMaterial color="#D9532B" />
+              </lineSegments>
+            </group>
+          </group>
+
+          {/* Vertical Height Dimension Line */}
+          <group position={[-halfW - 0.9, H / 2, halfD]}>
+            <mesh>
+              <boxGeometry args={[0.025, H, 0.025]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Bottom tick */}
+            <mesh position={[0, -H / 2, 0]}>
+              <boxGeometry args={[0.35, 0.025, 0.025]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Top tick */}
+            <mesh position={[0, H / 2, 0]}>
+              <boxGeometry args={[0.35, 0.025, 0.025]} />
+              <meshBasicMaterial color="#D9532B" />
+            </mesh>
+            {/* Dimension Badge */}
+            <group position={[0, 0, 0]}>
+              <mesh>
+                <planeGeometry args={[2.2, 0.65]} />
+                <meshBasicMaterial color="#EEE8DC" side={THREE.DoubleSide} />
+              </mesh>
+              <lineSegments>
+                <edgesGeometry args={[new THREE.PlaneGeometry(2.2, 0.65)]} />
+                <lineBasicMaterial color="#D9532B" />
+              </lineSegments>
+            </group>
+          </group>
         </group>
       )}
 
@@ -1582,11 +1744,46 @@ function VenueCanvas({
   spec: initialSpec,
   promptText = "",
   fill = false,
+  selectedObjectId = null,
+  onSelectObject,
+  layoutMode,
+  onLayoutModeChange,
+  guestCount,
+  onGuestCountChange,
 }: Venue3DProps) {
   const reducedMotion = usePrefersReducedMotion();
+
+  const [internalLayoutMode, setInternalLayoutMode] = useState<
+    "banquet" | "theatre" | "cocktail" | "lounge" | "ceremony"
+  >(initialSpec?.eventCapacity?.layoutMode ?? "lounge");
+
+  const [internalGuestCount, setInternalGuestCount] = useState<number>(
+    initialSpec?.eventCapacity?.guests ?? 80
+  );
+
+  const currentLayoutMode = layoutMode ?? internalLayoutMode;
+  const currentGuestCount = guestCount ?? internalGuestCount;
+
+  const handleLayoutModeChange = (
+    mode: "banquet" | "theatre" | "cocktail" | "lounge" | "ceremony"
+  ) => {
+    setInternalLayoutMode(mode);
+    onLayoutModeChange?.(mode);
+  };
+
+  const handleGuestCountChange = (count: number) => {
+    setInternalGuestCount(count);
+    onGuestCountChange?.(count);
+  };
+
   const spec = useMemo(
-    () => initialSpec || generateSceneSpec(promptText, vibe),
-    [initialSpec, promptText, vibe]
+    () =>
+      initialSpec ||
+      generateSceneSpec(promptText, vibe, {
+        layoutMode: currentLayoutMode,
+        guestCount: currentGuestCount,
+      }),
+    [initialSpec, promptText, vibe, currentLayoutMode, currentGuestCount]
   );
 
   const [preset, setPreset] = useState<LightingPreset>("golden");
@@ -1595,7 +1792,16 @@ function VenueCanvas({
   const [gloss, setGloss] = useState(spec.floorFinish === "glossy_concrete");
   const [exploring, setExploring] = useState(false);
   const [resetKey, setResetKey] = useState(0);
-  const [selectedObject, setSelectedObject] = useState<SpatialObject | null>(null);
+  const [internalSelectedObject, setInternalSelectedObject] = useState<SpatialObject | null>(null);
+
+  // Derived selected object (prioritizes external selection prop if controlled)
+  const selectedObject = useMemo(() => {
+    if (selectedObjectId !== undefined) {
+      if (!selectedObjectId) return null;
+      return spec.objects.find((o) => o.id === selectedObjectId) ?? null;
+    }
+    return internalSelectedObject;
+  }, [selectedObjectId, spec.objects, internalSelectedObject]);
 
   // Architectural Layout & Planning States
   const [isPlanningOpen, setIsPlanningOpen] = useState(false);
@@ -1603,9 +1809,11 @@ function VenueCanvas({
   const [showRoof, setShowRoof] = useState(true);
   const [showWalls, setShowWalls] = useState(true);
   const [showPlanGrid, setShowPlanGrid] = useState(false);
+  const [showDimensions, setShowDimensions] = useState(false);
   const [activeZone, setActiveZone] = useState<SpatialZone | null>(null);
   const [focusPoint, setFocusPoint] = useState<[number, number, number] | null>(null);
 
+  const containerRef = useRef<HTMLDivElement>(null);
   const bloomRef = useRef<BloomEffect | null>(null);
 
   const handleViewPresetChange = (v: CameraViewPreset) => {
@@ -1613,9 +1821,11 @@ function VenueCanvas({
     if (v === "exploded") {
       setExplodedFactor(1);
       setShowPlanGrid(true);
+      setShowDimensions(true);
       setFocusPoint(null);
     } else if (v === "plan") {
       setShowPlanGrid(true);
+      setShowDimensions(true);
       setFocusPoint(null);
     } else {
       if (explodedFactor > 0) {
@@ -1627,13 +1837,28 @@ function VenueCanvas({
 
   const handleSelectZone = (zone: SpatialZone) => {
     setActiveZone(zone);
-    setSelectedObject(null);
+    setInternalSelectedObject(null);
     setFocusPoint(zone.center);
     setShowPlanGrid(true);
+    onSelectObject?.(null);
+  };
+
+  const handleSelectObject = (obj: SpatialObject) => {
+    setInternalSelectedObject(obj);
+    setActiveZone(null);
+    setFocusPoint(obj.position);
+    onSelectObject?.(obj);
+  };
+
+  const handleDeselect = () => {
+    setInternalSelectedObject(null);
+    setActiveZone(null);
+    setFocusPoint(null);
+    onSelectObject?.(null);
   };
 
   return (
-    <div className={fill ? "relative h-full w-full" : "relative"}>
+    <div ref={containerRef} className={fill ? "relative h-full w-full" : "relative"}>
       <div
         className={
           fill
@@ -1642,17 +1867,13 @@ function VenueCanvas({
         }
         role="img"
         aria-label={`3D architectural space: ${spec.typologyLabel}`}
-        onClick={() => {
-          setSelectedObject(null);
-          setActiveZone(null);
-          setFocusPoint(null);
-        }}
+        onClick={handleDeselect}
       >
         <WebGLBoundary fallback={<VenueScene vibe={vibe} />}>
           <Canvas
             shadows
             dpr={[1, typeof window !== "undefined" && window.innerWidth < 768 ? 1.5 : 2]}
-            gl={{ antialias: true, powerPreference: "high-performance" }}
+            gl={{ antialias: true, powerPreference: "high-performance", preserveDrawingBuffer: true }}
             camera={{ position: [6.0, 7.5, 13.0], fov: 44, near: 0.1, far: 70 }}
           >
             <color attach="background" args={["#0A0E1A"]} />
@@ -1672,6 +1893,7 @@ function VenueCanvas({
               showRoof={showRoof}
               showWalls={showWalls}
               showPlanGrid={showPlanGrid || viewPreset === "plan" || viewPreset === "exploded"}
+              showDimensions={showDimensions}
               activeZoneId={activeZone?.id || null}
               onSelectZone={handleSelectZone}
             />
@@ -1682,11 +1904,7 @@ function VenueCanvas({
                 key={obj.id}
                 obj={obj}
                 isSelected={selectedObject?.id === obj.id}
-                onSelect={() => {
-                  setSelectedObject(obj);
-                  setActiveZone(null);
-                  setFocusPoint(obj.position);
-                }}
+                onSelect={() => handleSelectObject(obj)}
               />
             ))}
 
@@ -1849,6 +2067,93 @@ function VenueCanvas({
               </div>
             </div>
 
+            {/* Architectural Capacity & Layout Configuration (Lintel Chapter 2) */}
+            <div className="mt-4 border-t border-white/10 pt-3.5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-[9px] tracking-[0.2em] text-[var(--lintel-terracotta)] uppercase font-semibold">
+                  Spatial Layout &amp; Event Capacity
+                </span>
+                <span className="font-mono text-[8px] text-white/50">
+                  SHEET A-03 · 1:200
+                </span>
+              </div>
+
+              {/* Layout Archetype Selector */}
+              <div className="grid grid-cols-2 gap-1.5 font-mono text-[9px] mb-3">
+                {(
+                  [
+                    ["banquet", "Banquet", "rounds of 10"],
+                    ["theatre", "Theatre", "rows of 16"],
+                    ["cocktail", "Cocktail", "high tables"],
+                    ["lounge", "Lounge", "intimate salon"],
+                  ] as const
+                ).map(([k, label, note]) => (
+                  <button
+                    key={k}
+                    type="button"
+                    onClick={() => handleLayoutModeChange(k)}
+                    className={`flex flex-col rounded-lg border p-2 text-left transition-all ${
+                      currentLayoutMode === k
+                        ? "border-[var(--lintel-terracotta)] bg-[var(--lintel-terracotta)]/20 text-white font-semibold"
+                        : "border-white/10 bg-white/5 text-white/70 hover:border-white/25 hover:bg-white/10"
+                    }`}
+                  >
+                    <span>{label}</span>
+                    <span className="text-[8px] text-white/40">{note}</span>
+                  </button>
+                ))}
+              </div>
+
+              {/* Guest Attendance Slider */}
+              <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="font-mono text-[9px] tracking-[0.16em] text-white/50 uppercase">
+                    Guest Attendance
+                  </span>
+                  <span className="font-mono text-xs font-semibold text-white">
+                    {currentGuestCount} guests
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="20"
+                  max={Math.max(260, Math.round((spec.roomDimensions.width * spec.roomDimensions.depth) / 1.0))}
+                  step="5"
+                  value={currentGuestCount}
+                  onChange={(e) => handleGuestCountChange(parseInt(e.target.value, 10))}
+                  className="w-full accent-[var(--lintel-terracotta)] cursor-pointer"
+                />
+                <div className="mt-2.5 grid grid-cols-3 gap-1 border-t border-white/10 pt-2 text-center font-mono text-[9px]">
+                  <div>
+                    <span className="text-white/40 block">Tables</span>
+                    <span className="text-white font-medium">
+                      {spec.eventCapacity?.tablesCount ?? Math.ceil(currentGuestCount / 10)}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-white/40 block">Density</span>
+                    <span className="text-white font-medium">
+                      {((spec.roomDimensions.width * spec.roomDimensions.depth) / currentGuestCount).toFixed(1)} m²/g
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-white/40 block">Status</span>
+                    <span
+                      className={
+                        (spec.roomDimensions.width * spec.roomDimensions.depth) / currentGuestCount >= 1.8
+                          ? "text-emerald-400 font-semibold"
+                          : "text-amber-400 font-semibold"
+                      }
+                    >
+                      {(spec.roomDimensions.width * spec.roomDimensions.depth) / currentGuestCount >= 1.8
+                        ? "Fits"
+                        : "Tight"}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Architectural Deconstruction (Nest Exploded Layers) */}
             <div className="mt-4 border-t border-white/10 pt-3.5">
               <div className="flex items-center justify-between mb-2">
@@ -1916,7 +2221,7 @@ function VenueCanvas({
                 type="button"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedObject(null);
+                  handleDeselect();
                 }}
                 className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] text-white/60 transition-colors hover:bg-white/20 hover:text-white"
               >
@@ -1937,6 +2242,25 @@ function VenueCanvas({
                 <span className="mb-1 block font-semibold tracking-[0.16em] text-[var(--lintel-moss)] uppercase">Design Rationale</span>
                 {selectedObject.rationale}
               </p>
+            </div>
+          </div>
+        )}
+
+        {/* --- Projected Dimension Sheet Header (Lintel Sheet A-03) --- */}
+        {showDimensions && (
+          <div className="pointer-events-none absolute inset-x-0 top-20 z-20 flex justify-center px-4">
+            <div className="flex flex-wrap items-center justify-center gap-2.5 rounded-full border border-[var(--lintel-terracotta)] bg-[#EEE8DC] px-4 py-1.5 font-mono text-[11px] font-semibold text-[#171A1F] shadow-2xl backdrop-blur-xl">
+              <span className="text-[var(--lintel-moss)] font-bold">WIDTH</span>
+              <span>{spec.roomDimensions.width.toFixed(1)}m</span>
+              <span className="text-[#171A1F]/30">×</span>
+              <span className="text-[var(--lintel-moss)] font-bold">DEPTH</span>
+              <span>{spec.roomDimensions.depth.toFixed(1)}m</span>
+              <span className="text-[#171A1F]/30">×</span>
+              <span className="text-[var(--lintel-moss)] font-bold">RIDGE</span>
+              <span>{spec.roomDimensions.height.toFixed(1)}m</span>
+              <span className="ml-1 rounded bg-[var(--lintel-terracotta)]/15 px-2 py-0.5 text-[10px] text-[var(--lintel-terracotta)] font-semibold">
+                {(spec.roomDimensions.width * spec.roomDimensions.depth).toFixed(0)}m² floor · {(spec.roomDimensions.width * spec.roomDimensions.depth * spec.roomDimensions.height).toFixed(0)}m³
+              </span>
             </div>
           </div>
         )}
@@ -1971,6 +2295,17 @@ function VenueCanvas({
                   {label}
                 </button>
               ))}
+              <button
+                type="button"
+                onClick={() => setShowDimensions((v) => !v)}
+                className={`rounded-lg px-2.5 py-1 font-mono text-[9px] tracking-[0.14em] uppercase transition-all ${
+                  showDimensions
+                    ? "bg-[var(--lintel-terracotta)] text-white shadow-sm font-semibold"
+                    : "text-white/55 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                Dims: {showDimensions ? "On" : "Off"}
+              </button>
             </div>
 
             {/* Layouts & Planning Drawer Button */}
@@ -2034,9 +2369,21 @@ function VenueCanvas({
               <button
                 type="button"
                 onClick={() => {
+                  const canvas = containerRef.current?.querySelector("canvas");
+                  if (canvas) captureViewportSnapshot(canvas, spec.typologyLabel);
+                }}
+                className="rounded-lg px-2.5 py-1 font-mono text-[9px] tracking-[0.14em] text-white/55 uppercase transition-all hover:bg-white/10 hover:text-white"
+                title="Capture WebGL Viewport Snapshot (.png)"
+              >
+                Snapshot
+              </button>
+              <button
+                type="button"
+                onClick={() => {
                   setResetKey((k) => k + 1);
                   setExplodedFactor(0);
                   setShowPlanGrid(false);
+                  setShowDimensions(false);
                   setShowRoof(true);
                   setShowWalls(true);
                   setActiveZone(null);

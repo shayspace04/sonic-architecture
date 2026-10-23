@@ -69,6 +69,16 @@ export interface SpatialZone {
   rationale: string;
 }
 
+export interface EventCapacity {
+  layoutMode: "banquet" | "theatre" | "cocktail" | "lounge" | "ceremony";
+  guests: number;
+  maxCapacity: number;
+  tablesCount: number;
+  chairsCount: number;
+  sqmPerGuest: number;
+  status: "optimal" | "tight" | "over_capacity";
+}
+
 export interface SceneSpec {
   typology: SpatialTypology;
   typologyLabel: string;
@@ -90,6 +100,7 @@ export interface SceneSpec {
   qlooLightingK?: number;
   qlooFeaturedArtist?: string;
   qlooEvidenceTags?: string[];
+  eventCapacity?: EventCapacity;
 }
 
 function parseExplicitTypology(text: string): SpatialTypology | null {
@@ -122,6 +133,10 @@ function parseExplicitTypology(text: string): SpatialTypology | null {
     return "intimate_lounge";
   }
   if (
+    t.includes("mehendi") ||
+    t.includes("marigold") ||
+    t.includes("indian celebration") ||
+    t.includes("sangeet") ||
     t.includes("mediterranean") ||
     t.includes("courtyard") ||
     t.includes("riad") ||
@@ -147,11 +162,14 @@ function parseExplicitTypology(text: string): SpatialTypology | null {
     return "industrial_loft";
   }
   if (
+    t.includes("tea room") ||
+    t.includes("tea house") ||
+    t.includes("washi") ||
+    t.includes("tatami") ||
     t.includes("jazz") ||
     t.includes("listening") ||
     t.includes("audiophile") ||
     t.includes("vinyl") ||
-    t.includes("tatami") ||
     t.includes("hifi")
   ) {
     return "listening_room";
@@ -178,6 +196,12 @@ function parseExplicitTypology(text: string): SpatialTypology | null {
     return "scandinavian_living";
   }
   if (
+    t.includes("fashion") ||
+    t.includes("runway") ||
+    t.includes("brutalist") ||
+    t.includes("electric vehicle") ||
+    t.includes("vehicle launch") ||
+    t.includes("product reveal") ||
     t.includes("futuristic") ||
     t.includes("launch") ||
     t.includes("reflective") ||
@@ -1718,7 +1742,21 @@ function buildGalleryPavilion(pColor: string, aColor: string, kelvin: number): S
    Universal Dynamic Generator (Any prompt + Any Qloo combination)
 --------------------------------------------------------------------------- */
 
-export function generateSceneSpec(prompt: string, vibe: VibePayload): SceneSpec {
+export interface SceneSpecOptions {
+  layoutMode?: "banquet" | "theatre" | "cocktail" | "lounge" | "ceremony";
+  guestCount?: number;
+  ceilingHeightDelta?: number;
+  wallFinishOverride?: WallFinish;
+  wallArchitectureOverride?: WallArchitecture;
+  floorFinishOverride?: FloorFinish;
+  ceilingStructureOverride?: CeilingStructure;
+}
+
+export function generateSceneSpec(
+  prompt: string,
+  vibe: VibePayload,
+  options?: SceneSpecOptions
+): SceneSpec {
   const explicit = parseExplicitTypology(prompt);
   const family = detectGenreFamily(vibe.evidence);
 
@@ -1807,15 +1845,15 @@ export function generateSceneSpec(prompt: string, vibe: VibePayload): SceneSpec 
   // DYNAMIC QLOO ELEMENT & EVIDENCE INJECTION PASS
   // ---------------------------------------------------------------------------
 
-  // 1. Flooring Material Integration
-  if (vibe.flooringMaterial && vibe.flooringMaterial.trim().length > 0) {
+  // 1. Flooring Material Integration (only from real Qloo evidence, not fallback defaults)
+  if (!vibe.fallback && vibe.flooringMaterial && vibe.flooringMaterial.trim().length > 0) {
     spec.qlooFlooring = vibe.flooringMaterial;
     spec.floorFinish = mapQlooFloorToFinish(vibe.flooringMaterial);
     spec.designIntent += ` Grounded on ${vibe.flooringMaterial.toLowerCase()} per Qloo cultural evidence.`;
   }
 
-  // 2. Seating Fabric Dynamic Mutation
-  if (vibe.seatingFabric && vibe.seatingFabric.trim().length > 0) {
+  // 2. Seating Fabric Dynamic Mutation (only from real Qloo evidence)
+  if (!vibe.fallback && vibe.seatingFabric && vibe.seatingFabric.trim().length > 0) {
     spec.qlooSeating = vibe.seatingFabric;
     const fabric = vibe.seatingFabric;
 
@@ -1842,11 +1880,11 @@ export function generateSceneSpec(prompt: string, vibe: VibePayload): SceneSpec 
   }
 
   // 3. Lighting Kelvin & Lighting Direction Integration
-  if (vibe.lightingTemperatureK) {
+  if (!vibe.fallback && vibe.lightingTemperatureK) {
     spec.lightingKelvin = vibe.lightingTemperatureK;
     spec.qlooLightingK = vibe.lightingTemperatureK;
   }
-  if (vibe.concept && vibe.concept.lightingDirection) {
+  if (!vibe.fallback && vibe.concept && vibe.concept.lightingDirection) {
     spec.atmosphereNote += ` ${vibe.concept.lightingDirection}`;
   }
 
@@ -1988,6 +2026,76 @@ export function generateSceneSpec(prompt: string, vibe: VibePayload): SceneSpec 
         rationale: "Companion candle lantern creating warm low-level illumination.",
       }
     );
+  }
+
+  // ---------------------------------------------------------------------------
+  // 6. Architectural Event Capacity & Layout Planning Calculations (Lintel-style)
+  // ---------------------------------------------------------------------------
+  const floorArea = spec.roomDimensions.width * spec.roomDimensions.depth;
+  const layout =
+    options?.layoutMode ||
+    (spec.typology === "grand_hall"
+      ? "banquet"
+      : spec.typology === "futuristic_launch"
+        ? "theatre"
+        : spec.typology === "intimate_lounge"
+          ? "cocktail"
+          : "lounge");
+
+  const areaFactor =
+    layout === "banquet" ? 2.4 : layout === "theatre" ? 1.3 : layout === "cocktail" ? 1.1 : 2.6;
+  const maxCapacity = Math.round(floorArea / areaFactor);
+  const guests =
+    options?.guestCount ?? Math.min(maxCapacity, Math.max(20, Math.round(maxCapacity * 0.72)));
+  const sqmPerGuest = Number((floorArea / guests).toFixed(1));
+  const status: "optimal" | "tight" | "over_capacity" =
+    sqmPerGuest >= 1.8 ? "optimal" : sqmPerGuest >= 1.2 ? "tight" : "over_capacity";
+
+  const tablesCount =
+    layout === "banquet"
+      ? Math.max(2, Math.ceil(guests / 10))
+      : layout === "cocktail"
+        ? Math.max(4, Math.ceil(guests / 8))
+        : 2;
+
+  const chairsCount =
+    layout === "cocktail"
+      ? Math.round(guests * 0.45)
+      : guests;
+
+  spec.eventCapacity = {
+    layoutMode: layout,
+    guests,
+    maxCapacity,
+    tablesCount,
+    chairsCount,
+    sqmPerGuest,
+    status,
+  };
+
+  // ---------------------------------------------------------------------------
+  // 7. Conversational Design Revisions / Parameter Overrides
+  // ---------------------------------------------------------------------------
+  if (options?.ceilingHeightDelta) {
+    spec.roomDimensions.height = Math.max(
+      3.2,
+      Number((spec.roomDimensions.height + options.ceilingHeightDelta).toFixed(1))
+    );
+  }
+  if (options?.wallFinishOverride) {
+    spec.wallFinish = options.wallFinishOverride;
+  }
+  if (options?.wallArchitectureOverride) {
+    spec.wallArchitecture = options.wallArchitectureOverride;
+    if (options.wallArchitectureOverride === "panoramic_glazing") {
+      spec.hasWindowAperture = true;
+    }
+  }
+  if (options?.floorFinishOverride) {
+    spec.floorFinish = options.floorFinishOverride;
+  }
+  if (options?.ceilingStructureOverride) {
+    spec.ceilingStructure = options.ceilingStructureOverride;
   }
 
   return spec;

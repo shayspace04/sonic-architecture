@@ -345,6 +345,25 @@ export default function SpatialTranslation({
                     {sceneSpec.qlooFlooring || sceneSpec.floorFinish.replace("_", " ").toUpperCase()}
                   </span>
                 </div>
+                {sceneSpec.eventCapacity && (
+                  <div className="col-span-2 rounded-xl border border-[var(--lintel-terracotta)]/40 bg-[var(--lintel-terracotta)]/10 p-3">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[var(--lintel-terracotta)] font-semibold uppercase">
+                        CAPACITY &amp; DENSITY (SHEET A-03)
+                      </span>
+                      <span className="text-white/60">
+                        {sceneSpec.eventCapacity.layoutMode.toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="mt-1 flex flex-wrap gap-x-4 gap-y-1 text-white/90">
+                      <span>{sceneSpec.eventCapacity.guests} guests</span>
+                      <span>{sceneSpec.eventCapacity.sqmPerGuest} m²/guest</span>
+                      <span className={sceneSpec.eventCapacity.status === "optimal" ? "text-emerald-400 font-semibold" : "text-amber-400 font-semibold"}>
+                        Status: {sceneSpec.eventCapacity.status.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

@@ -5,6 +5,17 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 
 ## P0 — Blockers & essential functionality
 
+- [x] **Lintel Interactive Capacity Planning, 3D Dimension Callouts, Starry Sky, Design Revisions & Snapshot Export** (2026-10-24):
+  - [x] Lintel Sheet A-03 Event Capacity & Density planning framework (`banquet`, `theatre`, `cocktail`, `lounge`, `ceremony`) with live $m^2/\text{guest}$ density calculator and status indicators (`optimal` / `tight` / `over_capacity`).
+  - [x] Integrated capacity controls in 3D Planning Drawer and 2D Schematic Blueprint.
+  - [x] 3D architectural dimension linework with witness extension lines, corner ticks, and floating dimension chips ($W\text{ m}, D\text{ m}, H\text{ m}$) toggleable via `Dims` dock button.
+  - [x] Floating HTML Dimension Sheet Header in 3D viewport displaying width, depth, ridge height, floor area, and volume.
+  - [x] Celestial night sky (`CelestialStars`) with deterministic pseudo-random starfield for `midnight` lighting preset.
+  - [x] Studio conversational design revisions drawer with quick-action chips (`+1.5m Height`, `Intimate Scale`, `Warm Oak`, `Limestone Floor`, `A-Frame Truss`, `Walnut Slats`).
+  - [x] Bi-directional object selection between Studio inventory and 3D viewport.
+  - [x] High-resolution client-side WebGL canvas snapshot export (`Snapshot (.png)`).
+  - [x] 6 new automated tests in `tests/scene-spec.test.ts` verifying Tests A, B, C, volumetric divergence, Qloo material mutations, and revisions (all 43 tests passing).
+
 - [x] **ThreeUI NEST Architectural Pavilion, Floating Plinth, Cantilevered Roof & Reflecting Pool** (2026-10-23):
   - [x] Full architectural pavilion composition inspired by ThreeUI NEST (`threeui.com/nest-landing-page`) applied universally to all prompts.
   - [x] Raised floating foundation plinth ($0.38\text{m}$ elevated deck with perimeter fascia trim) hovering above dark ground plane.

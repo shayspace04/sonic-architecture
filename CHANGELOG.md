@@ -2,6 +2,29 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-24 (Lintel Interactive Capacity Planning, 3D Dimension Callouts, Starry Sky, Design Revisions & Snapshot Export)
+
+### Added
+- **Lintel-Style Spatial Layout & Event Capacity Planning (`lib/scene-spec.ts`, `components/three/Venue3D.tsx`, `components/SpatialTranslation.tsx`)**:
+  - Implemented the Sheet A-03 capacity planning framework inspired by Lintel Events (`Lintel Events.html` / `Lintel Events.md`):
+  - Dynamic layout modes (`banquet`, `theatre`, `cocktail`, `lounge`, `ceremony`) with architectural area density coefficients ($2.4\text{m}^2/\text{guest}$ banquet, $1.3\text{m}^2/\text{guest}$ theatre, $1.1\text{m}^2/\text{guest}$ cocktail, $2.6\text{m}^2/\text{guest}$ lounge).
+  - Interactive layout mode selector and guest count slider in the 3D Planning Drawer and 2D Schematic Blueprint with real-time density calculation ($m^2/\text{guest}$) and status indicators (`optimal` / `tight` / `over_capacity`).
+- **3D Architectural Dimension Linework & Callout Chips (`components/three/Venue3D.tsx`)**:
+  - Rendered Sheet A-03 dimension linework with witness extension lines, corner tick marks, and 3D floating dimension chips ($W\text{ m}, D\text{ m}, H\text{ m}$) directly inside the 3D architectural shell.
+  - Floating HTML Dimension Sheet Header in the viewport (`WIDTH × DEPTH × RIDGE` dimensions, total floor area in $m^2$, and volumetric envelope in $m^3$).
+  - Toggleable via the `Dims` button in the bottom floating dock.
+- **Celestial Night Sky Shader (`components/three/Venue3D.tsx`)**:
+  - Added deterministic pseudo-random starfield background with twinkling star points rendered across the celestial dome for the `midnight` lighting preset.
+- **Studio Conversational Design Revisions (`app/studio/page.tsx`)**:
+  - Added an interactive conversational Design Revisions drawer in `/studio` with natural-language prompt input and quick-action chips (`+1.5m Height`, `Intimate Scale`, `Warm Oak`, `Limestone Floor`, `A-Frame Truss`, `Walnut Slats`).
+  - Revisions re-synthesize the spatial scene specification while preserving Qloo cultural evidence and active capacity constraints.
+- **Bi-Directional Object Selection (`app/studio/page.tsx`, `components/three/Venue3D.tsx`)**:
+  - Studio inventory items and 3D spatial objects are seamlessly synchronized: selecting an item in the studio highlights it in the 3D viewport, and clicking a 3D object opens its specification in the studio inspector.
+- **Client-Side High-Res Viewport Snapshot Export (`lib/brief.ts`, `components/three/Venue3D.tsx`, `app/studio/page.tsx`)**:
+  - Implemented `captureViewportSnapshot(canvas, title)` to capture the WebGL canvas as a crisp PNG snapshot directly from the floating dock or studio header.
+- **Comprehensive Scene Specification Unit Tests (`tests/scene-spec.test.ts`)**:
+  - Added 6 new automated tests verifying Test A (Japanese jazz listening room), Test B (Futuristic vehicle launch), Test C (Cathedral banquet hall), geometric/volumetric divergence, dynamic Qloo material injection, and conversational revisions. All 43 tests pass cleanly.
+
 ## 2026-10-23 (ThreeUI NEST Architectural Pavilion, Floating Plinth, Cantilevered Roof & Reflecting Pool)
 
 ### Added

@@ -5,10 +5,18 @@ import dynamic from "next/dynamic";
 import Link from "next/link";
 import type { VibePayload } from "@/lib/types";
 import { sceneParamsFromPayload } from "@/lib/scene-params";
-import type { SceneSpec, SpatialObject, SpatialTypology } from "@/lib/scene-spec";
+import type {
+  CeilingStructure,
+  FloorFinish,
+  SceneSpec,
+  SpatialObject,
+  SpatialTypology,
+  WallArchitecture,
+  WallFinish,
+} from "@/lib/scene-spec";
 import { generateSceneSpec } from "@/lib/scene-spec";
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
-import { downloadBrief, downloadSceneSpec } from "@/lib/brief";
+import { captureViewportSnapshot, downloadBrief, downloadSceneSpec } from "@/lib/brief";
 import { localFallbackPayload } from "@/lib/fallback";
 
 const Venue3D = dynamic(() => import("@/components/three/Venue3D"), {
@@ -76,6 +84,20 @@ export default function StudioPage() {
   const [selectedTypology, setSelectedTypology] = useState<SpatialTypology | "auto">("auto");
   const [selectedObject, setSelectedObject] = useState<SpatialObject | null>(null);
 
+  // Layout & Capacity Planning States (Lintel-style)
+  const [layoutMode, setLayoutMode] = useState<
+    "banquet" | "theatre" | "cocktail" | "lounge" | "ceremony"
+  >("lounge");
+  const [guestCount, setGuestCount] = useState<number>(80);
+
+  // Conversational Design Revisions (Section 9.5)
+  const [heightDelta, setHeightDelta] = useState<number>(0);
+  const [wallOverride, setWallOverride] = useState<WallFinish | null>(null);
+  const [wallArchOverride, setWallArchOverride] = useState<WallArchitecture | null>(null);
+  const [floorOverride, setFloorOverride] = useState<FloorFinish | null>(null);
+  const [ceilingOverride, setCeilingOverride] = useState<CeilingStructure | null>(null);
+  const [revisionInput, setRevisionInput] = useState<string>("");
+
   const [vibe, setVibe] = useState<VibePayload>(() =>
     localFallbackPayload(
       ["Japanese jazz", "dark timber", "paper lanterns"],
@@ -96,17 +118,36 @@ export default function StudioPage() {
     };
   }, [baseSceneParams, sliderVal]);
 
-  const baseSpec = useMemo(() => generateSceneSpec(userInput, vibe), [userInput, vibe]);
-
   const sceneSpec: SceneSpec = useMemo(() => {
-    if (selectedTypology === "auto") return baseSpec;
-    // User manual override of typology
-    const custom = generateSceneSpec(selectedTypology.replace("_", " "), vibe);
-    return {
-      ...custom,
-      typology: selectedTypology,
-    };
-  }, [baseSpec, selectedTypology, vibe]);
+    const targetPrompt = selectedTypology === "auto" ? userInput : selectedTypology.replace("_", " ");
+    const custom = generateSceneSpec(targetPrompt, vibe, {
+      layoutMode,
+      guestCount,
+      ceilingHeightDelta: heightDelta,
+      wallFinishOverride: wallOverride ?? undefined,
+      wallArchitectureOverride: wallArchOverride ?? undefined,
+      floorFinishOverride: floorOverride ?? undefined,
+      ceilingStructureOverride: ceilingOverride ?? undefined,
+    });
+    if (selectedTypology !== "auto") {
+      return {
+        ...custom,
+        typology: selectedTypology,
+      };
+    }
+    return custom;
+  }, [
+    userInput,
+    selectedTypology,
+    vibe,
+    layoutMode,
+    guestCount,
+    heightDelta,
+    wallOverride,
+    wallArchOverride,
+    floorOverride,
+    ceilingOverride,
+  ]);
 
   useAmbientAudio(sliderVal, isAudioEnabled);
 
@@ -128,6 +169,61 @@ export default function StudioPage() {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handleApplyRevision = (revText: string) => {
+    const text = revText.toLowerCase().trim();
+    if (!text) return;
+
+    if (text.includes("taller") || text.includes("high ceiling") || text.includes("cathedral")) {
+      setHeightDelta((h) => h + 1.5);
+    } else if (text.includes("lower") || text.includes("intimate") || text.includes("cozy")) {
+      setHeightDelta((h) => Math.max(-2, h - 1.0));
+    }
+
+    if (text.includes("warm oak") || text.includes("timber floor") || text.includes("wood")) {
+      setFloorOverride("warm_oak");
+    } else if (text.includes("concrete") || text.includes("cement")) {
+      setFloorOverride("glossy_concrete");
+    } else if (text.includes("stone") || text.includes("limestone") || text.includes("marble")) {
+      setFloorOverride("polished_stone");
+    } else if (text.includes("terrazzo")) {
+      setFloorOverride("terrazzo");
+    }
+
+    if (text.includes("slat") || text.includes("acoustic")) {
+      setWallOverride("acoustic_slats");
+      setWallArchOverride("timber_slats");
+    } else if (text.includes("glass") || text.includes("window") || text.includes("panoramic")) {
+      setWallArchOverride("panoramic_glazing");
+    } else if (text.includes("plaster")) {
+      setWallOverride("distressed_plaster");
+    } else if (text.includes("fluted stone") || text.includes("limestone wall")) {
+      setWallOverride("fluted_stone");
+      setWallArchOverride("fluted_stone");
+    }
+
+    if (text.includes("truss") || text.includes("timber frame")) {
+      setCeilingOverride("cathedral_truss");
+    } else if (text.includes("coffer")) {
+      setCeilingOverride("acoustic_coffered");
+    } else if (text.includes("pergola")) {
+      setCeilingOverride("timber_pergola");
+    } else if (text.includes("neon") || text.includes("grid")) {
+      setCeilingOverride("neon_lightgrid");
+    } else if (text.includes("beam")) {
+      setCeilingOverride("concrete_beams");
+    }
+
+    if (text.includes("banquet")) {
+      setLayoutMode("banquet");
+    } else if (text.includes("theatre") || text.includes("audience")) {
+      setLayoutMode("theatre");
+    } else if (text.includes("cocktail") || text.includes("bar")) {
+      setLayoutMode("cocktail");
+    }
+
+    setRevisionInput("");
   };
 
   return (
@@ -154,6 +250,17 @@ export default function StudioPage() {
             className="border border-[var(--lintel-paper)]/20 px-3 py-1 font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--lintel-paper)] transition-colors hover:border-[var(--lintel-paper)]/50"
           >
             AUDIO {isAudioEnabled ? "ON" : "OFF"}
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              const canvas = document.querySelector("canvas");
+              if (canvas) captureViewportSnapshot(canvas, sceneSpec.typologyLabel);
+            }}
+            className="border border-[var(--lintel-paper)]/20 px-3 py-1 font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--lintel-paper)] transition-colors hover:border-emerald-400 hover:text-emerald-300"
+            title="Download PNG snapshot of the 3D scene"
+          >
+            Snapshot (.png)
           </button>
           <button
             type="button"
@@ -212,12 +319,89 @@ export default function StudioPage() {
                     onClick={() => {
                       setUserInput(p.prompt);
                       setSelectedTypology(p.typology);
+                      setHeightDelta(0);
+                      setWallOverride(null);
+                      setWallArchOverride(null);
+                      setFloorOverride(null);
+                      setCeilingOverride(null);
                     }}
                     className="border border-[var(--lintel-paper)]/15 bg-[var(--lintel-night)]/50 px-3 py-2 text-left text-[var(--lintel-paper)]/85 transition-colors hover:border-[var(--lintel-terracotta)]/70 hover:bg-[var(--lintel-night)]"
                   >
                     {p.label}
                   </button>
                 ))}
+              </div>
+            </div>
+
+            {/* Conversational Design Revisions (Section 9.5) */}
+            <div className="border-t border-[var(--lintel-paper)]/10 pt-4">
+              <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--lintel-terracotta)] uppercase block mb-2">
+                Design Revisions
+              </span>
+              <div className="space-y-1.5 font-mono text-[9px] mb-3">
+                <div className="grid grid-cols-2 gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => handleApplyRevision("taller ceiling")}
+                    className="border border-[var(--lintel-paper)]/15 bg-white/5 p-1.5 text-left text-[var(--lintel-paper)]/75 hover:bg-white/10 hover:text-white"
+                  >
+                    +1.5m Height
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyRevision("intimate")}
+                    className="border border-[var(--lintel-paper)]/15 bg-white/5 p-1.5 text-left text-[var(--lintel-paper)]/75 hover:bg-white/10 hover:text-white"
+                  >
+                    Intimate Scale
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyRevision("warm oak")}
+                    className="border border-[var(--lintel-paper)]/15 bg-white/5 p-1.5 text-left text-[var(--lintel-paper)]/75 hover:bg-white/10 hover:text-white"
+                  >
+                    Warm Oak
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyRevision("stone floor")}
+                    className="border border-[var(--lintel-paper)]/15 bg-white/5 p-1.5 text-left text-[var(--lintel-paper)]/75 hover:bg-white/10 hover:text-white"
+                  >
+                    Limestone
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyRevision("timber truss")}
+                    className="border border-[var(--lintel-paper)]/15 bg-white/5 p-1.5 text-left text-[var(--lintel-paper)]/75 hover:bg-white/10 hover:text-white"
+                  >
+                    A-Frame Truss
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleApplyRevision("acoustic slats")}
+                    className="border border-[var(--lintel-paper)]/15 bg-white/5 p-1.5 text-left text-[var(--lintel-paper)]/75 hover:bg-white/10 hover:text-white"
+                  >
+                    Walnut Slats
+                  </button>
+                </div>
+              </div>
+              <div className="flex gap-1.5">
+                <input
+                  type="text"
+                  value={revisionInput}
+                  onChange={(e) => setRevisionInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleApplyRevision(revisionInput);
+                  }}
+                  placeholder="Type revision (e.g. 'taller', 'oak')..."
+                  className="flex-1 border border-[var(--lintel-paper)]/20 bg-[var(--lintel-night)] px-2.5 py-1.5 font-mono text-[9px] text-[var(--lintel-paper)] focus:outline-none focus:border-[var(--lintel-terracotta)]"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyRevision(revisionInput)}
+                  className="border border-[var(--lintel-terracotta)] bg-[var(--lintel-terracotta)]/20 px-2.5 py-1.5 font-mono text-[9px] text-[var(--lintel-paper)] uppercase hover:bg-[var(--lintel-terracotta)]"
+                >
+                  Apply
+                </button>
               </div>
             </div>
 
@@ -252,7 +436,14 @@ export default function StudioPage() {
               </label>
               <select
                 value={selectedTypology}
-                onChange={(e) => setSelectedTypology(e.target.value as SpatialTypology | "auto")}
+                onChange={(e) => {
+                  setSelectedTypology(e.target.value as SpatialTypology | "auto");
+                  setHeightDelta(0);
+                  setWallOverride(null);
+                  setWallArchOverride(null);
+                  setFloorOverride(null);
+                  setCeilingOverride(null);
+                }}
                 className="w-full border border-[var(--lintel-paper)]/20 bg-[var(--lintel-night)] px-2.5 py-1.5 font-mono text-[10px] text-[var(--lintel-paper)] focus:outline-none"
               >
                 <option value="auto">Auto (from brief & signals)</option>
@@ -298,6 +489,15 @@ export default function StudioPage() {
             params={sceneParams}
             spec={sceneSpec}
             promptText={userInput}
+            selectedObjectId={selectedObject?.id ?? null}
+            onSelectObject={(obj) => {
+              setSelectedObject(obj);
+              if (obj) setActiveTab("inventory");
+            }}
+            layoutMode={layoutMode}
+            onLayoutModeChange={setLayoutMode}
+            guestCount={guestCount}
+            onGuestCountChange={setGuestCount}
             fill
           />
         </main>
@@ -352,9 +552,21 @@ export default function StudioPage() {
                     </span>
                   </div>
                   <div>
-                    <span className="text-[var(--lintel-muted)]">Wall Finish:</span>{" "}
+                    <span className="text-[var(--lintel-muted)]">Floor Area / Volume:</span>{" "}
                     <span className="text-[var(--lintel-paper)]">
-                      {sceneSpec.wallFinish.replace("_", " ").toUpperCase()}
+                      {(sceneSpec.roomDimensions.width * sceneSpec.roomDimensions.depth).toFixed(0)}m² / {(sceneSpec.roomDimensions.width * sceneSpec.roomDimensions.depth * sceneSpec.roomDimensions.height).toFixed(0)}m³
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--lintel-muted)]">Wall Architecture:</span>{" "}
+                    <span className="text-[var(--lintel-paper)]">
+                      {sceneSpec.wallArchitecture.replace("_", " ").toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--lintel-muted)]">Ceiling Structure:</span>{" "}
+                    <span className="text-[var(--lintel-paper)]">
+                      {sceneSpec.ceilingStructure.replace("_", " ").toUpperCase()}
                     </span>
                   </div>
                   <div>
@@ -375,15 +587,19 @@ export default function StudioPage() {
                       {sceneParams.keyLightKelvin}K
                     </span>
                   </div>
-                  <div>
-                    <span className="text-[var(--lintel-muted)]">Window Aperture:</span>{" "}
-                    <span className="text-[var(--lintel-paper)]">
-                      {sceneSpec.hasWindowAperture ? "Natural Daylight Slot Active" : "Enclosed Cocoon"}
-                    </span>
-                  </div>
+                  {sceneSpec.eventCapacity && (
+                    <div className="border-t border-[var(--lintel-paper)]/10 pt-2 text-[10px]">
+                      <span className="text-[var(--lintel-terracotta)] font-semibold block mb-1">
+                        Capacity &amp; Density (Sheet A-03):
+                      </span>
+                      <p className="text-[var(--lintel-paper)]/85">
+                        {sceneSpec.eventCapacity.guests} guests · {sceneSpec.eventCapacity.sqmPerGuest} m²/guest ({sceneSpec.eventCapacity.status.toUpperCase()})
+                      </p>
+                    </div>
+                  )}
                   {sceneSpec.qlooFeaturedArtist && (
-                    <div>
-                      <span className="text-[var(--lintel-terracotta)] font-semibold">Qloo Affinity Artist:</span>{" "}
+                    <div className="border-t border-[var(--lintel-paper)]/10 pt-2">
+                      <span className="text-[var(--lintel-moss)] font-semibold">Qloo Affinity Artist:</span>{" "}
                       <span className="text-[var(--lintel-paper)] font-semibold">
                         {sceneSpec.qlooFeaturedArtist}
                       </span>
@@ -478,6 +694,12 @@ export default function StudioPage() {
                       <div className="mt-1 text-[10px] text-[var(--lintel-paper)]/70">
                         {obj.material} · {obj.dimensions}
                       </div>
+                      {selectedObject?.id === obj.id && (
+                        <div className="mt-2.5 border-t border-[var(--lintel-paper)]/15 pt-2 text-[10px] text-[var(--lintel-paper)]/80 leading-relaxed">
+                          <span className="text-[var(--lintel-moss)] font-semibold block mb-0.5">Rationale:</span>
+                          {obj.rationale}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

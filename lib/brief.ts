@@ -90,3 +90,21 @@ export function downloadSceneSpec(spec: unknown, title: string = "scene-spec"): 
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+export function captureViewportSnapshot(
+  canvas: HTMLCanvasElement | null,
+  title: string = "venue-3d"
+): void {
+  if (!canvas) return;
+  try {
+    const dataUrl = canvas.toDataURL("image/png");
+    const a = document.createElement("a");
+    a.href = dataUrl;
+    a.download = `sonic-architecture-${title.toLowerCase().replace(/\s+/g, "-")}-${Date.now()}.png`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  } catch (err) {
+    console.error("Could not capture viewport snapshot:", err);
+  }
+}

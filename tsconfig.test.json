@@ -19,6 +19,8 @@
     "lib/types.ts",
     "lib/terms.ts",
     "lib/spatial-rules.ts",
+    "lib/scene-spec.ts",
+    "lib/rationale.ts",
     "tests/**/*.ts"
   ],
   "exclude": ["node_modules", ".next", ".test-dist"]
