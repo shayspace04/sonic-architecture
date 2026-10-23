@@ -136,17 +136,22 @@ function VenueLighting({
       <ambientLight ref={ambientRef} color="#C4D0E5" intensity={targets.ambient} />
       <directionalLight
         ref={keyRef}
-        position={[8, 12, 6]}
+        position={[10, 14, 8]}
         intensity={targets.key}
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
-        shadow-camera-left={-16}
-        shadow-camera-right={16}
-        shadow-camera-top={16}
-        shadow-camera-bottom={-16}
-        shadow-camera-far={45}
+        shadow-camera-left={-22}
+        shadow-camera-right={22}
+        shadow-camera-top={22}
+        shadow-camera-bottom={-22}
+        shadow-camera-far={65}
         shadow-bias={-0.0003}
+      />
+      <directionalLight
+        position={[-12, 8, -10]}
+        intensity={0.65}
+        color="#8B9EB5"
       />
       <pointLight
         ref={accentARef}
@@ -234,11 +239,63 @@ function ArchitecturalShell({
     return items;
   }, [spec.wallFinish, W]);
 
+  const deckColor =
+    spec.typology === "scandinavian_living"
+      ? "#CCC6B8"
+      : spec.typology === "listening_room"
+        ? "#38281E"
+        : spec.typology === "futuristic_launch"
+          ? "#121418"
+          : spec.typology === "mediterranean_courtyard"
+            ? "#A25838"
+            : spec.typology === "intimate_lounge"
+              ? "#28221D"
+              : "#2A2D34";
+
   return (
     <group>
-      {/* --- Main Floor --- */}
-      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[W * 1.5, D * 1.5]} />
+      {/* --- Surrounding Ground Plane --- */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, -0.42, 0]} receiveShadow>
+        <planeGeometry args={[W * 3.5, D * 3.5]} />
+        <meshStandardMaterial color="#070910" roughness={0.96} metalness={0.0} />
+      </mesh>
+
+      {/* --- Raised Foundation Plinth / Floating Deck Platform (Nest-style) --- */}
+      <group position={[0, -0.19, 0]}>
+        <mesh receiveShadow castShadow>
+          <boxGeometry args={[W + 3.6, 0.38, D + 3.6]} />
+          <meshStandardMaterial color={deckColor} roughness={0.65} metalness={0.12} />
+        </mesh>
+        {/* Plinth Edge Fascia Trim */}
+        <mesh position={[0, 0.18, 0]}>
+          <boxGeometry args={[W + 3.68, 0.04, D + 3.68]} />
+          <meshStandardMaterial color="#1E1C1A" metalness={0.4} roughness={0.6} />
+        </mesh>
+      </group>
+
+      {/* --- Outdoor Reflecting Pool or Garden Basin alongside Pavilion --- */}
+      <group position={[halfW + 1.2, -0.16, 0]}>
+        {/* Basin Rim */}
+        <mesh receiveShadow castShadow>
+          <boxGeometry args={[2.0, 0.32, D * 0.85]} />
+          <meshStandardMaterial color="#14151B" roughness={0.5} metalness={0.25} />
+        </mesh>
+        {/* Reflective Water Surface */}
+        <mesh position={[0, 0.14, 0]} rotation-x={-Math.PI / 2}>
+          <planeGeometry args={[1.7, D * 0.8]} />
+          <meshStandardMaterial
+            color="#284454"
+            roughness={0.04}
+            metalness={0.88}
+            transparent
+            opacity={0.88}
+          />
+        </mesh>
+      </group>
+
+      {/* --- Interior Floor Plate --- */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0.002, 0]} receiveShadow>
+        <planeGeometry args={[W, D]} />
         <meshStandardMaterial
           color={floorColor}
           roughness={floorRoughness}
@@ -304,10 +361,23 @@ function ArchitecturalShell({
             [-halfW, halfD],
             [halfW, halfD],
           ].map(([x, z], idx) => (
-            <mesh key={idx} position={[x, (H + expY) / 2, z]}>
-              <cylinderGeometry args={[0.015, 0.015, H + expY, 8]} />
-              <meshBasicMaterial color="#D9532B" transparent opacity={0.4} />
-            </mesh>
+            <group key={idx}>
+              {/* Leader Line cylinder */}
+              <mesh position={[x, (H + expY) / 2, z]}>
+                <cylinderGeometry args={[0.015, 0.015, H + expY, 8]} />
+                <meshBasicMaterial color="#D9532B" transparent opacity={0.45} />
+              </mesh>
+              {/* Ground Anchor Node */}
+              <mesh position={[x, 0.02, z]}>
+                <cylinderGeometry args={[0.08, 0.08, 0.04, 16]} />
+                <meshStandardMaterial color="#D9532B" metalness={0.8} roughness={0.2} />
+              </mesh>
+              {/* Roof Anchor Node */}
+              <mesh position={[x, H + expY, z]}>
+                <cylinderGeometry args={[0.08, 0.08, 0.04, 16]} />
+                <meshStandardMaterial color="#D9532B" metalness={0.8} roughness={0.2} />
+              </mesh>
+            </group>
           ))}
         </group>
       )}
@@ -398,6 +468,25 @@ function ArchitecturalShell({
                   </group>
                 ))}
               </group>
+
+              {/* Front Portal Entrance Framing */}
+              <group position={[0, H / 2, halfD + expZ]}>
+                {/* Left Pier */}
+                <mesh position={[-halfW * 0.65, 0, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[halfW * 0.7, H, 0.45]} />
+                  <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
+                </mesh>
+                {/* Right Pier */}
+                <mesh position={[halfW * 0.65, 0, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[halfW * 0.7, H, 0.45]} />
+                  <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
+                </mesh>
+                {/* Header Beam */}
+                <mesh position={[0, H * 0.4, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[W, H * 0.2, 0.45]} />
+                  <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
+                </mesh>
+              </group>
             </group>
           ) : (
             /* --- Architectural Shell Walls --- */
@@ -476,14 +565,94 @@ function ArchitecturalShell({
                   ))}
                 </group>
               )}
+
+              {/* Front Facade Framing & Pocket Sliding Glass (Nest Pavilion Architecture) */}
+              <group position={[0, H / 2, halfD + expZ]}>
+                {/* Left Structural Corner Column */}
+                <mesh position={[-halfW + 0.16, 0, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[0.32, H, 0.32]} />
+                  <meshStandardMaterial color={wallColor} roughness={0.7} metalness={0.1} />
+                </mesh>
+                {/* Right Structural Corner Column */}
+                <mesh position={[halfW - 0.16, 0, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[0.32, H, 0.32]} />
+                  <meshStandardMaterial color={wallColor} roughness={0.7} metalness={0.1} />
+                </mesh>
+                {/* Upper Lintel / Header Beam */}
+                <mesh position={[0, H * 0.44, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[W, H * 0.12, 0.32]} />
+                  <meshStandardMaterial color={wallColor} roughness={0.7} metalness={0.1} />
+                </mesh>
+                {/* Floor Threshold Guide Track */}
+                <mesh position={[0, -H * 0.48, 0]}>
+                  <boxGeometry args={[W, 0.06, 0.2]} />
+                  <meshStandardMaterial color="#1E1C1A" metalness={0.6} roughness={0.4} />
+                </mesh>
+                {/* Left Pocket Sliding Glass Panel */}
+                <mesh position={[-halfW * 0.65, -H * 0.02, 0]}>
+                  <boxGeometry args={[W * 0.28, H * 0.8, 0.06]} />
+                  <meshStandardMaterial
+                    color="#BCE5FC"
+                    roughness={0.08}
+                    metalness={0.75}
+                    transparent
+                    opacity={0.32}
+                  />
+                </mesh>
+                {/* Left Glass Panel Frame */}
+                <mesh position={[-halfW * 0.51, -H * 0.02, 0]}>
+                  <boxGeometry args={[0.08, H * 0.8, 0.1]} />
+                  <meshStandardMaterial color="#1E1C1A" metalness={0.8} roughness={0.2} />
+                </mesh>
+                {/* Right Pocket Sliding Glass Panel */}
+                <mesh position={[halfW * 0.65, -H * 0.02, 0]}>
+                  <boxGeometry args={[W * 0.28, H * 0.8, 0.06]} />
+                  <meshStandardMaterial
+                    color="#BCE5FC"
+                    roughness={0.08}
+                    metalness={0.75}
+                    transparent
+                    opacity={0.32}
+                  />
+                </mesh>
+                {/* Right Glass Panel Frame */}
+                <mesh position={[halfW * 0.51, -H * 0.02, 0]}>
+                  <boxGeometry args={[0.08, H * 0.8, 0.1]} />
+                  <meshStandardMaterial color="#1E1C1A" metalness={0.8} roughness={0.2} />
+                </mesh>
+              </group>
             </group>
           )}
         </group>
       )}
 
-      {/* --- Architectural Ceiling Structures & Roof Trusses --- */}
+      {/* --- Architectural Ceiling Structures & Cantilevered Roof Slab --- */}
       {showRoof && (
         <group position={[0, H - 0.1 + expY, 0]}>
+          {/* Cantilevered Overhanging Roof Slab (Nest-style pavilion roof) */}
+          {spec.ceilingStructure !== "cathedral_truss" && (
+            <group position={[0, 0.18, 0]}>
+              <mesh receiveShadow castShadow>
+                <boxGeometry args={[W + 2.2, 0.22, D + 2.2]} />
+                <meshStandardMaterial
+                  color={
+                    spec.typology === "futuristic_launch"
+                      ? "#0F1115"
+                      : spec.typology === "scandinavian_living"
+                        ? "#DCD6CB"
+                        : "#22252B"
+                  }
+                  roughness={0.7}
+                  metalness={0.12}
+                />
+              </mesh>
+              {/* Roof Fascia Edge Trim */}
+              <mesh position={[0, 0.11, 0]}>
+                <boxGeometry args={[W + 2.28, 0.04, D + 2.28]} />
+                <meshStandardMaterial color="#15171C" metalness={0.5} roughness={0.5} />
+              </mesh>
+            </group>
+          )}
           {spec.ceilingStructure === "cathedral_truss" ? (
             /* Exposed Cathedral Timber A-Frame Trusses */
             <group>
@@ -1328,7 +1497,7 @@ function OrbitRig({
       goal.current = { radius: 5.2, theta: 0.45, phi: 1.28 }; // Focal close-up
     } else {
       // Standard perspective orbit
-      goal.current = { radius: 14.5, theta: 0.38, phi: 1.16 };
+      goal.current = { radius: Math.max(14.0, maxDim * 1.15), theta: 0.38, phi: 1.16 };
     }
   }, [viewPreset, resetKey, specDimensions]);
 

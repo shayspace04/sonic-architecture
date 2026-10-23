@@ -5,6 +5,15 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 
 ## P0 — Blockers & essential functionality
 
+- [x] **ThreeUI NEST Architectural Pavilion, Floating Plinth, Cantilevered Roof & Reflecting Pool** (2026-10-23):
+  - [x] Full architectural pavilion composition inspired by ThreeUI NEST (`threeui.com/nest-landing-page`) applied universally to all prompts.
+  - [x] Raised floating foundation plinth ($0.38\text{m}$ elevated deck with perimeter fascia trim) hovering above dark ground plane.
+  - [x] Outdoor reflecting pool / water basin flanking the pavilion with specular reflections.
+  - [x] Front facade structural framing (corner columns, header lintel beam, threshold track, and sliding pocket glass panels) with open central camera sightline.
+  - [x] Cantilevered overhanging roof slab ($+1.1\text{m}$ overhang on all sides) with anodized fascia trim.
+  - [x] Enhanced exploded axonometric deconstruction mode with structural leader lines and glowing anchor nodes connecting the plinth deck corners up to the floating roof.
+  - [x] Scaled camera orbit framing for all 9 architectural typologies and expanded directional shadow/fill lighting rig.
+
 - [x] Qloo `/search` + `/v2/insights` integration code path with server-side key — `app/api/vibe/route.ts`
 - [x] Provenance model (`qloo` / `qloo-partial` / `local-fallback`) with per-field rules and evidence
 - [x] Graceful fallback when Qloo is unusable (`localFallbackPayload()`)

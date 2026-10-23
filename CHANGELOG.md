@@ -2,6 +2,19 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-23 (ThreeUI NEST Architectural Pavilion, Floating Plinth, Cantilevered Roof & Reflecting Pool)
+
+### Added
+- **ThreeUI NEST Architectural Pavilion Rig (`components/three/Venue3D.tsx`)**:
+  - Implemented the full architectural composition inspired by ThreeUI's NEST landing page (`threeui.com/nest-landing-page`) for every synthesized prompt:
+  - **Raised Floating Foundation Plinth / Deck Platform**: Elevated architectural foundation platform ($0.38\text{m}$ high, with beveled fascia edge trim) floating above a deep surrounding ground plane ($Y=-0.42\text{m}$), grounding every interior layout as a self-contained modern architectural pavilion.
+  - **Outdoor Reflecting Pool & Garden Basin**: Water terrace basin flanking the pavilion with high-specular reflective water shader (`#284454`, metalness 0.88, roughness 0.04), visible through floor-to-ceiling glass apertures.
+  - **Front Facade Framing & Pocket Sliding Glass**: Added corner structural columns, upper structural lintel/header beam, floor guide threshold tracks, and pocket sliding glass panels with dark anodized steel mullions, providing a framed pavilion entrance while preserving an open central portal for unhindered camera perspectives.
+  - **Cantilevered Overhanging Roof Slab**: Architectural roof slab with $+1.1\text{m}$ cantilever overhang and perimeter fascia trim resting over modular ceiling structures, completing the pavilion volume.
+  - **Enhanced Exploded Axonometric Deconstruction Mode**: Interactive exploded view smoothly elevates the cantilevered roof upward ($+Y$), moves perimeter walls outward ($\pm X, \pm Z$), and renders technical structural axonometric leader lines with glowing anchor node discs connecting the foundation deck corners to the floating roof.
+  - **Refined Camera Orbit Rig**: Dynamic orbit framing automatically scales camera distance proportionally to room envelope volume and maximum dimensions.
+  - **Architectural Lighting**: Expanded shadow map coverage ($\pm 22\text{m}$, far: 65) with a dedicated soft rim/fill directional light (`#8B9EB5`) for architectural edge definition.
+
 ## 2026-10-23 (Universal Deep 3D Architectural Detail & Dynamic Qloo Element Synthesis)
 
 ### Added
