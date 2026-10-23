@@ -2,6 +2,64 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-23 (Nest Architectural Design & Interactive 3D Layout Planning)
+
+### Added
+- **Nest-Style Exploded Architecture Effect (`components/three/Venue3D.tsx`)**:
+  - Procedural layer deconstruction: ceiling beams smoothly elevate in $+Y$, perimeter walls expand outwards in $\pm X$ and $-Z$, and vertical axonometric guide lines connect structural corners to the foundation floor.
+  - "Exploded" camera view preset with custom framing and dynamic separation slider (0% to 100%).
+  - Architectural layer visibility toggles (Roof Beams, Perimeter Walls, Blueprint Grid).
+- **Interactive 3D Spatial Planning & Zoning HUD (`components/three/Venue3D.tsx`)**:
+  - Real-time dimensional specs: envelope footprint ($W \times D\text{ m}, m^2$), envelope volume ($m^3$), clear ceiling height ($m$).
+  - Dynamic functional zoning (e.g. Acoustic Stage, Intimate Sweet-Spot Hearth, Vinyl Ingress Corridor) defined in `SceneSpec`.
+  - Click-to-focus navigation: selecting any zone in the HUD or in 3D smoothly glides the camera to focus on that zone's 3D coordinates.
+  - Floating dark glass architectural dock and object inspector cards with backdrop blur.
+- **Interactive 2D Architectural Schematic Blueprint (`components/SpatialTranslation.tsx`)**:
+  - High-precision SVG floor plan projection rendering walls, window apertures, metric dimension strings ($W\text{m} \times D\text{m}$), and functional zoning boundaries.
+  - Placed fixture icons showing relative coordinates with interactive inspection on click.
+  - Companion Inspector HUD displaying acoustic purpose, dimensions, materials, and design rationale.
+- **Nest-Inspired Hero Landing Experience (`app/page.tsx`, `components/CulturalInput.tsx`)**:
+  - Centered hero layout with large editorial display typography ("A feeling, given form.").
+  - Dark frosted glass prompt composer with subtle pill-shaped example brief chips.
+  - Ultra-minimal transparent header that gracefully transitions to frosted glass in venue mode.
+
+## 2026-10-23 (Full Product Redesign & Spatial Architecture Engine)
+
+### Added
+- **Spatial Specification Engine (`lib/scene-spec.ts`)**:
+  - Translates natural-language briefs + Qloo affinity signals into 5 distinct architectural typologies:
+    1. Japanese Jazz Listening Lounge (tatami scale, walnut acoustic absorption slats, washi paper lanterns, solid walnut turntable credenza, horn speakers).
+    2. Underground Grunge Celebration Hall (dark glossy concrete, high ceilings, brutalist DJ console, electric pink/cyan neon architectural framing arches, chrome tubular bar furniture).
+    3. Minimalist Nordic Light Pavilion (natural white oak, morning sunlight aperture, sand bouclé modular sofa, travertine credenza, terracotta potted olive tree).
+    4. Kinetic Launch Pavilion (reflective obsidian plinth, surgical 6500K hexagon light canopy, linear titanium bench ribbons).
+    5. Contemplative Spatial Gallery (museum proportions, concrete observation bench, Roman travertine & volcanic basalt plinths).
+  - Explicit parsing of user prompt requirements (spatial typology, materials, seating counts, apertures).
+- **Decision Traceability & Rationale Matrix (`lib/rationale.ts`)**:
+  - Distinguishes Qloo Cultural Evidence, Spatial Design Translation rules, User Requirements, and Local Fallbacks.
+  - Links specific Qloo tags directly to architectural decisions in the UI.
+- **Interactive 3D Architectural Viewport (`components/three/Venue3D.tsx`)**:
+  - Procedural architectural shells (acoustic slats, PBR floor/wall finishes, window apertures casting directional raking light).
+  - Procedural furniture and architectural lighting fixtures with emissive glows and shadows.
+  - Interactive object selection & inspection: clicking objects in 3D highlights them and opens an architectural HUD card showing dimensions, material finishes, and design intent.
+  - 4 camera view presets: Perspective Orbit, Top-Down Floor Plan, Eye-Level Walk, Focal Macro.
+  - Lighting presets (Morning Dawn, Golden Hour, Midnight Session) and floor finish toggles (Gloss / Matte).
+- **Upgraded 3D Spatial Studio (`app/studio/page.tsx`)**:
+  - Replaced legacy 2D floor plan mock with a full-screen interactive 3D studio workspace.
+  - Live design brief editor with one-click presets, taste stratification slider, manual typology selector, and Qloo status indicators.
+  - Right inspector sidebar with 3 tabs: Spatial Specifications, Cultural Traceability Rationale, and 3D Object Inventory.
+  - Export capabilities: Download Design Brief (.md) and Export 3D Scene Spec (.json).
+- **Architectural Editorial Design Foundation**:
+  - Colors: warm architectural paper `#EEE8DC`, near-black ink `#171A1F`, deep moss `#2F5A4C`, restrained terracotta `#D9532B`, muted `#5B5F66`.
+  - Typography: editorial serif for large headlines, clean sans-serif for UI, monospace for dimensions and metadata.
+  - Offline-safe font loading fallbacks avoiding build-time external Google Fonts network dependencies.
+  - Clean production build with Webpack (`next build --webpack`), avoiding Turbopack loader IPC issues on Windows.
+
+### Preserved
+- Full Qloo API integration with server-side authentication, response caching, quota protection, and honest fallback labeling.
+- Stable `/api/vibe` request and response contract.
+- All 37 existing unit tests pass cleanly (`npm test`).
+- 0 lint errors, 0 lint warnings (`npm run lint`).
+
 ## 2026-10-20 (landing background — Sylva Living Green moss-root world)
 
 ### Changed — the landing background is now the minted Sylva procedural scene

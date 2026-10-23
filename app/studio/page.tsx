@@ -1,236 +1,459 @@
 "use client";
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import SpatialCanvas from "@/components/SpatialCanvas";
+import { useMemo, useState } from "react";
+import dynamic from "next/dynamic";
+import Link from "next/link";
+import type { VibePayload } from "@/lib/types";
+import { sceneParamsFromPayload } from "@/lib/scene-params";
+import type { SceneSpec, SpatialObject, SpatialTypology } from "@/lib/scene-spec";
+import { generateSceneSpec } from "@/lib/scene-spec";
 import { useAmbientAudio } from "@/hooks/useAmbientAudio";
+import { downloadBrief, downloadSceneSpec } from "@/lib/brief";
+import { localFallbackPayload } from "@/lib/fallback";
 
-interface Track {
-  title: string;
-  artist: string;
-}
+const Venue3D = dynamic(() => import("@/components/three/Venue3D"), {
+  ssr: false,
+  loading: () => (
+    <div className="flex h-full w-full items-center justify-center bg-[#0A0E1A] font-mono text-xs tracking-[0.24em] text-[var(--lintel-paper)]/70 uppercase">
+      Initializing 3D Spatial Canvas…
+    </div>
+  ),
+});
 
-interface DesignReasoning {
-  source: "qloo" | "qloo-partial" | "local-fallback";
-  evidence: string[];
-  rules: Record<string, string>;
-}
-
-interface CurrentVibe {
-  primaryColorHex: string;
-  accentColorHex: string;
-  lightingTemperatureK: number;
-  flooringMaterial: string;
-  seatingFabric: string;
-  tracks: Track[];
-  menu: string;
-  fallback?: boolean;
-  reasoning?: DesignReasoning;
-}
-
-const DEFAULT_VIBE: CurrentVibe = {
-  primaryColorHex: "#262626",
-  accentColorHex: "#A3A3A3",
-  lightingTemperatureK: 3500,
-  flooringMaterial: "Micro-cement Screed",
-  seatingFabric: "Brushed Matte Canvas",
-  tracks: [
-    { title: "Intro", artist: "The xx" },
-    { title: "Teardrop", artist: "Massive Attack" },
-  ],
-  menu: "Artisan single-origin pour overs & local charcuterie pairings",
-  reasoning: {
-    source: "local-fallback",
-    evidence: [],
-    rules: {
-      primaryColorHex: "Local default.",
-      accentColorHex: "Local default.",
-      lightingTemperatureK: "Local default.",
-      flooringMaterial: "Local default.",
-      seatingFabric: "Local default.",
-    },
+const STUDIO_PRESETS = [
+  {
+    label: "Japanese Jazz Lounge",
+    prompt: "A Japanese jazz listening room with dark timber, warm paper lanterns, and intimate seating.",
+    typology: "listening_room" as SpatialTypology,
   },
-};
+  {
+    label: "Pink Grunge Party",
+    prompt: "A pink grungy birthday party with chrome furniture, dramatic lighting, and playful details.",
+    typology: "party_venue" as SpatialTypology,
+  },
+  {
+    label: "Scandinavian Living",
+    prompt: "A minimalist Scandinavian living room with morning sunlight and natural oak.",
+    typology: "scandinavian_living" as SpatialTypology,
+  },
+  {
+    label: "Futuristic Launch",
+    prompt: "An immersive futuristic product launch venue with reflective surfaces and cinematic lighting.",
+    typology: "futuristic_launch" as SpatialTypology,
+  },
+];
 
-export default function Page() {
-  const [userInput, setUserInput] = useState("");
-  const [sliderVal, setSliderVal] = useState(50);
-  const [activeHour, setActiveHour] = useState("08:00 PM - Peak Session");
+type StudioTab = "spec" | "rationale" | "inventory";
+
+export default function StudioPage() {
+  const [userInput, setUserInput] = useState(
+    "A Japanese jazz listening room with dark timber, warm paper lanterns, and intimate seating."
+  );
+  const [sliderVal, setSliderVal] = useState(45);
+  const [activeTab, setActiveTab] = useState<StudioTab>("spec");
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [isFallback, setIsFallback] = useState(false);
-  const [networkStatus, setNetworkStatus] = useState<string | null>(null);
-  const [currentVibe, setCurrentVibe] = useState<CurrentVibe>(DEFAULT_VIBE);
+  const [selectedTypology, setSelectedTypology] = useState<SpatialTypology | "auto">("auto");
+  const [selectedObject, setSelectedObject] = useState<SpatialObject | null>(null);
+
+  const [vibe, setVibe] = useState<VibePayload>(() =>
+    localFallbackPayload(
+      ["Japanese jazz", "dark timber", "paper lanterns"],
+      ["Initial default spatial concept."]
+    )
+  );
+
+  const baseSceneParams = useMemo(() => sceneParamsFromPayload(vibe), [vibe]);
+
+  // Taste stratification slider modulates lighting temperature and openness
+  const sceneParams = useMemo(() => {
+    const kelvinMod = Math.round(2500 + (sliderVal / 100) * 4000);
+    const opennessMod = 0.3 + (sliderVal / 100) * 0.6;
+    return {
+      ...baseSceneParams,
+      keyLightKelvin: kelvinMod,
+      openness: opennessMod,
+    };
+  }, [baseSceneParams, sliderVal]);
+
+  const baseSpec = useMemo(() => generateSceneSpec(userInput, vibe), [userInput, vibe]);
+
+  const sceneSpec: SceneSpec = useMemo(() => {
+    if (selectedTypology === "auto") return baseSpec;
+    // User manual override of typology
+    const custom = generateSceneSpec(selectedTypology.replace("_", " "), vibe);
+    return {
+      ...custom,
+      typology: selectedTypology,
+    };
+  }, [baseSpec, selectedTypology, vibe]);
 
   useAmbientAudio(sliderVal, isAudioEnabled);
 
   const handleGenerate = async () => {
+    if (isLoading) return;
     setIsLoading(true);
     try {
-      const payload = { userInput, sliderVal };
-      console.log("Sending to /api/vibe:", payload);
       const res = await fetch("/api/vibe", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
+        body: JSON.stringify({ userInput }),
       });
-      const parsedData = (await res.json()) as CurrentVibe;
-      console.log("⚡ Injecting Vibe Payload directly into layout:", parsedData);
-      setCurrentVibe(parsedData);
-      setIsFallback(Boolean(parsedData.fallback));
-      setNetworkStatus(parsedData.fallback ? "TIMEOUT" : null);
-    } catch (error) {
-      console.error("Failed to generate vibe:", error);
+      const data = (await res.json()) as VibePayload & { error?: string };
+      if (res.ok && data && typeof data.primaryColorHex === "string") {
+        setVibe(data);
+      }
+    } catch (err) {
+      console.warn("Studio vibe generation fallback:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <motion.main
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      transition={{ duration: 0.6 }}
-      className="min-h-screen bg-[#0A0A0A] text-neutral-200 font-mono"
-    >
-      <header className="flex items-center justify-between px-8 py-4 border-b border-neutral-900">
-        <h1 className="text-sm tracking-[0.3em] uppercase text-neutral-400">
-          SONIC ARCHITECTURE // v1.0.0
-        </h1>
-        <button
-          onClick={() => setIsAudioEnabled((v) => !v)}
-          className="px-4 py-1.5 text-xs border border-neutral-800 rounded-full hover:border-neutral-600 transition-colors"
-        >
-          AUDIO {isAudioEnabled ? "ON" : "OFF"}
-        </button>
+    <div className="flex h-screen w-screen flex-col overflow-hidden bg-[var(--lintel-night)] text-[var(--lintel-paper)] font-sans antialiased">
+      {/* --- Top Studio Header Bar --- */}
+      <header className="flex h-14 shrink-0 items-center justify-between border-b border-[var(--lintel-paper)]/15 bg-[var(--lintel-night)] px-5">
+        <div className="flex items-center gap-4">
+          <Link
+            href="/"
+            className="flex items-center gap-1.5 font-mono text-[11px] tracking-[0.16em] uppercase text-[var(--lintel-paper)]/70 transition-colors hover:text-[var(--lintel-paper)]"
+          >
+            ← <span>Overview</span>
+          </Link>
+          <div className="h-4 w-px bg-[var(--lintel-paper)]/20" />
+          <h1 className="font-mono text-xs font-semibold tracking-[0.24em] uppercase text-[var(--lintel-paper)]">
+            SONIC ARCHITECTURE <span className="text-[var(--lintel-terracotta)]">{"// SPATIAL STUDIO"}</span>
+          </h1>
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setIsAudioEnabled((v) => !v)}
+            className="border border-[var(--lintel-paper)]/20 px-3 py-1 font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--lintel-paper)] transition-colors hover:border-[var(--lintel-paper)]/50"
+          >
+            AUDIO {isAudioEnabled ? "ON" : "OFF"}
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadBrief(vibe)}
+            className="border border-[var(--lintel-paper)]/20 px-3 py-1 font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--lintel-paper)] transition-colors hover:border-[var(--lintel-terracotta)] hover:text-[var(--lintel-terracotta)]"
+          >
+            Export Brief (.md)
+          </button>
+          <button
+            type="button"
+            onClick={() => downloadSceneSpec(sceneSpec, sceneSpec.typologyLabel)}
+            className="border border-[var(--lintel-paper)]/20 px-3 py-1 font-mono text-[10px] tracking-[0.16em] uppercase text-[var(--lintel-paper)] transition-colors hover:border-[var(--lintel-moss)] hover:text-[var(--lintel-paper)]"
+          >
+            Export Spec (.json)
+          </button>
+        </div>
       </header>
 
-      <div className="grid grid-cols-3 gap-6 p-6">
-        <section className="flex flex-col gap-6 border border-neutral-900 rounded-xl p-5">
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-neutral-500 uppercase tracking-widest">
-              Vibe Query
-            </label>
-            <input
-              value={userInput}
-              onChange={(e) => setUserInput(e.target.value)}
-              placeholder="Describe the atmosphere..."
-              className="bg-[#0A0A0A] border border-neutral-800 rounded-md px-3 py-2 text-sm text-neutral-200 focus:outline-none focus:border-neutral-600"
-            />
-            <button
-              onClick={handleGenerate}
-              disabled={isLoading}
-              className="self-start px-4 py-1.5 text-xs border border-neutral-800 rounded-md hover:bg-neutral-900 transition-colors disabled:opacity-50"
-            >
-              {isLoading ? "COMPILING VIBE..." : "Compile Aesthetics"}
-            </button>
-            {isFallback && (
-              <div className="text-[10px] font-mono text-amber-400 border border-amber-900/60 bg-amber-950/30 rounded px-2 py-1">
-                ⚠️ Live Qloo data unavailable: Using Local Fallback Engine.
+      {/* --- Main 3-Column Studio Workspace --- */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* === Left Control Column: Brief & Synthesis === */}
+        <aside className="w-80 shrink-0 border-r border-[var(--lintel-paper)]/15 bg-[#0e1320]/80 p-5 overflow-y-auto">
+          <div className="space-y-6">
+            {/* Prompt Composer */}
+            <div>
+              <label className="font-mono text-[10px] tracking-[0.2em] text-[var(--lintel-terracotta)] uppercase block mb-2">
+                Spatial Design Brief
+              </label>
+              <textarea
+                rows={3}
+                value={userInput}
+                onChange={(e) => setUserInput(e.target.value)}
+                placeholder="Describe atmosphere, materials, lighting, or spatial requirements..."
+                className="w-full resize-none border border-[var(--lintel-paper)]/20 bg-[var(--lintel-night)]/80 p-3 text-xs leading-relaxed text-[var(--lintel-paper)] placeholder:text-[var(--lintel-muted)] focus:outline-none focus:border-[var(--lintel-terracotta)]"
+              />
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={isLoading}
+                className="mt-2.5 w-full border border-[var(--lintel-terracotta)] bg-[var(--lintel-terracotta)] px-4 py-2 font-mono text-[10px] font-semibold tracking-[0.2em] text-[var(--lintel-paper)] uppercase transition-all hover:bg-[var(--lintel-moss)] hover:border-[var(--lintel-moss)] disabled:opacity-50"
+              >
+                {isLoading ? "Synthesizing Space…" : "Compile Spatial Geometry ↗"}
+              </button>
+            </div>
+
+            {/* Quick Design Presets */}
+            <div>
+              <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--lintel-muted)] uppercase block mb-2">
+                Curated Typologies
+              </span>
+              <div className="grid grid-cols-1 gap-1.5 font-mono text-[10px]">
+                {STUDIO_PRESETS.map((p) => (
+                  <button
+                    key={p.label}
+                    type="button"
+                    onClick={() => {
+                      setUserInput(p.prompt);
+                      setSelectedTypology(p.typology);
+                    }}
+                    className="border border-[var(--lintel-paper)]/15 bg-[var(--lintel-night)]/50 px-3 py-2 text-left text-[var(--lintel-paper)]/85 transition-colors hover:border-[var(--lintel-terracotta)]/70 hover:bg-[var(--lintel-night)]"
+                  >
+                    {p.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Taste Stratification Slider */}
+            <div className="border-t border-[var(--lintel-paper)]/10 pt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-[10px] tracking-[0.18em] text-[var(--lintel-muted)] uppercase">
+                  Taste Stratification
+                </span>
+                <span className="font-mono text-[10px] text-[var(--lintel-paper)]">
+                  {sliderVal}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={0}
+                max={100}
+                value={sliderVal}
+                onChange={(e) => setSliderVal(Number(e.target.value))}
+                className="w-full accent-[var(--lintel-terracotta)] cursor-pointer"
+              />
+              <div className="flex justify-between font-mono text-[9px] text-[var(--lintel-muted)] mt-1">
+                <span>INTIMATE / WARM</span>
+                <span>EXPANSIVE / ELECTRIC</span>
+              </div>
+            </div>
+
+            {/* Manual Typology Override */}
+            <div className="border-t border-[var(--lintel-paper)]/10 pt-4">
+              <label className="font-mono text-[10px] tracking-[0.18em] text-[var(--lintel-muted)] uppercase block mb-2">
+                Typology Override
+              </label>
+              <select
+                value={selectedTypology}
+                onChange={(e) => setSelectedTypology(e.target.value as SpatialTypology | "auto")}
+                className="w-full border border-[var(--lintel-paper)]/20 bg-[var(--lintel-night)] px-2.5 py-1.5 font-mono text-[10px] text-[var(--lintel-paper)] focus:outline-none"
+              >
+                <option value="auto">Auto (from brief & signals)</option>
+                <option value="listening_room">Japanese Jazz Listening Lounge</option>
+                <option value="party_venue">Underground Grunge Hall</option>
+                <option value="scandinavian_living">Minimalist Nordic Living</option>
+                <option value="futuristic_launch">Kinetic Launch Pavilion</option>
+                <option value="gallery_pavilion">Contemplative Spatial Gallery</option>
+              </select>
+            </div>
+
+            {/* Qloo Provenance Status */}
+            <div className="border border-[var(--lintel-paper)]/15 bg-[var(--lintel-night)]/70 p-3 font-mono text-[10px]">
+              <div className="flex items-center justify-between">
+                <span className="text-[var(--lintel-muted)] uppercase">Intelligence:</span>
+                <span
+                  className={
+                    vibe.reasoning.source === "qloo"
+                      ? "text-[var(--lintel-moss)] font-semibold uppercase"
+                      : "text-amber-400 font-semibold uppercase"
+                  }
+                >
+                  {vibe.reasoning.source}
+                </span>
+              </div>
+              <div className="mt-1 text-[9px] text-[var(--lintel-paper)]/70">
+                {vibe.reasoning.source === "qloo"
+                  ? "Real cultural affinity evidence active."
+                  : "Deterministic local fallback active."}
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        {/* === Center Main 3D Viewport === */}
+        <main className="relative flex-1 bg-[#0A0E1A] overflow-hidden">
+          <Venue3D
+            vibe={vibe}
+            params={sceneParams}
+            spec={sceneSpec}
+            promptText={userInput}
+            fill
+          />
+        </main>
+
+        {/* === Right Sidebar: Spatial Intelligence & Inspector === */}
+        <aside className="w-88 shrink-0 border-l border-[var(--lintel-paper)]/15 bg-[#0e1320]/80 flex flex-col overflow-hidden">
+          {/* Tabs Header */}
+          <div className="flex border-b border-[var(--lintel-paper)]/15 bg-[var(--lintel-night)] text-[10px] font-mono">
+            {(
+              [
+                ["spec", "Specification"],
+                ["rationale", "Rationale"],
+                ["inventory", "Objects"],
+              ] as const
+            ).map(([tab, label]) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => setActiveTab(tab)}
+                className={`flex-1 py-3 text-center tracking-[0.14em] uppercase transition-colors ${
+                  activeTab === tab
+                    ? "border-b-2 border-[var(--lintel-terracotta)] text-[var(--lintel-paper)] font-semibold bg-[var(--lintel-night)]/50"
+                    : "text-[var(--lintel-muted)] hover:text-[var(--lintel-paper)]"
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          {/* Tab Content Area */}
+          <div className="flex-1 overflow-y-auto p-5 font-mono text-xs">
+            {activeTab === "spec" && (
+              <div className="space-y-4">
+                <div>
+                  <span className="text-[10px] tracking-[0.18em] text-[var(--lintel-terracotta)] uppercase block">
+                    Typology
+                  </span>
+                  <p className="mt-1 font-sans text-base font-medium text-[var(--lintel-paper)]">
+                    {sceneSpec.typologyLabel}
+                  </p>
+                  <p className="mt-1 text-[11px] text-[var(--lintel-paper)]/75 leading-relaxed">
+                    {sceneSpec.atmosphereNote}
+                  </p>
+                </div>
+
+                <div className="border-t border-[var(--lintel-paper)]/10 pt-3 space-y-2 text-[11px]">
+                  <div>
+                    <span className="text-[var(--lintel-muted)]">Room Envelope:</span>{" "}
+                    <span className="text-[var(--lintel-paper)] font-semibold">
+                      {sceneSpec.roomDimensions.width}m × {sceneSpec.roomDimensions.depth}m × {sceneSpec.roomDimensions.height}m
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--lintel-muted)]">Wall Finish:</span>{" "}
+                    <span className="text-[var(--lintel-paper)]">
+                      {sceneSpec.wallFinish.replace("_", " ").toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--lintel-muted)]">Flooring:</span>{" "}
+                    <span className="text-[var(--lintel-paper)]">
+                      {vibe.flooringMaterial || sceneSpec.floorFinish.replace("_", " ").toUpperCase()}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--lintel-muted)]">Seating Fabric:</span>{" "}
+                    <span className="text-[var(--lintel-paper)]">
+                      {vibe.seatingFabric || "Curated Architectural Seating"}
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--lintel-muted)]">Light Temperature:</span>{" "}
+                    <span className="text-[var(--lintel-paper)]">
+                      {sceneParams.keyLightKelvin}K
+                    </span>
+                  </div>
+                  <div>
+                    <span className="text-[var(--lintel-muted)]">Window Aperture:</span>{" "}
+                    <span className="text-[var(--lintel-paper)]">
+                      {sceneSpec.hasWindowAperture ? "Natural Daylight Slot Active" : "Enclosed Cocoon"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="border-t border-[var(--lintel-paper)]/10 pt-3">
+                  <span className="text-[10px] tracking-[0.18em] text-[var(--lintel-muted)] uppercase block mb-1">
+                    Design Intent
+                  </span>
+                  <p className="text-[11px] text-[var(--lintel-paper)]/85 leading-relaxed">
+                    {sceneSpec.designIntent}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {activeTab === "rationale" && (
+              <div className="space-y-4">
+                <span className="text-[10px] tracking-[0.18em] text-[var(--lintel-terracotta)] uppercase block">
+                  Design Traceability
+                </span>
+                <p className="text-[10px] text-[var(--lintel-paper)]/70 leading-relaxed">
+                  Every parameter is deterministically mapped from cultural evidence and architectural principles.
+                </p>
+
+                <div className="space-y-3 pt-2">
+                  {Object.entries(vibe.reasoning.rules).map(([field, rule]) => (
+                    <div
+                      key={field}
+                      className="border-l border-[var(--lintel-terracotta)]/70 bg-[var(--lintel-night)]/60 p-2.5 pl-3"
+                    >
+                      <span className="text-[10px] tracking-[0.16em] text-[var(--lintel-terracotta)] uppercase block">
+                        {field}
+                      </span>
+                      <p className="mt-1 text-[11px] leading-relaxed text-[var(--lintel-paper)]/85">
+                        {rule}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+
+                {vibe.evidence.genreTags.length > 0 && (
+                  <div className="border-t border-[var(--lintel-paper)]/10 pt-3">
+                    <span className="text-[10px] tracking-[0.18em] text-[var(--lintel-muted)] uppercase block mb-1">
+                      Matched Qloo Tags
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {[
+                        ...vibe.evidence.genreTags,
+                        ...vibe.evidence.styleTags,
+                        ...vibe.evidence.adjectives,
+                      ].map((t) => (
+                        <span
+                          key={t}
+                          className="border border-[var(--lintel-paper)]/20 px-2 py-0.5 text-[9px] text-[var(--lintel-paper)]/80"
+                        >
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {activeTab === "inventory" && (
+              <div className="space-y-3">
+                <span className="text-[10px] tracking-[0.18em] text-[var(--lintel-terracotta)] uppercase block mb-2">
+                  Placed 3D Objects ({sceneSpec.objects.length})
+                </span>
+                <div className="space-y-2">
+                  {sceneSpec.objects.map((obj) => (
+                    <div
+                      key={obj.id}
+                      onClick={() => setSelectedObject(obj)}
+                      className={`cursor-pointer border p-3 transition-colors ${
+                        selectedObject?.id === obj.id
+                          ? "border-[var(--lintel-terracotta)] bg-[var(--lintel-terracotta)]/15 text-[var(--lintel-paper)]"
+                          : "border-[var(--lintel-paper)]/15 bg-[var(--lintel-night)]/60 text-[var(--lintel-paper)]/80 hover:border-[var(--lintel-paper)]/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-semibold text-xs text-[var(--lintel-paper)]">
+                          {obj.label}
+                        </span>
+                        <span className="text-[9px] text-[var(--lintel-muted)] uppercase">
+                          {obj.kind}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-[10px] text-[var(--lintel-paper)]/70">
+                        {obj.material} · {obj.dimensions}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             )}
           </div>
-
-          {networkStatus === "TIMEOUT" && (
-            <div className="text-[10px] font-mono text-amber-400 border border-amber-900/60 bg-amber-950/30 rounded px-2 py-1">
-              ⚠️ Subnet Latency Detected: Displaying High-Fidelity Local Environment Blueprint.
-            </div>
-          )}
-          <div className="flex flex-col gap-2">
-            <label className="text-xs text-neutral-500 uppercase tracking-widest">
-              Taste Stratification
-            </label>
-            <input
-              type="range"
-              min={0}
-              max={100}
-              value={sliderVal}
-              onChange={(e) => setSliderVal(Number(e.target.value))}
-              className="w-full accent-neutral-400"
-            />
-            <div className="flex justify-between text-[10px] text-neutral-600">
-              <span>MAINSTREAM</span>
-              <span>UNDERGROUND</span>
-            </div>
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-4">
-          <div className="aspect-[4/3] border border-neutral-900 rounded-xl overflow-hidden">
-            <SpatialCanvas
-              primaryColorHex={currentVibe.primaryColorHex}
-              accentColorHex={currentVibe.accentColorHex}
-              lightingTemperatureK={currentVibe.lightingTemperatureK}
-              flooringMaterial={currentVibe.flooringMaterial}
-              seatingFabric={currentVibe.seatingFabric}
-            />
-          </div>
-          <div className="flex items-center justify-center gap-3 mt-4 w-full">
-            {["09:00 AM - Morning Glow", "04:00 PM - Golden Hour", "08:00 PM - Peak Session"].map(
-              (h) => (
-                <button
-                  key={h}
-                  onClick={() => setActiveHour(h)}
-                  className={`px-3 py-1.5 text-[10px] border rounded-full transition-colors ${
-                    activeHour === h
-                      ? "border-neutral-400 text-neutral-200"
-                      : "border-neutral-800 text-neutral-500 hover:border-neutral-600"
-                  }`}
-                >
-                  {h}
-                </button>
-              )
-            )}
-          </div>
-        </section>
-
-        <section className="flex flex-col gap-6 border border-neutral-900 rounded-xl p-5">
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xs text-neutral-500 uppercase tracking-widest">
-              Playbook Specs
-            </h2>
-            <ul className="flex flex-col gap-2">
-              {currentVibe.tracks.map((t, i) => (
-                <li
-                  key={i}
-                  className="flex items-center justify-between p-2 rounded bg-[#141414] border border-neutral-900 mb-2 text-xs"
-                >
-                  <span>{t.title}</span>
-                  <span className="text-neutral-600">{t.artist}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xs text-neutral-500 uppercase tracking-widest">
-              Culinary
-            </h2>
-            <p className="text-xs text-neutral-400 leading-relaxed">{currentVibe.menu}</p>
-          </div>
-          <div className="flex flex-col gap-2">
-            <h2 className="text-xs text-neutral-500 uppercase tracking-widest">
-              Design Basis
-            </h2>
-            <p className="text-[10px] text-neutral-500">
-              Source: {currentVibe.reasoning?.source ?? "unknown"}
-            </p>
-            {currentVibe.reasoning?.evidence && currentVibe.reasoning.evidence.length > 0 && (
-              <p className="text-[10px] text-neutral-600 leading-relaxed">
-                Evidence: {currentVibe.reasoning.evidence.join(", ")}
-              </p>
-            )}
-            {currentVibe.reasoning?.rules && (
-              <ul className="flex flex-col gap-1 text-[10px] text-neutral-600">
-                {Object.entries(currentVibe.reasoning.rules).map(([key, value]) => (
-                  <li key={key}>
-                    <span className="text-neutral-500">{key}:</span> {value}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </div>
-        </section>
+        </aside>
       </div>
-    </motion.main>
+    </div>
   );
 }

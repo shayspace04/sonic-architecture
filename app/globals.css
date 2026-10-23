@@ -1,6 +1,15 @@
 @import "tailwindcss";
 
 :root {
+  /* Lintel-inspired architectural palette */
+  --lintel-night: #0a0e1a;
+  --lintel-paper: #eee8dc;
+  --lintel-ink: #171a1f;
+  --lintel-moss: #2f5a4c;
+  --lintel-terracotta: #d9532b;
+  --lintel-muted: #5b5f66;
+  --lintel-rule: rgba(23, 26, 31, 0.2);
+
   --sa-charcoal: #0b0a0d;
   --sa-plum: #151018;
   --sa-lime: #d5ff3f;
@@ -10,26 +19,22 @@
   --sa-line: rgba(244, 240, 232, 0.08);
   --sa-glass: rgba(21, 16, 24, 0.55);
 
-  /* Landing "cloud world" atmosphere (bright / airy). */
-  --sa-ink: #26364a;
-  --sa-ink-soft: #4a5b72;
-  --sa-sky-blue: #bfe8f5;
-  --sa-powder: #d9f1f7;
-  --sa-cloud: #f7fbfc;
-  --sa-lavender: #dcd8f4;
-  --sa-periwinkle: #aaa9ef;
-  --sa-peach: #ffe1cb;
-  --sa-frost: rgba(255, 255, 255, 0.42);
-  --sa-frost-line: rgba(255, 255, 255, 0.7);
-  --sa-frost-shadow: rgba(38, 54, 74, 0.18);
+  /* Landing editorial palette (architectural) */
+  --sa-ink: var(--lintel-ink);
+  --sa-ink-soft: var(--lintel-muted);
+  --sa-paper: var(--lintel-paper);
+  --sa-moss: var(--lintel-moss);
+  --sa-terracotta: var(--lintel-terracotta);
 
-  --background: var(--sa-charcoal);
+  --background: var(--lintel-night);
   --foreground: var(--sa-white);
 
   --sa-ease: cubic-bezier(0.22, 1, 0.36, 1);
   --sa-fast: 180ms;
   --sa-med: 420ms;
   --sa-slow: 900ms;
+
+  --gutter: clamp(16px, 5vw, 88px);
 }
 
 @theme inline {
@@ -43,14 +48,12 @@
   --color-line: var(--sa-line);
   --color-ink: var(--sa-ink);
   --color-inksoft: var(--sa-ink-soft);
-  --color-sky: var(--sa-sky-blue);
-  --color-powder: var(--sa-powder);
-  --color-cloud: var(--sa-cloud);
-  --color-lavender: var(--sa-lavender);
-  --color-periwinkle: var(--sa-periwinkle);
-  --color-peach: var(--sa-peach);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--lintel-paper);
+  --color-moss: var(--lintel-moss);
+  --color-terracotta: var(--lintel-terracotta);
+  --font-sans: var(--font-schibsted);
+  --font-mono: var(--font-ibm-plex-mono);
+  --font-display: var(--font-libre-caslon);
 }
 
 html {
@@ -73,7 +76,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-schibsted), system-ui, -apple-system, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
 
@@ -88,7 +91,7 @@ body {
 }
 
 .sa-label {
-  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
   font-size: 0.65rem;
   letter-spacing: 0.28em;
   text-transform: uppercase;
@@ -107,8 +110,7 @@ body {
 }
 
 /* ---------------------------------------------------------------------------
-   Landing atmosphere — bright, airy, dreamlike ("cloud world").
-   Token-based so the dark venue sections below keep their own look.
+   Editorial architectural landing (Lintel + NEST inspired)
 --------------------------------------------------------------------------- */
 
 .sa-ink {
@@ -119,84 +121,64 @@ body {
   color: var(--sa-ink-soft);
 }
 
-/* Frosted translucent surface used by the floating prompt object. */
-.sa-frost {
-  background: var(--sa-frost);
-  border: 1px solid var(--sa-frost-line);
-  backdrop-filter: blur(20px) saturate(1.25);
-  -webkit-backdrop-filter: blur(20px) saturate(1.25);
-  box-shadow:
-    0 22px 70px var(--sa-frost-shadow),
-    inset 0 1px 0 rgba(255, 255, 255, 0.85);
+.sa-gutter {
+  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
+  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
 }
 
-/* Soft local light behind the centred copy so text stays legible on cloud. */
-.sa-veil {
+.sa-panel {
+  background: var(--lintel-paper);
+  color: var(--lintel-ink);
+  border: 1px solid var(--lintel-rule);
+  box-shadow: 0 28px 60px -24px rgba(0, 0, 0, 0.6);
+}
+
+.sa-eyebrow {
+  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
+  font-size: 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lintel-moss);
+}
+
+.sa-display {
+  font-family: var(--font-libre-caslon), "Libre Caslon Display", Georgia, serif;
+  font-weight: 400;
+  line-height: 0.98;
+  letter-spacing: -0.005em;
+  text-wrap: balance;
+}
+
+.sa-copywash {
   background: radial-gradient(
-    62% 58% at 50% 46%,
-    rgba(255, 255, 255, 0.5) 0%,
-    rgba(255, 255, 255, 0.16) 46%,
-    rgba(255, 255, 255, 0) 74%
+    62% 58% at 22% 72%,
+    rgba(10, 14, 26, 0.7) 0%,
+    rgba(10, 14, 26, 0.4) 40%,
+    rgba(10, 14, 26, 0) 76%
   );
 }
 
-/* Long, soft ground/wash shadow under floating objects. */
+/* Keep legacy frost styles for backward compatibility but toned down */
+.sa-frost {
+  background: rgba(238, 232, 220, 0.92);
+  color: var(--lintel-ink);
+  border: 1px solid var(--lintel-rule);
+  backdrop-filter: blur(12px) saturate(1.05);
+  -webkit-backdrop-filter: blur(12px) saturate(1.05);
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.7);
+}
+
 .sa-cast {
-  filter: drop-shadow(0 30px 60px rgba(38, 54, 74, 0.16));
+  filter: drop-shadow(0 24px 50px rgba(0, 0, 0, 0.25));
 }
 
-.sa-cloud-a,
-.sa-cloud-b,
-.sa-cloud-c {
-  position: absolute;
-  border-radius: 9999px;
-  filter: blur(28px);
-  will-change: transform;
-}
-
-.sa-cloud-a {
-  background: rgba(255, 255, 255, 0.78);
-  animation: sa-drift-a 64s ease-in-out infinite;
-}
-
-.sa-cloud-b {
-  background: rgba(220, 216, 244, 0.62);
-  animation: sa-drift-b 84s ease-in-out infinite;
-}
-
-.sa-cloud-c {
-  background: rgba(247, 251, 252, 0.72);
-  animation: sa-drift-c 104s ease-in-out infinite;
-}
-
-@keyframes sa-drift-a {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(4%, -2%, 0) scale(1.06);
-  }
-}
-
-@keyframes sa-drift-b {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1.04);
-  }
-  50% {
-    transform: translate3d(-5%, 1.5%, 0) scale(1);
-  }
-}
-
-@keyframes sa-drift-c {
-  0%,
-  100% {
-    transform: translate3d(0, 0, 0) scale(1);
-  }
-  50% {
-    transform: translate3d(3%, 2%, 0) scale(1.08);
-  }
+.sa-veil {
+  background: radial-gradient(
+    62% 58% at 50% 46%,
+    rgba(10, 14, 26, 0.45) 0%,
+    rgba(10, 14, 26, 0.18) 46%,
+    rgba(10, 14, 26, 0) 74%
+  );
 }
 
 @media (prefers-reduced-motion: reduce) {

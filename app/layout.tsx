@@ -1,30 +1,18 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
-  title: "Sonic Architecture — Your Taste Has a World of Its Own",
+  title: "Sonic Architecture — Spatial Design from Cultural Resonance",
   description:
-    "A new way to experience culture. Tell us what moves you — a film, an artist, a place, a feeling — and discover the space your cultural world would create.",
+    "An AI-assisted spatial design application that transforms natural-language descriptions into interactive 3D environments.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html
-      lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="en" className="h-full antialiased">
+      <body className="min-h-full flex flex-col bg-[#0A0E1A] text-[#EEE8DC]">
+        {children}
+      </body>
     </html>
   );
 }

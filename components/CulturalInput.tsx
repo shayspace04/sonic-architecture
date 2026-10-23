@@ -3,18 +3,30 @@
 import { useId, useState } from "react";
 
 /**
- * The landing prompt: a single frosted, floating object.
+ * The architectural landing prompt composer:
+ * Clear, editorial input connected to the live generation pipeline.
  *
- * Qloo-safety: typing, focusing or clicking an example never triggers a
- * request. Example pills only *fill* the field — the visitor still chooses to
- * submit. Exactly one request is issued per explicit submit (guarded by
- * `isLoading`, enforced again by the page).
+ * Qloo-safety: typing, focusing or clicking an example never triggers an automated request.
+ * Example chips populate the field so the visitor maintains deliberate control.
+ * Exactly one request is issued per explicit submit (guarded by `isLoading`).
  */
-const EXAMPLES = [
-  "A24 films + indie music",
-  "Japanese gardens + ambient",
-  "Chrome + club culture",
-  "Jazz + brutalist architecture",
+export const ARCHITECTURAL_EXAMPLES = [
+  {
+    short: "Japanese jazz room",
+    full: "A Japanese jazz listening room with dark timber, warm paper lanterns, and intimate seating.",
+  },
+  {
+    short: "Pink grungy party",
+    full: "A pink grungy birthday party with chrome furniture, dramatic lighting, and playful details.",
+  },
+  {
+    short: "Scandinavian living",
+    full: "A minimalist Scandinavian living room with morning sunlight and natural oak.",
+  },
+  {
+    short: "Futuristic launch",
+    full: "An immersive futuristic product launch venue with reflective surfaces and cinematic lighting.",
+  },
 ];
 
 interface CulturalInputProps {
@@ -38,19 +50,20 @@ export default function CulturalInput({ onSubmit, isLoading, initial = "" }: Cul
   };
 
   return (
-    <div className="w-full max-w-3xl">
+    <div className="w-full max-w-2xl">
+      {/* Dark glass input container — Nest-style */}
       <div
-        className={`sa-frost sa-cast rounded-[26px] transition-all duration-300 ${
-          isLoading ? "scale-[0.995] opacity-90" : "hover:shadow-[0_26px_80px_rgba(38,54,74,0.22)]"
+        className={`overflow-hidden rounded-2xl border border-white/10 bg-black/50 shadow-2xl backdrop-blur-2xl transition-all duration-300 ${
+          isLoading ? "scale-[0.99] opacity-80" : "hover:border-white/20"
         }`}
       >
-        <div className="flex items-end gap-3 p-2.5 pl-5">
+        <div className="flex flex-col gap-2 p-4 sm:flex-row sm:items-end sm:p-5">
           <label htmlFor={inputId} className="sr-only">
-            Describe what moves you
+            Describe a space or architectural design brief
           </label>
           <textarea
             id={inputId}
-            rows={1}
+            rows={2}
             value={value}
             disabled={isLoading}
             onChange={(e) => {
@@ -63,20 +76,19 @@ export default function CulturalInput({ onSubmit, isLoading, initial = "" }: Cul
                 submit();
               }
             }}
-            placeholder="A film, an artist, a place, a feeling..."
+            placeholder="Describe an architectural space, materials, lighting, or atmosphere..."
             aria-describedby={hintId}
             aria-invalid={invalid || undefined}
-            className="sa-ink min-h-[3.25rem] flex-1 resize-none bg-transparent py-3.5 text-[15px] leading-relaxed placeholder:text-[#26364a]/45 focus:outline-none disabled:opacity-60 md:text-base"
+            className="min-h-[3.5rem] flex-1 resize-none bg-transparent px-2 py-1 text-base leading-relaxed text-white placeholder:text-white/35 focus:outline-none disabled:opacity-50 md:text-lg"
           />
           <button
             type="button"
             onClick={submit}
             disabled={isLoading}
             aria-busy={isLoading}
-            className="sa-ink group mb-1 flex shrink-0 items-center gap-2 rounded-[18px] bg-[#26364a] px-5 py-3.5 font-mono text-[10px] tracking-[0.2em] text-[#f7fbfc] uppercase shadow-[0_10px_30px_rgba(38,54,74,0.28)] transition-all hover:-translate-y-0.5 hover:bg-[#1d2a3a] disabled:cursor-not-allowed disabled:opacity-60 disabled:hover:translate-y-0"
+            className="group flex shrink-0 items-center justify-center gap-2 rounded-xl bg-white px-5 py-3 font-mono text-[11px] font-semibold tracking-[0.18em] text-black uppercase transition-all hover:bg-[var(--lintel-paper)] hover:scale-[1.02] disabled:cursor-not-allowed disabled:opacity-40"
           >
-            <span className="hidden sm:inline">{isLoading ? "Reading signals" : "Enter your world"}</span>
-            <span className="sm:hidden">{isLoading ? "…" : "Enter"}</span>
+            <span>{isLoading ? "Generating…" : "Generate Space"}</span>
             <span aria-hidden className="transition-transform group-hover:translate-x-0.5">
               ↗
             </span>
@@ -84,34 +96,35 @@ export default function CulturalInput({ onSubmit, isLoading, initial = "" }: Cul
         </div>
       </div>
 
-      <div id={hintId} className="mt-3 min-h-[1.25rem] px-1 text-xs">
+      {/* Validation / Status hint */}
+      <div id={hintId} className="mt-2 min-h-[1.25rem] px-1 text-center text-xs">
         {invalid ? (
-          <span className="text-[#b4485f]">Add at least one reference to translate.</span>
+          <span className="font-mono text-[var(--lintel-terracotta)]">
+            Please enter a spatial description to translate.
+          </span>
         ) : (
-          <span className="sa-ink-soft">
+          <span className="font-mono text-[11px] text-white/40">
             {isLoading
-              ? "Reading your cultural signals — one request, nothing fabricated."
-              : "Press Enter to enter. Separate references with + or a comma."}
+              ? "Synthesizing spatial geometry & cultural affinity..."
+              : "Press Enter to generate · specify materials, lighting, or typology"}
           </span>
         )}
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-2">
-        <span className="sa-ink-soft self-center font-mono text-[9px] tracking-[0.22em] uppercase opacity-70">
-          Try
-        </span>
-        {EXAMPLES.map((ex) => (
+      {/* Example Prompts — soft row of pills */}
+      <div className="mt-4 flex flex-wrap justify-center gap-2">
+        {ARCHITECTURAL_EXAMPLES.map((ex, idx) => (
           <button
-            key={ex}
+            key={idx}
             type="button"
             disabled={isLoading}
             onClick={() => {
-              setValue(ex);
+              setValue(ex.full);
               setTouched(false);
             }}
-            className="sa-ink rounded-full border border-white/70 bg-white/35 px-3.5 py-1.5 text-xs backdrop-blur-sm transition-all hover:-translate-y-0.5 hover:bg-white/60 disabled:opacity-40"
+            className="rounded-full border border-white/12 bg-white/5 px-3.5 py-1.5 font-mono text-[10px] tracking-[0.14em] text-white/55 uppercase backdrop-blur-sm transition-all hover:border-white/25 hover:bg-white/10 hover:text-white disabled:opacity-30"
           >
-            {ex}
+            {ex.short}
           </button>
         ))}
       </div>

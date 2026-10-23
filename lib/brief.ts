@@ -78,3 +78,15 @@ export function downloadBrief(vibe: VibePayload): void {
   a.remove();
   URL.revokeObjectURL(url);
 }
+
+export function downloadSceneSpec(spec: unknown, title: string = "scene-spec"): void {
+  const blob = new Blob([JSON.stringify(spec, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `sonic-architecture-${title.toLowerCase().replace(/\s+/g, "-")}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}

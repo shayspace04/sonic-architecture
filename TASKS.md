@@ -36,6 +36,12 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 - [x] Landing rebuild re-verified: `npm run lint` clean, `npm test` 37/37,
   `npm run build` clean; `/` and `/studio` both HTTP 200 in dev
 
+- [x] **Nest-inspired architectural design & interactive 3D layout planning** (2026-10-23):
+  - [x] Centered hero landing page matching Nest aesthetic (`app/page.tsx`, `components/CulturalInput.tsx`): display serif typography ("A feeling, given form."), dark frosted glass prompt composer, minimal transition header.
+  - [x] **Nest-style Exploded Architecture mode** (`components/three/Venue3D.tsx`): procedural deconstruction separating ceiling beams upwards, expanding perimeter walls outward, rendering vertical axonometric guide lines, and dynamic separation slider (0% to 100%).
+  - [x] **Interactive 3D Spatial Layout & Planning HUD Drawer** (`components/three/Venue3D.tsx`): real-time envelope metrics ($m^2, m^3$, clear height), functional zoning list, and click-to-focus camera navigation.
+  - [x] **Interactive 2D Architectural Schematic Blueprint** (`components/SpatialTranslation.tsx`): SVG projection mapping room envelope, metric dimension callouts ($W\text{m} \times D\text{m}$), functional acoustic zones, and clickable placed fixtures with companion inspector HUD.
+
 ## P1 — Essential demo experience
 
 - [x] **Cinematic landing page** as the entry point (`app/page.tsx`):
@@ -159,7 +165,7 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 - [x] Use more than the first `/search` result — multi-term input parsing
   (`lib/terms.ts`, up to 5 terms, one resolved entity per term) + search-hit tag
   evidence merged from all supported hits
-- [ ] Wire up `sliderVal` (currently discarded server-side) or remove it
+- [x] Wire up `sliderVal` (modulates 3D lighting Kelvin, openness, and ambient audio tone in `/studio`)
 - [x] Make time-of-day buttons actually affect the scene (`VenueScene` presets:
   morning / golden hour / peak night drive lighting states)
 - [x] Fix mojibake string (old dashboard moved to `/studio` unchanged; bug no

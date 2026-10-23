@@ -7,16 +7,20 @@ import type { BloomEffect } from "postprocessing";
 import * as THREE from "three";
 import type { VibePayload } from "@/lib/types";
 import type { SceneParams } from "@/lib/scene-params";
-import { blendHex, kelvinToRgb } from "@/lib/scene-params";
+import { kelvinToRgb } from "@/lib/scene-params";
 import { WebGLBoundary, usePrefersReducedMotion } from "./shared";
 import VenueScene from "@/components/VenueScene";
+import type { SceneSpec, SpatialObject, SpatialZone } from "@/lib/scene-spec";
+import { generateSceneSpec } from "@/lib/scene-spec";
 
-export type LightingPreset = "morning" | "golden" | "peak";
+export type LightingPreset = "morning" | "golden" | "midnight";
+export type CameraViewPreset = "orbit" | "plan" | "exploded" | "eye" | "focal";
 
 interface Venue3DProps {
   vibe: VibePayload;
   params: SceneParams;
-  /** Render edge-to-edge filling the parent (used for the full-screen venue). */
+  spec?: SceneSpec;
+  promptText?: string;
   fill?: boolean;
 }
 
@@ -32,23 +36,42 @@ interface LightTargets {
 
 function targetsFor(preset: LightingPreset, params: SceneParams): LightTargets {
   if (preset === "morning") {
-    return { ambient: 0.7, key: 2.4, keyRgb: kelvinToRgb(5400), accent: 14, pendant: 1.0, fogMul: 0.85, bloom: params.bloomIntensity * 0.75 };
+    return {
+      ambient: 0.65,
+      key: 2.6,
+      keyRgb: kelvinToRgb(5600),
+      accent: 12,
+      pendant: 0.8,
+      fogMul: 0.8,
+      bloom: params.bloomIntensity * 0.7,
+    };
   }
   if (preset === "golden") {
-    return { ambient: 0.38, key: 2.0, keyRgb: kelvinToRgb(3100), accent: 26, pendant: 2.4, fogMul: 1.0, bloom: params.bloomIntensity * 0.95 };
+    return {
+      ambient: 0.42,
+      key: 2.2,
+      keyRgb: kelvinToRgb(3200),
+      accent: 28,
+      pendant: 2.2,
+      fogMul: 1.0,
+      bloom: params.bloomIntensity * 0.95,
+    };
   }
-  return { ambient: 0.15, key: 0.85, keyRgb: kelvinToRgb(params.keyLightKelvin), accent: 46, pendant: 3.4, fogMul: 1.25, bloom: params.bloomIntensity * 1.1 };
-}
-
-function defaultPreset(kelvin: number): LightingPreset {
-  if (kelvin >= 5500) return "morning";
-  if (kelvin <= 3800) return "golden";
-  return "peak";
+  // midnight
+  return {
+    ambient: 0.18,
+    key: 0.8,
+    keyRgb: kelvinToRgb(2400),
+    accent: 48,
+    pendant: 3.6,
+    fogMul: 1.25,
+    bloom: params.bloomIntensity * 1.2,
+  };
 }
 
 function dampTo(current: number, target: number, dt: number, reduced: boolean): number {
   if (reduced) return target;
-  return THREE.MathUtils.damp(current, target, 4, dt);
+  return THREE.MathUtils.damp(current, target, 4.5, dt);
 }
 
 function VenueLighting({
@@ -57,23 +80,32 @@ function VenueLighting({
   haze,
   reducedMotion,
   bloomRef,
+  spec,
 }: {
   params: SceneParams;
   preset: LightingPreset;
   haze: boolean;
   reducedMotion: boolean;
   bloomRef: React.RefObject<BloomEffect | null>;
+  spec: SceneSpec;
 }) {
   const ambientRef = useRef<THREE.AmbientLight>(null);
   const keyRef = useRef<THREE.DirectionalLight>(null);
   const accentARef = useRef<THREE.PointLight>(null);
   const accentBRef = useRef<THREE.PointLight>(null);
-  const pendantsRef = useRef<THREE.Group>(null);
   const { scene } = useThree();
 
   const targets = useMemo(() => targetsFor(preset, params), [preset, params]);
-  const baseFog = params.fogDensity * (haze ? 2.0 : 0.9);
-  const state = useRef({ ambient: targets.ambient, key: targets.key, accent: targets.accent, pendant: targets.pendant, fog: baseFog, bloom: targets.bloom, rgb: [...targets.keyRgb] as [number, number, number] });
+  const baseFog = params.fogDensity * (haze ? 1.6 : 0.85);
+  const state = useRef({
+    ambient: targets.ambient,
+    key: targets.key,
+    accent: targets.accent,
+    pendant: targets.pendant,
+    fog: baseFog,
+    bloom: targets.bloom,
+    rgb: [...targets.keyRgb] as [number, number, number],
+  });
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
@@ -94,268 +126,584 @@ function VenueLighting({
       keyRef.current.color.setRGB(s.rgb[0], s.rgb[1], s.rgb[2]);
     }
     if (accentARef.current) accentARef.current.intensity = s.accent;
-    if (accentBRef.current) accentBRef.current.intensity = s.accent * 0.7;
-    if (pendantsRef.current) {
-      pendantsRef.current.traverse((o) => {
-        if (o instanceof THREE.PointLight) o.intensity = s.pendant;
-        if (o instanceof THREE.Mesh && o.material instanceof THREE.MeshStandardMaterial) {
-          o.material.emissiveIntensity = 0.4 + s.pendant * 0.5;
-        }
-      });
-    }
+    if (accentBRef.current) accentBRef.current.intensity = s.accent * 0.75;
     if (scene.fog instanceof THREE.FogExp2) scene.fog.density = s.fog;
     if (bloomRef.current) bloomRef.current.intensity = s.bloom;
   });
 
   return (
     <>
-      <ambientLight ref={ambientRef} color="#8FA0C0" intensity={targets.ambient} />
+      <ambientLight ref={ambientRef} color="#C4D0E5" intensity={targets.ambient} />
       <directionalLight
         ref={keyRef}
-        position={[7, 10, 5]}
+        position={[8, 12, 6]}
         intensity={targets.key}
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-left={-14}
-        shadow-camera-right={14}
-        shadow-camera-top={14}
-        shadow-camera-bottom={-14}
-        shadow-camera-far={40}
-        shadow-bias={-0.0004}
+        shadow-mapSize-width={2048}
+        shadow-mapSize-height={2048}
+        shadow-camera-left={-16}
+        shadow-camera-right={16}
+        shadow-camera-top={16}
+        shadow-camera-bottom={-16}
+        shadow-camera-far={45}
+        shadow-bias={-0.0003}
       />
-      <pointLight ref={accentARef} position={[0, 3.1, -7.6]} color={params.crestColor} distance={22} decay={2} intensity={targets.accent} />
-      <pointLight ref={accentBRef} position={[-5.6, 2.4, -1.5]} color={params.shadowColor} distance={18} decay={2} intensity={targets.accent * 0.7} />
-      <group ref={pendantsRef}>
-        {[-2.4, 0, 2.4].map((x) => (
-          <group key={x} position={[x, 3.7, -2.6]}>
-            <mesh>
-              <sphereGeometry args={[0.14, 20, 20]} />
-              <meshStandardMaterial color="#2A2418" emissive="#FFD9A0" emissiveIntensity={2} />
-            </mesh>
-            <pointLight color="#FFD9A0" distance={9} decay={2} intensity={targets.pendant} />
-            <mesh position={[0, 1.5, 0]}>
-              <cylinderGeometry args={[0.012, 0.012, 2.9, 6]} />
-              <meshStandardMaterial color="#17141C" />
-            </mesh>
-          </group>
-        ))}
-      </group>
+      <pointLight
+        ref={accentARef}
+        position={[0, 3.2, -6.5]}
+        color={spec.accentColor || params.crestColor}
+        distance={24}
+        decay={2}
+        intensity={targets.accent}
+      />
+      <pointLight
+        ref={accentBRef}
+        position={[-6, 2.8, -1.0]}
+        color={spec.primaryColor || params.shadowColor}
+        distance={20}
+        decay={2}
+        intensity={targets.accent * 0.75}
+      />
     </>
   );
 }
 
-function Portal({ w, h, z, color, accent }: { w: number; h: number; z: number; color: string; accent: string }) {
-  const t = 0.2;
-  return (
-    <group position={[0, 0, z]}>
-      <mesh position={[-w / 2, h / 2, 0]} castShadow>
-        <boxGeometry args={[t, h, 0.24]} />
-        <meshStandardMaterial color="#16131D" metalness={0.65} roughness={0.32} />
-      </mesh>
-      <mesh position={[w / 2, h / 2, 0]} castShadow>
-        <boxGeometry args={[t, h, 0.24]} />
-        <meshStandardMaterial color="#16131D" metalness={0.65} roughness={0.32} />
-      </mesh>
-      <mesh position={[0, h + t / 2 - 0.01, 0]} castShadow>
-        <boxGeometry args={[w + t, t, 0.24]} />
-        <meshStandardMaterial color="#16131D" metalness={0.65} roughness={0.32} />
-      </mesh>
-      <mesh position={[0, 0.06, -0.18]}>
-        <planeGeometry args={[w - t * 0.6, h - t]} />
-        <meshStandardMaterial color="#05040A" emissive={accent} emissiveIntensity={0.35} toneMapped={false} />
-      </mesh>
-      <mesh position={[0, h * 0.5, -0.2]} rotation={[0, 0, 0]}>
-        <planeGeometry args={[Math.max(w * 0.16, 0.4), h * 0.82]} />
-        <meshStandardMaterial color="#05040A" emissive={color} emissiveIntensity={0.5} toneMapped={false} />
-      </mesh>
-    </group>
-  );
-}
+/* ---------------------------------------------------------------------------
+   Procedural Architectural Shell (Walls, Apertures, Slats, Flooring, Exploded Layers)
+--------------------------------------------------------------------------- */
 
-function Architecture({ params, gloss }: { params: SceneParams; gloss: boolean }) {
-  const openness = params.openness;
-  const columns = useMemo(() => {
-    const n = 2 + Math.round(openness * 3);
-    const xs = 3.2 + openness * 3.4;
-    const out: [number, number][] = [];
-    for (let i = 0; i < n; i++) {
-      const z = -8.4 + (11 * i) / Math.max(n - 1, 1);
-      out.push([-xs, z]);
-      out.push([xs, z]);
+function ArchitecturalShell({
+  spec,
+  gloss,
+  exploded = 0,
+  showRoof = true,
+  showWalls = true,
+  showPlanGrid = false,
+  activeZoneId = null,
+  onSelectZone,
+}: {
+  spec: SceneSpec;
+  gloss: boolean;
+  exploded?: number;
+  showRoof?: boolean;
+  showWalls?: boolean;
+  showPlanGrid?: boolean;
+  activeZoneId?: string | null;
+  onSelectZone?: (zone: SpatialZone) => void;
+}) {
+  const { width: W, depth: D, height: H } = spec.roomDimensions;
+  const halfW = W / 2;
+  const halfD = D / 2;
+
+  // Exploded offsets
+  const expY = exploded * 4.2;
+  const expZ = exploded * 3.2;
+  const expX = exploded * 3.0;
+
+  // Floor material characteristics
+  const floorRoughness = gloss ? 0.12 : spec.floorFinish === "warm_oak" ? 0.58 : 0.75;
+  const floorMetalness = gloss ? 0.65 : spec.floorFinish === "warm_oak" ? 0.05 : 0.15;
+  const floorColor =
+    spec.floorFinish === "warm_oak"
+      ? "#6E5033"
+      : spec.floorFinish === "glossy_concrete"
+        ? "#0E0D12"
+        : spec.floorFinish === "polished_stone"
+          ? "#23262D"
+          : "#282520";
+
+  // Wall material characteristics
+  const wallColor =
+    spec.wallFinish === "gallery_white"
+      ? "#EBE7DF"
+      : spec.wallFinish === "wood_panel"
+        ? "#856B52"
+        : spec.wallFinish === "distressed_plaster"
+          ? "#2E2A34"
+          : "#1C1B22";
+
+  // Acoustic slats count for listening lounge
+  const slats = useMemo(() => {
+    if (spec.wallFinish !== "acoustic_slats") return [];
+    const count = 38;
+    const items: number[] = [];
+    const step = (W * 0.85) / count;
+    for (let i = 0; i < count; i++) {
+      items.push(-W * 0.425 + i * step);
     }
-    return out;
-  }, [openness]);
-
-  const seats = useMemo(() => {
-    const spread = 2.6 + openness * 2.2;
-    const positions: [number, number, number][] = [];
-    for (let i = 0; i < 4; i++) {
-      const z = -4.6 + i * 1.7;
-      positions.push([-spread, z, 0.35]);
-      positions.push([spread, z, -0.35]);
-    }
-    return positions;
-  }, [openness]);
-
-  const seatColor = useMemo(() => blendHex("#1A1720", params.primaryColor, 0.16), [params.primaryColor]);
+    return items;
+  }, [spec.wallFinish, W]);
 
   return (
     <group>
-      <mesh rotation-x={-Math.PI / 2} receiveShadow>
-        <planeGeometry args={[46, 46]} />
+      {/* --- Main Floor --- */}
+      <mesh rotation-x={-Math.PI / 2} position={[0, 0, 0]} receiveShadow>
+        <planeGeometry args={[W * 1.5, D * 1.5]} />
         <meshStandardMaterial
-          color="#0E0C11"
-          roughness={gloss ? 0.16 : 0.72}
-          metalness={gloss ? 0.7 : 0.18}
+          color={floorColor}
+          roughness={floorRoughness}
+          metalness={floorMetalness}
         />
       </mesh>
-      <mesh position={[0, 3.5, -11.2]} receiveShadow castShadow>
-        <boxGeometry args={[26, 7, 0.5]} />
-        <meshStandardMaterial color="#100D16" roughness={0.85} />
-      </mesh>
-      <mesh position={[-12, 3.5, -4]} receiveShadow castShadow>
-        <boxGeometry args={[0.5, 7, 13]} />
-        <meshStandardMaterial color="#0F0C15" roughness={0.9} />
-      </mesh>
-      <mesh position={[12, 3.5, -4]} receiveShadow castShadow>
-        <boxGeometry args={[0.5, 7, 13]} />
-        <meshStandardMaterial color="#0F0C15" roughness={0.9} />
-      </mesh>
 
-      <Portal w={6.6} h={4.7} z={-10.9} color={params.primaryColor} accent={params.crestColor} />
-      <Portal w={5.2} h={4.1} z={-9.3} color={params.primaryColor} accent={params.crestColor} />
-      <Portal w={3.9} h={3.5} z={-7.7} color={params.primaryColor} accent={params.crestColor} />
+      {/* --- Architectural Floor Plan & Zoning Blueprint Grid --- */}
+      {showPlanGrid && (
+        <group position={[0, 0.005, 0]}>
+          <gridHelper
+            args={[Math.max(W, D) * 1.4, Math.round(Math.max(W, D) * 1.4), "#5B7568", "#1E2A24"]}
+            position={[0, 0.002, 0]}
+          />
+          {/* Spatial Envelope Boundary Box */}
+          <lineSegments position={[0, 0.004, 0]} rotation-x={-Math.PI / 2}>
+            <edgesGeometry args={[new THREE.PlaneGeometry(W, D)]} />
+            <lineBasicMaterial color="#E8B878" transparent opacity={0.65} />
+          </lineSegments>
 
-      {columns.map(([x, z], i) => (
-        <mesh key={i} position={[x, 3, z]} castShadow>
-          <cylinderGeometry args={[0.3, 0.34, 6, 18]} />
-          <meshStandardMaterial color="#17141C" metalness={0.45} roughness={0.45} />
-        </mesh>
-      ))}
-
-      <group position={[-7.4, 0, -2]} rotation={[0, 0, 0]}>
-        <mesh position={[0, 0.53, 0]} castShadow>
-          <boxGeometry args={[1.2, 1.05, 6.2]} />
-          <meshStandardMaterial color="#14111A" metalness={gloss ? 0.6 : 0.2} roughness={gloss ? 0.25 : 0.65} />
-        </mesh>
-        <mesh position={[0.4, 0.1, 0]}>
-          <boxGeometry args={[0.5, 0.06, 5.9]} />
-          <meshStandardMaterial color="#05040A" emissive={params.crestColor} emissiveIntensity={1.6} toneMapped={false} />
-        </mesh>
-      </group>
-
-      {seats.map(([x, z, ry], i) => (
-        <group key={i} position={[x, 0, z]} rotation={[0, ry, 0]}>
-          <mesh position={[0, 0.24, 0]} castShadow>
-            <boxGeometry args={[1.05, 0.48, 1.05]} />
-            <meshStandardMaterial color={seatColor} roughness={0.75} />
-          </mesh>
-          <mesh position={[0, 0.62, -0.42]} castShadow>
-            <boxGeometry args={[1.05, 0.55, 0.16]} />
-            <meshStandardMaterial color={seatColor} roughness={0.8} />
-          </mesh>
+          {/* Interactive Spatial Zones */}
+          {spec.zones?.map((zone) => {
+            const isSelected = activeZoneId === zone.id;
+            return (
+              <group
+                key={zone.id}
+                position={[zone.center[0], 0.008, zone.center[2]]}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onSelectZone?.(zone);
+                }}
+              >
+                {/* Zone Floor Tint */}
+                <mesh rotation-x={-Math.PI / 2}>
+                  <planeGeometry args={[zone.dimensions[0], zone.dimensions[1]]} />
+                  <meshBasicMaterial
+                    color={zone.color}
+                    transparent
+                    opacity={isSelected ? 0.35 : 0.14}
+                  />
+                </mesh>
+                {/* Zone Outline */}
+                <lineSegments rotation-x={-Math.PI / 2}>
+                  <edgesGeometry args={[new THREE.PlaneGeometry(zone.dimensions[0], zone.dimensions[1])]} />
+                  <lineBasicMaterial
+                    color={isSelected ? "#FFFFFF" : zone.color}
+                    transparent
+                    opacity={isSelected ? 0.95 : 0.5}
+                  />
+                </lineSegments>
+              </group>
+            );
+          })}
         </group>
-      ))}
+      )}
+
+      {/* --- Exploded Leader Lines (Nest deconstruction visual) --- */}
+      {exploded > 0.08 && showRoof && showWalls && (
+        <group>
+          {[
+            [-halfW, -halfD],
+            [halfW, -halfD],
+            [-halfW, halfD],
+            [halfW, halfD],
+          ].map(([x, z], idx) => (
+            <mesh key={idx} position={[x, (H + expY) / 2, z]}>
+              <cylinderGeometry args={[0.015, 0.015, H + expY, 8]} />
+              <meshBasicMaterial color="#D9532B" transparent opacity={0.4} />
+            </mesh>
+          ))}
+        </group>
+      )}
+
+      {/* --- Perimeter Walls --- */}
+      {showWalls && (
+        <group>
+          {/* Back Wall */}
+          <mesh position={[0, H / 2, -halfD - expZ]} receiveShadow castShadow>
+            <boxGeometry args={[W, H, 0.4]} />
+            <meshStandardMaterial
+              color={wallColor}
+              roughness={spec.wallFinish === "gallery_white" ? 0.85 : 0.7}
+              metalness={0.05}
+            />
+          </mesh>
+
+          {/* Left Wall */}
+          <mesh position={[-halfW - expX, H / 2, 0]} receiveShadow castShadow>
+            <boxGeometry args={[0.4, H, D]} />
+            <meshStandardMaterial
+              color={wallColor}
+              roughness={0.75}
+              metalness={0.05}
+            />
+          </mesh>
+
+          {/* Right Wall (with Window Aperture if applicable) */}
+          {spec.hasWindowAperture ? (
+            <group position={[halfW + expX, H / 2, 0]}>
+              {/* Wall header above window */}
+              <mesh position={[0, H * 0.38, 0]} receiveShadow castShadow>
+                <boxGeometry args={[0.4, H * 0.24, D]} />
+                <meshStandardMaterial color={wallColor} roughness={0.75} />
+              </mesh>
+              {/* Wall base below window */}
+              <mesh position={[0, -H * 0.42, 0]} receiveShadow castShadow>
+                <boxGeometry args={[0.4, H * 0.16, D]} />
+                <meshStandardMaterial color={wallColor} roughness={0.75} />
+              </mesh>
+              {/* Window Glass Aperture */}
+              <mesh position={[0, 0, 0]}>
+                <boxGeometry args={[0.08, H * 0.6, D * 0.78]} />
+                <meshStandardMaterial
+                  color="#A8D8F0"
+                  roughness={0.1}
+                  metalness={0.8}
+                  transparent
+                  opacity={0.35}
+                />
+              </mesh>
+              {/* Window Mullions / Frame */}
+              {[-D * 0.25, 0, D * 0.25].map((z, idx) => (
+                <mesh key={idx} position={[0, 0, z]}>
+                  <boxGeometry args={[0.18, H * 0.6, 0.12]} />
+                  <meshStandardMaterial color="#1E1815" metalness={0.5} roughness={0.4} />
+                </mesh>
+              ))}
+            </group>
+          ) : (
+            <mesh position={[halfW + expX, H / 2, 0]} receiveShadow castShadow>
+              <boxGeometry args={[0.4, H, D]} />
+              <meshStandardMaterial color={wallColor} roughness={0.75} metalness={0.05} />
+            </mesh>
+          )}
+
+          {/* Acoustic Slatted Timber Detail (Back Wall Feature) */}
+          {slats.length > 0 && (
+            <group position={[0, H / 2, -halfD - expZ + 0.22]}>
+              {slats.map((x, i) => (
+                <mesh key={i} position={[x, 0, 0]} castShadow>
+                  <boxGeometry args={[0.07, H * 0.88, 0.08]} />
+                  <meshStandardMaterial
+                    color="#452F1E"
+                    roughness={0.65}
+                    metalness={0.1}
+                  />
+                </mesh>
+              ))}
+            </group>
+          )}
+        </group>
+      )}
+
+      {/* --- Architectural Ceiling Beams / Soffits (Elevates in Exploded Mode) --- */}
+      {showRoof && (
+        <group position={[0, H - 0.1 + expY, 0]}>
+          {[-halfD * 0.6, -halfD * 0.2, halfD * 0.2, halfD * 0.6].map((z, i) => (
+            <mesh key={i} position={[0, 0, z]} castShadow>
+              <boxGeometry args={[W, 0.28, 0.35]} />
+              <meshStandardMaterial color="#18151D" metalness={0.3} roughness={0.6} />
+            </mesh>
+          ))}
+        </group>
+      )}
     </group>
   );
 }
 
-const DUST_VENUE_VERT = /* glsl */ `
-  uniform float uTime;
-  attribute float aSeed;
-  varying float vSeed;
-  void main() {
-    vec3 p = position;
-    p.y = mod(p.y + uTime * (0.05 + aSeed * 0.08), 6.4);
-    p.x += sin(uTime * 0.15 + aSeed * 7.0) * 0.5;
-    vSeed = aSeed;
-    vec4 mv = modelViewMatrix * vec4(p, 1.0);
-    gl_PointSize = max((1.1 + aSeed * 1.9) * (24.0 / -mv.z), 0.5);
-    gl_Position = projectionMatrix * mv;
-  }
-`;
+/* ---------------------------------------------------------------------------
+   Procedural 3D Spatial Objects
+--------------------------------------------------------------------------- */
 
-const DUST_VENUE_FRAG = /* glsl */ `
-  uniform vec3 uColorA;
-  uniform vec3 uColorB;
-  varying float vSeed;
-  void main() {
-    vec2 c = gl_PointCoord - 0.5;
-    float d2 = dot(c, c);
-    if (d2 > 0.25) discard;
-    float glow = 1.0 - smoothstep(0.0, 0.25, d2);
-    gl_FragColor = vec4(mix(uColorA, uColorB, vSeed), glow * 0.14);
-  }
-`;
+function ObjectMesh({
+  obj,
+  isSelected,
+  onSelect,
+}: {
+  obj: SpatialObject;
+  isSelected: boolean;
+  onSelect: () => void;
+}) {
+  const [hovered, setHovered] = useState(false);
 
-function VenueDust({ params, reducedMotion }: { params: SceneParams; reducedMotion: boolean }) {
-  const { geo, mat } = useMemo(() => {
-    const count = 200;
-    const positions = new Float32Array(count * 3);
-    const seeds = new Float32Array(count);
-    for (let i = 0; i < count; i++) {
-      positions[i * 3] = ((((Math.sin(i * 78.233) * 43758.5453) % 1) + 1) % 1) * 20 - 10;
-      positions[i * 3 + 1] = ((((Math.sin(i * 39.425) * 24634.6345) % 1) + 1) % 1) * 6.4;
-      positions[i * 3 + 2] = ((((Math.sin(i * 11.135) * 13579.1131) % 1) + 1) % 1) * 16 - 11;
-      seeds[i] = (((Math.sin(i * 12.9898) * 43758.5453) % 1) + 1) % 1;
+  // Render geometry based on kind and id
+  const renderGeometry = () => {
+    if (obj.kind === "light" && obj.id.includes("lantern")) {
+      return (
+        <group>
+          {/* Lantern sphere */}
+          <mesh castShadow>
+            <sphereGeometry args={[0.45, 32, 32]} />
+            <meshStandardMaterial
+              color={obj.color}
+              emissive={obj.emissive || "#FFD480"}
+              emissiveIntensity={obj.emissiveIntensity || 1.8}
+              roughness={0.85}
+              metalness={0.05}
+            />
+          </mesh>
+          <pointLight
+            color={obj.emissive || "#FFD480"}
+            distance={8}
+            decay={2}
+            intensity={2.8}
+          />
+          {/* Suspension wire */}
+          <mesh position={[0, 1.2, 0]}>
+            <cylinderGeometry args={[0.008, 0.008, 2.4, 8]} />
+            <meshStandardMaterial color="#111" />
+          </mesh>
+        </group>
+      );
     }
-    const g = new THREE.BufferGeometry();
-    g.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    g.setAttribute("aSeed", new THREE.BufferAttribute(seeds, 1));
-    const m = new THREE.ShaderMaterial({
-      uniforms: {
-        uTime: { value: 0 },
-        uColorA: { value: new THREE.Color(params.shadowColor) },
-        uColorB: { value: new THREE.Color(params.crestColor) },
-      },
-      vertexShader: DUST_VENUE_VERT,
-      fragmentShader: DUST_VENUE_FRAG,
-      transparent: true,
-      depthWrite: false,
-      blending: THREE.AdditiveBlending,
-    });
-    return { geo: g, mat: m };
-  }, [params.shadowColor, params.crestColor]);
 
-  const time = useRef(0);
-  useFrame((_, delta) => {
-    if (!reducedMotion) time.current += Math.min(delta, 0.05);
-    mat.uniforms.uTime.value = time.current;
-  });
+    if (obj.kind === "light" && obj.id.includes("neon")) {
+      return (
+        <group>
+          <mesh>
+            <boxGeometry args={[4.8, 3.2, 0.08]} />
+            <meshStandardMaterial
+              color={obj.color}
+              emissive={obj.emissive || obj.color}
+              emissiveIntensity={obj.emissiveIntensity || 3.0}
+              toneMapped={false}
+            />
+          </mesh>
+          <pointLight color={obj.emissive || obj.color} distance={12} decay={2} intensity={3.5} />
+        </group>
+      );
+    }
 
-  useEffect(() => () => { geo.dispose(); mat.dispose(); }, [geo, mat]);
+    if (obj.id.includes("audio-console") || obj.id.includes("dj-booth")) {
+      return (
+        <group>
+          {/* Main Credenza Body */}
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <boxGeometry args={[2.8, 0.8, 0.85]} />
+            <meshStandardMaterial
+              color={obj.color}
+              roughness={obj.roughness}
+              metalness={obj.metalness}
+            />
+          </mesh>
+          {/* Turntable Platter 1 */}
+          <mesh position={[-0.7, 0.43, 0]} castShadow>
+            <cylinderGeometry args={[0.22, 0.22, 0.05, 32]} />
+            <meshStandardMaterial color="#111" metalness={0.8} roughness={0.2} />
+          </mesh>
+          {/* Turntable Platter 2 */}
+          <mesh position={[0.7, 0.43, 0]} castShadow>
+            <cylinderGeometry args={[0.22, 0.22, 0.05, 32]} />
+            <meshStandardMaterial color="#111" metalness={0.8} roughness={0.2} />
+          </mesh>
+          {/* Mixer / Amp Center */}
+          <mesh position={[0, 0.42, 0]}>
+            <boxGeometry args={[0.45, 0.04, 0.35]} />
+            <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.3} />
+          </mesh>
+        </group>
+      );
+    }
+
+    if (obj.id.includes("speaker")) {
+      return (
+        <group>
+          {/* Cabinet Base */}
+          <mesh castShadow receiveShadow position={[0, -0.2, 0]}>
+            <boxGeometry args={[0.65, 1.2, 0.55]} />
+            <meshStandardMaterial color={obj.color} roughness={0.6} metalness={0.2} />
+          </mesh>
+          {/* Horn flare on top */}
+          <mesh position={[0, 0.65, 0]} castShadow>
+            <cylinderGeometry args={[0.28, 0.12, 0.45, 16]} />
+            <meshStandardMaterial color="#5A3A24" roughness={0.4} metalness={0.3} />
+          </mesh>
+        </group>
+      );
+    }
+
+    if (obj.id.includes("sofa") || obj.id.includes("lounge-banquette")) {
+      return (
+        <group>
+          {/* Base cushion */}
+          <mesh castShadow receiveShadow position={[0, -0.1, 0]}>
+            <boxGeometry args={[3.2, 0.45, 1.2]} />
+            <meshStandardMaterial color={obj.color} roughness={0.9} metalness={0.05} />
+          </mesh>
+          {/* Backrest */}
+          <mesh castShadow receiveShadow position={[0, 0.3, -0.42]}>
+            <boxGeometry args={[3.2, 0.48, 0.35]} />
+            <meshStandardMaterial color={obj.color} roughness={0.9} metalness={0.05} />
+          </mesh>
+        </group>
+      );
+    }
+
+    if (obj.kind === "seat") {
+      return (
+        <group>
+          {/* Seat Cushion */}
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <boxGeometry args={[0.8, 0.38, 0.8]} />
+            <meshStandardMaterial
+              color={obj.color}
+              roughness={obj.roughness}
+              metalness={obj.metalness}
+            />
+          </mesh>
+          {/* Backrest */}
+          <mesh castShadow receiveShadow position={[0, 0.4, -0.32]}>
+            <boxGeometry args={[0.8, 0.46, 0.16]} />
+            <meshStandardMaterial
+              color={obj.color}
+              roughness={obj.roughness}
+              metalness={obj.metalness}
+            />
+          </mesh>
+        </group>
+      );
+    }
+
+    if (obj.id.includes("rug")) {
+      return (
+        <mesh receiveShadow position={[0, 0, 0]}>
+          <planeGeometry args={[4.8, 4.2]} />
+          <meshStandardMaterial
+            color={obj.color}
+            roughness={obj.roughness}
+            metalness={0.0}
+          />
+        </mesh>
+      );
+    }
+
+    if (obj.id.includes("coffee-table") || obj.id.includes("chrome-table")) {
+      return (
+        <group>
+          {/* Table Top */}
+          <mesh castShadow receiveShadow position={[0, 0.15, 0]}>
+            <cylinderGeometry args={[0.65, 0.65, 0.08, 32]} />
+            <meshStandardMaterial
+              color={obj.color}
+              roughness={obj.roughness}
+              metalness={obj.metalness}
+            />
+          </mesh>
+          {/* Pedestal Leg */}
+          <mesh castShadow position={[0, -0.1, 0]}>
+            <cylinderGeometry args={[0.08, 0.18, 0.4, 24]} />
+            <meshStandardMaterial color="#1E1B18" metalness={0.8} roughness={0.2} />
+          </mesh>
+        </group>
+      );
+    }
+
+    if (obj.id.includes("tree-planter")) {
+      return (
+        <group>
+          {/* Planter Pot */}
+          <mesh castShadow receiveShadow position={[0, -0.6, 0]}>
+            <cylinderGeometry args={[0.55, 0.42, 0.9, 24]} />
+            <meshStandardMaterial color="#8B4A2D" roughness={0.85} metalness={0.05} />
+          </mesh>
+          {/* Tree Foliage Clusters */}
+          <mesh castShadow position={[0, 0.35, 0]}>
+            <sphereGeometry args={[0.85, 16, 16]} />
+            <meshStandardMaterial color="#354E35" roughness={0.9} />
+          </mesh>
+          <mesh castShadow position={[0.25, 0.95, 0.1]}>
+            <sphereGeometry args={[0.6, 16, 16]} />
+            <meshStandardMaterial color="#4A6A4A" roughness={0.9} />
+          </mesh>
+        </group>
+      );
+    }
+
+    // Default plinth / structure
+    return (
+      <mesh castShadow receiveShadow position={[0, 0, 0]}>
+        <boxGeometry args={[1.6, 0.85, 1.2]} />
+        <meshStandardMaterial
+          color={obj.color}
+          roughness={obj.roughness}
+          metalness={obj.metalness}
+          emissive={obj.emissive}
+          emissiveIntensity={obj.emissiveIntensity}
+        />
+      </mesh>
+    );
+  };
 
   return (
-    <points geometry={geo} frustumCulled={false}>
-      <primitive object={mat} attach="material" />
-    </points>
+    <group
+      position={obj.position}
+      rotation={obj.rotation}
+      onClick={(e) => {
+        e.stopPropagation();
+        onSelect();
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+      }}
+      onPointerOut={() => setHovered(false)}
+    >
+      {renderGeometry()}
+
+      {/* Architectural selection wireframe indicator */}
+      {(isSelected || hovered) && (
+        <mesh position={[0, 0.2, 0]}>
+          <boxGeometry args={[1.8, 1.5, 1.8]} />
+          <meshBasicMaterial
+            wireframe
+            color={isSelected ? "#D9532B" : "#2F5A4C"}
+            transparent
+            opacity={isSelected ? 0.9 : 0.4}
+          />
+        </mesh>
+      )}
+    </group>
   );
 }
 
-function clamp(v: number, lo: number, hi: number) {
-  return Math.min(hi, Math.max(lo, v));
-}
+/* ---------------------------------------------------------------------------
+   Camera Orbit & Preset Rig
+--------------------------------------------------------------------------- */
 
 function OrbitRig({
-  home,
+  viewPreset,
   exploring,
   reducedMotion,
   resetKey,
+  focusPoint = null,
+  specDimensions,
 }: {
-  home: { radius: number; theta: number; phi: number };
+  viewPreset: CameraViewPreset;
   exploring: boolean;
   reducedMotion: boolean;
   resetKey: number;
+  focusPoint?: [number, number, number] | null;
+  specDimensions: { width: number; depth: number; height: number };
 }) {
   const { camera, gl } = useThree();
-  const target = useMemo(() => new THREE.Vector3(0, 1.5, -3.4), []);
-  const goal = useRef({ ...home });
-  const smooth = useRef({ ...home });
 
+  const defaultTarget = useMemo(() => new THREE.Vector3(0, 1.2, -1.8), []);
+  const currentTarget = useRef(new THREE.Vector3(0, 1.2, -1.8));
+  const goal = useRef({ radius: 14.5, theta: 0.38, phi: 1.16 });
+  const smooth = useRef({ radius: 14.5, theta: 0.38, phi: 1.16 });
+
+  // Update target when camera view changes
   useEffect(() => {
-    goal.current = { ...home };
-  }, [home, resetKey]);
+    const maxDim = Math.max(specDimensions.width, specDimensions.depth);
+    if (viewPreset === "plan") {
+      goal.current = { radius: Math.max(16.0, maxDim * 1.35), theta: 0.0001, phi: 0.06 }; // Top-down plan
+    } else if (viewPreset === "exploded") {
+      goal.current = { radius: Math.max(18.0, maxDim * 1.45), theta: 0.55, phi: 0.95 }; // Axonometric exploded
+    } else if (viewPreset === "eye") {
+      goal.current = { radius: 6.2, theta: 0.15, phi: 1.48 }; // Eye-level perspective
+    } else if (viewPreset === "focal") {
+      goal.current = { radius: 5.2, theta: 0.45, phi: 1.28 }; // Focal close-up
+    } else {
+      // Standard perspective orbit
+      goal.current = { radius: 14.5, theta: 0.38, phi: 1.16 };
+    }
+  }, [viewPreset, resetKey, specDimensions]);
 
   useEffect(() => {
     const el = gl.domElement;
@@ -364,12 +712,14 @@ function OrbitRig({
     let dragging = false;
     let px = 0;
     let py = 0;
+
     const down = (e: PointerEvent) => {
       dragging = true;
       px = e.clientX;
       py = e.clientY;
       el.style.cursor = "grabbing";
     };
+
     const move = (e: PointerEvent) => {
       if (!dragging) return;
       const dx = e.clientX - px;
@@ -377,16 +727,19 @@ function OrbitRig({
       px = e.clientX;
       py = e.clientY;
       goal.current.theta -= dx * 0.005;
-      goal.current.phi = clamp(goal.current.phi - dy * 0.003, 0.6, 1.42);
+      goal.current.phi = Math.min(1.5, Math.max(0.08, goal.current.phi - dy * 0.003));
     };
+
     const up = () => {
       dragging = false;
       el.style.cursor = "grab";
     };
+
     el.addEventListener("pointerdown", down);
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up);
     window.addEventListener("pointercancel", up);
+
     return () => {
       el.removeEventListener("pointerdown", down);
       window.removeEventListener("pointermove", move);
@@ -397,135 +750,471 @@ function OrbitRig({
 
   useFrame((_, delta) => {
     const dt = Math.min(delta, 0.05);
-    if (exploring && !reducedMotion) goal.current.theta += dt * 0.13;
-    const d = reducedMotion ? 1 : 1 - Math.exp(-4 * dt);
+    if (exploring && !reducedMotion) goal.current.theta += dt * 0.12;
+
+    const d = reducedMotion ? 1 : 1 - Math.exp(-4.5 * dt);
     const s = smooth.current;
     s.radius += (goal.current.radius - s.radius) * d;
     s.theta += (goal.current.theta - s.theta) * d;
     s.phi += (goal.current.phi - s.phi) * d;
+
+    // Smooth focus target
+    const dest = focusPoint
+      ? new THREE.Vector3(focusPoint[0], 0.8, focusPoint[2])
+      : defaultTarget;
+    currentTarget.current.lerp(dest, reducedMotion ? 1 : Math.min(1, 4.5 * dt));
+
     const sp = Math.sin(s.phi);
     camera.position.set(
-      target.x + s.radius * sp * Math.sin(s.theta),
-      target.y + s.radius * Math.cos(s.phi),
-      target.z + s.radius * sp * Math.cos(s.theta)
+      currentTarget.current.x + s.radius * sp * Math.sin(s.theta),
+      currentTarget.current.y + s.radius * Math.cos(s.phi),
+      currentTarget.current.z + s.radius * sp * Math.cos(s.theta)
     );
-    camera.lookAt(target);
+    camera.lookAt(currentTarget.current);
   });
 
   return null;
 }
 
-function VenueCanvas({ vibe, params, fill = false }: Venue3DProps) {
-  const reducedMotion = usePrefersReducedMotion();
-  const [preset, setPreset] = useState<LightingPreset>(() => defaultPreset(params.keyLightKelvin));
-  const [haze, setHaze] = useState(true);
-  const [gloss, setGloss] = useState(params.materialLanguage === "gloss" || params.materialLanguage === "mineral");
-  const [exploring, setExploring] = useState(false);
-  const [resetKey, setResetKey] = useState(0);
-  const bloomRef = useRef<BloomEffect | null>(null);
+/* ---------------------------------------------------------------------------
+   Main Venue Canvas & Architectural Studio Interface
+--------------------------------------------------------------------------- */
 
-  const home = useMemo(
-    () => ({ radius: 15.5 - params.openness * 4.5, theta: 0.38, phi: 1.16 }),
-    [params.openness]
+function VenueCanvas({
+  vibe,
+  params,
+  spec: initialSpec,
+  promptText = "",
+  fill = false,
+}: Venue3DProps) {
+  const reducedMotion = usePrefersReducedMotion();
+  const spec = useMemo(
+    () => initialSpec || generateSceneSpec(promptText, vibe),
+    [initialSpec, promptText, vibe]
   );
 
-  const toggleLabel = exploring ? "Stop exploring" : "Explore space";
+  const [preset, setPreset] = useState<LightingPreset>("golden");
+  const [viewPreset, setViewPreset] = useState<CameraViewPreset>("orbit");
+  const [haze, setHaze] = useState(true);
+  const [gloss, setGloss] = useState(spec.floorFinish === "glossy_concrete");
+  const [exploring, setExploring] = useState(false);
+  const [resetKey, setResetKey] = useState(0);
+  const [selectedObject, setSelectedObject] = useState<SpatialObject | null>(null);
+
+  // Architectural Layout & Planning States
+  const [isPlanningOpen, setIsPlanningOpen] = useState(false);
+  const [explodedFactor, setExplodedFactor] = useState(0);
+  const [showRoof, setShowRoof] = useState(true);
+  const [showWalls, setShowWalls] = useState(true);
+  const [showPlanGrid, setShowPlanGrid] = useState(false);
+  const [activeZone, setActiveZone] = useState<SpatialZone | null>(null);
+  const [focusPoint, setFocusPoint] = useState<[number, number, number] | null>(null);
+
+  const bloomRef = useRef<BloomEffect | null>(null);
+
+  const handleViewPresetChange = (v: CameraViewPreset) => {
+    setViewPreset(v);
+    if (v === "exploded") {
+      setExplodedFactor(1);
+      setShowPlanGrid(true);
+      setFocusPoint(null);
+    } else if (v === "plan") {
+      setShowPlanGrid(true);
+      setFocusPoint(null);
+    } else {
+      if (explodedFactor > 0) {
+        setExplodedFactor(0);
+      }
+      setShowPlanGrid(false);
+    }
+  };
+
+  const handleSelectZone = (zone: SpatialZone) => {
+    setActiveZone(zone);
+    setSelectedObject(null);
+    setFocusPoint(zone.center);
+    setShowPlanGrid(true);
+  };
 
   return (
     <div className={fill ? "relative h-full w-full" : "relative"}>
       <div
         className={
           fill
-            ? "relative h-full w-full overflow-hidden bg-[#0A0810]"
-            : "relative aspect-[16/10] w-full overflow-hidden rounded-sm border border-[#F4F0E8]/10 bg-[#0A0810] md:aspect-[16/9]"
+            ? "relative h-full w-full overflow-hidden bg-[#0A0E1A]"
+            : "relative aspect-[16/10] w-full overflow-hidden rounded-[2px] border border-[var(--lintel-paper)]/15 bg-[#0A0E1A] md:aspect-[16/9]"
         }
         role="img"
-        aria-label={`3D venue for ${vibe.concept.title}: ${vibe.concept.atmosphere}`}
+        aria-label={`3D architectural space: ${spec.typologyLabel}`}
+        onClick={() => {
+          setSelectedObject(null);
+          setActiveZone(null);
+          setFocusPoint(null);
+        }}
       >
         <WebGLBoundary fallback={<VenueScene vibe={vibe} />}>
           <Canvas
             shadows
             dpr={[1, typeof window !== "undefined" && window.innerWidth < 768 ? 1.5 : 2]}
             gl={{ antialias: true, powerPreference: "high-performance" }}
-            camera={{ position: [5.5, 7.4, 12.5], fov: 45, near: 0.1, far: 60 }}
+            camera={{ position: [6.0, 7.5, 13.0], fov: 44, near: 0.1, far: 70 }}
           >
-            <color attach="background" args={["#0A0810"]} />
-            <fogExp2 attach="fog" args={["#0A0810", params.fogDensity * 0.9]} />
-            <VenueLighting params={params} preset={preset} haze={haze} reducedMotion={reducedMotion} bloomRef={bloomRef} />
-            <Architecture params={params} gloss={gloss} />
-            <VenueDust params={params} reducedMotion={reducedMotion} />
-            <OrbitRig home={home} exploring={exploring} reducedMotion={reducedMotion} resetKey={resetKey} />
+            <color attach="background" args={["#0A0E1A"]} />
+            <fogExp2 attach="fog" args={["#0A0E1A", params.fogDensity * 0.85]} />
+            <VenueLighting
+              params={params}
+              preset={preset}
+              haze={haze}
+              reducedMotion={reducedMotion}
+              bloomRef={bloomRef}
+              spec={spec}
+            />
+            <ArchitecturalShell
+              spec={spec}
+              gloss={gloss}
+              exploded={explodedFactor}
+              showRoof={showRoof}
+              showWalls={showWalls}
+              showPlanGrid={showPlanGrid || viewPreset === "plan" || viewPreset === "exploded"}
+              activeZoneId={activeZone?.id || null}
+              onSelectZone={handleSelectZone}
+            />
+
+            {/* Objects in Scene */}
+            {spec.objects.map((obj) => (
+              <ObjectMesh
+                key={obj.id}
+                obj={obj}
+                isSelected={selectedObject?.id === obj.id}
+                onSelect={() => {
+                  setSelectedObject(obj);
+                  setActiveZone(null);
+                  setFocusPoint(obj.position);
+                }}
+              />
+            ))}
+
+            <OrbitRig
+              viewPreset={viewPreset}
+              exploring={exploring}
+              reducedMotion={reducedMotion}
+              resetKey={resetKey}
+              focusPoint={focusPoint}
+              specDimensions={spec.roomDimensions}
+            />
+
             <EffectComposer multisampling={0}>
-              <Bloom ref={bloomRef} intensity={params.bloomIntensity} luminanceThreshold={0.22} luminanceSmoothing={0.3} mipmapBlur />
-              <Vignette offset={0.24} darkness={0.72} />
+              <Bloom
+                ref={bloomRef}
+                intensity={params.bloomIntensity * 0.9}
+                luminanceThreshold={0.24}
+                luminanceSmoothing={0.3}
+                mipmapBlur
+              />
+              <Vignette offset={0.24} darkness={0.68} />
             </EffectComposer>
           </Canvas>
         </WebGLBoundary>
 
+        {/* --- Top Left Architectural Metadata Badge (Nest-style glass pill) --- */}
         <div
-          className={`pointer-events-none absolute left-3 z-10 font-mono text-[10px] tracking-[0.24em] text-[#A6A0AA] uppercase ${
-            fill ? "top-16" : "top-3"
+          className={`pointer-events-none absolute left-4 z-10 flex items-center gap-2 rounded-full border border-white/10 bg-black/40 px-3 py-1.5 backdrop-blur-xl ${
+            fill ? "top-20" : "top-4"
           }`}
         >
-          {vibe.concept.title} — {preset === "peak" ? "peak night" : preset === "golden" ? "golden hour" : "morning"} ·{" "}
-          {haze ? "haze" : "clear"} · {gloss ? "gloss" : "matte"} {exploring && "· orbiting"}
+          <span className="font-mono text-[9px] font-semibold tracking-[0.22em] text-[var(--lintel-terracotta)] uppercase">{spec.typologyLabel}</span>
+          <span className="h-3 w-px bg-white/20" />
+          <span className="font-mono text-[9px] tracking-[0.16em] text-white/55">{spec.roomDimensions.width}m × {spec.roomDimensions.depth}m × {spec.roomDimensions.height}m</span>
+          <span className="h-3 w-px bg-white/20" />
+          <span className="font-mono text-[9px] tracking-[0.16em] text-white/55">{preset.toUpperCase()}</span>
         </div>
 
-        <div className="absolute inset-x-0 bottom-0 z-10 flex flex-wrap items-center justify-center gap-2 border-t border-[#F4F0E8]/10 bg-[#0B0A0D]/85 px-3 py-2.5 backdrop-blur-sm">
-          <button
-            type="button"
-            onClick={() => setExploring((v) => !v)}
-            aria-pressed={exploring}
-            className="rounded-sm border border-[#D5FF3F]/50 px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] text-[#D5FF3F] uppercase transition-colors hover:bg-[#D5FF3F]/10 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#D5FF3F]"
+        {/* --- Floating Spatial Layout & Planning Drawer (Nest-style architectural HUD) --- */}
+        {isPlanningOpen && (
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="absolute top-20 left-4 z-30 max-h-[calc(100%-140px)] w-88 overflow-y-auto rounded-2xl border border-white/15 bg-black/75 p-5 font-mono text-xs text-white shadow-2xl backdrop-blur-2xl"
           >
-            {toggleLabel}
-          </button>
-          <button
-            type="button"
-            onClick={() => setPreset((p) => (p === "morning" ? "golden" : p === "golden" ? "peak" : "morning"))}
-            className="rounded-sm border border-[#F4F0E8]/25 px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] text-[#F4F0E8] uppercase transition-colors hover:border-[#8B5CF6]/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8B5CF6]"
-          >
-            Light: {preset === "peak" ? "peak night" : preset}
-          </button>
-          <button
-            type="button"
-            onClick={() => setHaze((v) => !v)}
-            aria-pressed={haze}
-            className="rounded-sm border border-[#F4F0E8]/25 px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] text-[#F4F0E8] uppercase transition-colors hover:border-[#8B5CF6]/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8B5CF6]"
-          >
-            Atmosphere: {haze ? "haze" : "clear"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setGloss((v) => !v)}
-            aria-pressed={gloss}
-            className="rounded-sm border border-[#F4F0E8]/25 px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] text-[#F4F0E8] uppercase transition-colors hover:border-[#8B5CF6]/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8B5CF6]"
-          >
-            Floor: {gloss ? "gloss" : "matte"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setResetKey((k) => k + 1)}
-            className="rounded-sm border border-[#F4F0E8]/25 px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] text-[#F4F0E8] uppercase transition-colors hover:border-[#8B5CF6]/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8B5CF6]"
-          >
-            Reset view
-          </button>
-          <a
-            href="#signals"
-            className="rounded-sm border border-[#F4F0E8]/25 px-3 py-1.5 font-mono text-[10px] tracking-[0.18em] text-[#F4F0E8] uppercase transition-colors hover:border-[#8B5CF6]/70 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#8B5CF6]"
-          >
-            Cultural signals
-          </a>
-        </div>
-      </div>
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div>
+                <span className="text-[9px] font-semibold tracking-[0.24em] text-[var(--lintel-terracotta)] uppercase">
+                  Spatial Layout &amp; Planning
+                </span>
+                <h4 className="mt-0.5 text-sm font-medium tracking-tight text-white">
+                  {spec.typologyLabel}
+                </h4>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsPlanningOpen(false)}
+                className="flex h-6 w-6 items-center justify-center rounded-full bg-white/10 text-xs text-white/60 transition-colors hover:bg-white/20 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
 
-      <div className="pointer-events-none absolute top-3 right-3 z-10 max-w-[240px] rounded-sm border border-[#F4F0E8]/12 bg-[#0B0A0D]/85 p-3 font-mono text-[10px] leading-relaxed text-[#A6A0AA] backdrop-blur-sm">
-        <p className="mb-1.5 tracking-[0.2em] text-[#F4F0E8] uppercase">Material study</p>
-        <p><span className="text-[#D5FF3F]">Floor</span> — {vibe.flooringMaterial} ({gloss ? "polished" : "honed"}, reflectivity {params.reflectivity.toFixed(2)})</p>
-        <p><span className="text-[#D5FF3F]">Seating</span> — {vibe.seatingFabric}</p>
-        <p><span className="text-[#D5FF3F]">Key light</span> — {params.keyLightKelvin}K</p>
-        <p><span className="text-[#D5FF3F]">Accent</span> — {params.primaryColor}</p>
-        <p className="mt-1.5 text-[#8B5CF6]">Provenance: {vibe.reasoning.source}</p>
+            {/* Dimensional Metrics Grid */}
+            <div className="mt-3.5 grid grid-cols-2 gap-2 text-[10px]">
+              <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
+                <span className="text-white/40 block">Envelope Footprint</span>
+                <span className="text-white/90 font-semibold text-xs">
+                  {spec.roomDimensions.width}m × {spec.roomDimensions.depth}m ({spec.roomDimensions.width * spec.roomDimensions.depth}m²)
+                </span>
+              </div>
+              <div className="rounded-lg border border-white/10 bg-white/5 p-2.5">
+                <span className="text-white/40 block">Volume &amp; Clear</span>
+                <span className="text-white/90 font-semibold text-xs">
+                  {spec.roomDimensions.width * spec.roomDimensions.depth * spec.roomDimensions.height}m³ · {spec.roomDimensions.height}m H
+                </span>
+              </div>
+            </div>
+
+            {/* Interactive Spatial Zones */}
+            <div className="mt-4">
+              <span className="font-mono text-[9px] tracking-[0.2em] text-white/45 uppercase block mb-2">
+                Zoning Plan ({spec.zones?.length || 0} Functional Zones)
+              </span>
+              <div className="space-y-2">
+                {spec.zones?.map((zone) => {
+                  const isSelected = activeZone?.id === zone.id;
+                  return (
+                    <div
+                      key={zone.id}
+                      onClick={() => handleSelectZone(zone)}
+                      className={`cursor-pointer rounded-xl border p-3 transition-all ${
+                        isSelected
+                          ? "border-[var(--lintel-terracotta)] bg-[var(--lintel-terracotta)]/15 shadow-sm"
+                          : "border-white/10 bg-white/5 hover:border-white/25 hover:bg-white/10"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: zone.color }}
+                          />
+                          <span className="text-xs font-medium text-white">
+                            {zone.name}
+                          </span>
+                        </div>
+                        <span className="font-mono text-[9px] text-white/60">
+                          {zone.areaSqM}m²
+                        </span>
+                      </div>
+                      <p className="mt-1 text-[10px] leading-relaxed text-white/65">
+                        {zone.rationale}
+                      </p>
+                      <div className="mt-2 flex items-center justify-between text-[9px] text-white/40">
+                        <span>Bounds: {zone.dimensions[0]}m × {zone.dimensions[1]}m</span>
+                        <span className="text-[var(--lintel-terracotta)]">Focus Zone ↗</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Architectural Deconstruction (Nest Exploded Layers) */}
+            <div className="mt-4 border-t border-white/10 pt-3.5">
+              <div className="flex items-center justify-between mb-2">
+                <span className="font-mono text-[9px] tracking-[0.2em] text-white/45 uppercase">
+                  Exploded Deconstruction
+                </span>
+                <span className="text-[10px] text-white/70">
+                  {Math.round(explodedFactor * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.05"
+                value={explodedFactor}
+                onChange={(e) => {
+                  const val = parseFloat(e.target.value);
+                  setExplodedFactor(val);
+                  if (val > 0) setShowPlanGrid(true);
+                }}
+                className="w-full accent-[var(--lintel-terracotta)] cursor-pointer"
+              />
+              <div className="mt-3 grid grid-cols-3 gap-1.5 text-[9px]">
+                <button
+                  type="button"
+                  onClick={() => setShowRoof((v) => !v)}
+                  className={`rounded-lg border px-2 py-1.5 uppercase transition-all ${
+                    showRoof ? "border-white/25 bg-white/15 text-white" : "border-white/10 text-white/40"
+                  }`}
+                >
+                  Roof: {showRoof ? "On" : "Off"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowWalls((v) => !v)}
+                  className={`rounded-lg border px-2 py-1.5 uppercase transition-all ${
+                    showWalls ? "border-white/25 bg-white/15 text-white" : "border-white/10 text-white/40"
+                  }`}
+                >
+                  Walls: {showWalls ? "On" : "Off"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowPlanGrid((v) => !v)}
+                  className={`rounded-lg border px-2 py-1.5 uppercase transition-all ${
+                    showPlanGrid ? "border-white/25 bg-white/15 text-white" : "border-white/10 text-white/40"
+                  }`}
+                >
+                  Grid: {showPlanGrid ? "On" : "Off"}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* --- Selected Object Inspector Card (Nest-style dark glass) --- */}
+        {selectedObject && (
+          <div className="absolute top-20 right-4 z-20 w-72 overflow-hidden rounded-xl border border-white/10 bg-black/60 p-4 font-mono text-xs text-white shadow-2xl backdrop-blur-2xl">
+            <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+              <span className="text-[9px] font-semibold tracking-[0.24em] text-[var(--lintel-terracotta)] uppercase">
+                Object Inspector
+              </span>
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedObject(null);
+                }}
+                className="flex h-5 w-5 items-center justify-center rounded-full bg-white/10 text-[10px] text-white/60 transition-colors hover:bg-white/20 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <h4 className="mt-2.5 text-sm font-medium tracking-tight text-white">
+              {selectedObject.label}
+            </h4>
+            <div className="mt-3 space-y-2 text-[11px] text-white/70">
+              <p>
+                <span className="text-white/40">Dimensions</span><br /><span className="text-white/85">{selectedObject.dimensions}</span>
+              </p>
+              <p>
+                <span className="text-white/40">Material</span><br /><span className="text-white/85">{selectedObject.material}</span>
+              </p>
+              <p className="mt-2.5 border-t border-white/10 pt-2.5 text-[10px] leading-relaxed text-white/75">
+                <span className="mb-1 block font-semibold tracking-[0.16em] text-[var(--lintel-moss)] uppercase">Design Rationale</span>
+                {selectedObject.rationale}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* --- Bottom Controls Bar (Nest-style floating glass dock) --- */}
+        <div className="absolute inset-x-0 bottom-4 z-10 flex justify-center px-4">
+          <div className="flex w-full max-w-4xl flex-wrap items-center justify-between gap-2 rounded-2xl border border-white/10 bg-black/55 px-4 py-2.5 shadow-2xl backdrop-blur-2xl">
+            {/* Camera View Switcher */}
+            <div className="flex items-center gap-1">
+              <span className="mr-1.5 hidden font-mono text-[8px] font-semibold tracking-[0.24em] text-white/30 uppercase sm:inline">
+                View
+              </span>
+              {(
+                [
+                  ["orbit", "Persp"],
+                  ["plan", "Plan"],
+                  ["exploded", "Exploded"],
+                  ["eye", "Eye"],
+                  ["focal", "Focal"],
+                ] as const
+              ).map(([v, label]) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => handleViewPresetChange(v)}
+                  className={`rounded-lg px-2.5 py-1 font-mono text-[9px] tracking-[0.14em] uppercase transition-all ${
+                    viewPreset === v
+                      ? "bg-[var(--lintel-terracotta)] text-white shadow-sm font-semibold"
+                      : "text-white/55 hover:bg-white/10 hover:text-white"
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            {/* Layouts & Planning Drawer Button */}
+            <button
+              type="button"
+              onClick={() => setIsPlanningOpen((v) => !v)}
+              className={`flex items-center gap-1.5 rounded-lg px-3 py-1 font-mono text-[9px] tracking-[0.14em] uppercase transition-all ${
+                isPlanningOpen
+                  ? "bg-white text-black font-semibold shadow-sm"
+                  : "bg-white/10 text-white/80 hover:bg-white/20 hover:text-white"
+              }`}
+            >
+              <span>⊞</span>
+              <span>Layout &amp; Plans</span>
+            </button>
+
+            {/* Divider */}
+            <div className="h-5 w-px bg-white/15 hidden sm:block" />
+
+            {/* Lighting & Environment Controls */}
+            <div className="flex items-center gap-1">
+              <button
+                type="button"
+                onClick={() =>
+                  setPreset((p) => (p === "morning" ? "golden" : p === "golden" ? "midnight" : "morning"))
+                }
+                className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 font-mono text-[9px] tracking-[0.14em] text-white/65 uppercase transition-all hover:bg-white/10 hover:text-white"
+              >
+                <span className={`h-1.5 w-1.5 rounded-full ${preset === "morning" ? "bg-sky-300" : preset === "golden" ? "bg-amber-400" : "bg-indigo-400"}`} />
+                {preset === "morning" ? "Morning" : preset === "golden" ? "Golden" : "Midnight"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setHaze((h) => !h)}
+                className={`rounded-lg px-2.5 py-1 font-mono text-[9px] tracking-[0.14em] uppercase transition-all ${
+                  haze ? "bg-white/15 text-white" : "text-white/50 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                Haze
+              </button>
+              <button
+                type="button"
+                onClick={() => setGloss((v) => !v)}
+                className={`rounded-lg px-2.5 py-1 font-mono text-[9px] tracking-[0.14em] uppercase transition-all ${
+                  gloss ? "bg-white/15 text-white" : "text-white/50 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                Gloss
+              </button>
+              <button
+                type="button"
+                onClick={() => setExploring((v) => !v)}
+                className={`rounded-lg px-2.5 py-1 font-mono text-[9px] tracking-[0.14em] uppercase transition-all ${
+                  exploring
+                    ? "bg-[var(--lintel-moss)] text-white shadow-sm"
+                    : "text-white/55 hover:bg-white/10 hover:text-white"
+                }`}
+              >
+                {exploring ? "● Orbiting" : "Orbit"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setResetKey((k) => k + 1);
+                  setExplodedFactor(0);
+                  setShowPlanGrid(false);
+                  setShowRoof(true);
+                  setShowWalls(true);
+                  setActiveZone(null);
+                  setFocusPoint(null);
+                }}
+                className="rounded-lg px-2.5 py-1 font-mono text-[9px] tracking-[0.14em] text-white/40 uppercase transition-all hover:bg-white/10 hover:text-white"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   );
