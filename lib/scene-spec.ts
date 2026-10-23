@@ -6,7 +6,8 @@ export type SpatialTypology =
   | "party_venue"
   | "scandinavian_living"
   | "futuristic_launch"
-  | "gallery_pavilion";
+  | "gallery_pavilion"
+  | "grand_hall";
 
 export type WallFinish =
   | "acoustic_slats"
@@ -66,6 +67,22 @@ export interface SceneSpec {
 
 function parseExplicitTypology(text: string): SpatialTypology | null {
   const t = text.toLowerCase();
+  if (
+    t.includes("wedding") ||
+    t.includes("banquet") ||
+    t.includes("grand hall") ||
+    t.includes("hall") ||
+    t.includes("cathedral") ||
+    t.includes("ceremony") ||
+    t.includes("reception") ||
+    t.includes("ballroom") ||
+    t.includes("feast") ||
+    t.includes("timber truss") ||
+    t.includes("chandelier") ||
+    t.includes("spacely")
+  ) {
+    return "grand_hall";
+  }
   if (t.includes("jazz") || t.includes("listening") || t.includes("audiophile") || t.includes("vinyl") || t.includes("tatami")) {
     return "listening_room";
   }
@@ -105,6 +122,307 @@ export function generateSceneSpec(prompt: string, vibe: VibePayload): SceneSpec 
   const pColor = vibe.primaryColorHex || "#D9532B";
   const aColor = vibe.accentColorHex || "#2F5A4C";
   const kelvin = vibe.lightingTemperatureK || 3400;
+
+  if (typology === "grand_hall") {
+    return {
+      typology: "grand_hall",
+      typologyLabel: "Cathedral Timber Banquet Hall & Celebration Venue",
+      roomDimensions: { width: 14, depth: 22, height: 7.2 },
+      wallFinish: "distressed_plaster",
+      floorFinish: "polished_stone",
+      primaryColor: "#D99B52",
+      accentColor: "#2F5A4C",
+      lightingKelvin: 2700,
+      hasWindowAperture: true,
+      atmosphereNote: "Cathedral volume with exposed timber roof trusses, warm glowing crystal chandeliers, candlelit glass hurricane lanterns lining the aisle, and banquet tables with tall botanical floral centerpieces.",
+      designIntent: "Symmetrical celebration architecture inspired by European cathedral halls, rhythmic arched side window colonnades, and multi-tier ambient candle illumination.",
+      zones: [
+        {
+          id: "z-aisle",
+          name: "Candlelit Central Runway & Procession",
+          areaSqM: 48,
+          center: [0, 0, 0],
+          dimensions: [4.0, 18.0],
+          color: "#D99B52",
+          rationale: "Unobstructed central procession runway flanked by glass hurricane lanterns casting warm golden reflections on polished limestone.",
+        },
+        {
+          id: "z-tables",
+          name: "Banquet Dining & Reception Wings",
+          areaSqM: 110,
+          center: [0, 0, 0],
+          dimensions: [12.0, 17.0],
+          color: "#2F5A4C",
+          rationale: "Dual symmetrical long dining tables with floor-length linens, Chiavari chairs, and elevated floral centerpieces.",
+        },
+        {
+          id: "z-altar",
+          name: "Ceremonial Altar & Floral Arch",
+          areaSqM: 35,
+          center: [0, 0, -8.5],
+          dimensions: [8.0, 4.5],
+          color: "#E8B878",
+          rationale: "Focal destination framed by a grand botanical arch, arched window portal, and ceremonial altar credenza.",
+        },
+      ],
+      objects: [
+        {
+          id: "chandelier-1",
+          kind: "light",
+          label: "Grand Baroque Multi-Tier Crystal Chandelier",
+          position: [0, 5.2, -4.5],
+          rotation: [0, 0, 0],
+          dimensions: "1.8m diameter × 2.4m high",
+          material: "Faceted Bohemian Crystal & Hand-Antiqued Brass",
+          color: "#FFF4DD",
+          roughness: 0.1,
+          metalness: 0.9,
+          emissive: "#FFD992",
+          emissiveIntensity: 2.8,
+          rationale: "Central focal jewel casting sparkling multi-directional ambient illumination across the timber trusses.",
+        },
+        {
+          id: "chandelier-2",
+          kind: "light",
+          label: "Grand Baroque Multi-Tier Crystal Chandelier",
+          position: [0, 5.2, 4.5],
+          rotation: [0, 0, 0],
+          dimensions: "1.8m diameter × 2.4m high",
+          material: "Faceted Bohemian Crystal & Hand-Antiqued Brass",
+          color: "#FFF4DD",
+          roughness: 0.1,
+          metalness: 0.9,
+          emissive: "#FFD992",
+          emissiveIntensity: 2.8,
+          rationale: "Secondary crystal chandelier maintaining warm atmospheric equilibrium across the high cathedral volume.",
+        },
+        {
+          id: "floral-arch",
+          kind: "decor",
+          label: "Cathedral Botanical Floral Archway",
+          position: [0, 2.8, -9.5],
+          rotation: [0, 0, 0],
+          dimensions: "4.5m × 1.2m × 4.8m arch",
+          material: "Trailing Silver Dollar Eucalyptus, White Garden Roses, and Hydrangeas",
+          color: "#2E4733",
+          roughness: 0.9,
+          metalness: 0.05,
+          rationale: "Framing the ceremonial altar backdrop in organic living greenery.",
+        },
+        {
+          id: "banquet-table-left",
+          kind: "surface",
+          label: "Floor-Length Draped Linen Banquet Table (Left)",
+          position: [-3.8, 0.42, 0],
+          rotation: [0, 0, 0],
+          dimensions: "1.6m × 14.0m × 0.78m",
+          material: "Heavy Washed Ivory Belgian Linen & Solid Oak Base",
+          color: "#F4F0E8",
+          roughness: 0.92,
+          metalness: 0.02,
+          rationale: "Symmetrical long-table communal seating arrangement optimizing dining sightlines.",
+        },
+        {
+          id: "banquet-table-right",
+          kind: "surface",
+          label: "Floor-Length Draped Linen Banquet Table (Right)",
+          position: [3.8, 0.42, 0],
+          rotation: [0, 0, 0],
+          dimensions: "1.6m × 14.0m × 0.78m",
+          material: "Heavy Washed Ivory Belgian Linen & Solid Oak Base",
+          color: "#F4F0E8",
+          roughness: 0.92,
+          metalness: 0.02,
+          rationale: "Paired right-wing banquet table mirroring the left procession.",
+        },
+        {
+          id: "floral-pedestal-1",
+          kind: "decor",
+          label: "Elevated Trumpet Urn Floral Centerpiece",
+          position: [-3.8, 1.45, -3.8],
+          rotation: [0, 0, 0],
+          dimensions: "0.8m diameter × 1.6m high",
+          material: "Polished Brass Trumpet Stand with White Roses & Ruscus",
+          color: "#E8E2D5",
+          roughness: 0.7,
+          metalness: 0.3,
+          rationale: "Elevated centerpieces keep eye-level sightlines open across the table.",
+        },
+        {
+          id: "floral-pedestal-2",
+          kind: "decor",
+          label: "Elevated Trumpet Urn Floral Centerpiece",
+          position: [-3.8, 1.45, 3.8],
+          rotation: [0, 0, 0],
+          dimensions: "0.8m diameter × 1.6m high",
+          material: "Polished Brass Trumpet Stand with White Roses & Ruscus",
+          color: "#E8E2D5",
+          roughness: 0.7,
+          metalness: 0.3,
+          rationale: "Rhythmic floral height variation along the banquet length.",
+        },
+        {
+          id: "floral-pedestal-3",
+          kind: "decor",
+          label: "Elevated Trumpet Urn Floral Centerpiece",
+          position: [3.8, 1.45, -3.8],
+          rotation: [0, 0, 0],
+          dimensions: "0.8m diameter × 1.6m high",
+          material: "Polished Brass Trumpet Stand with White Roses & Ruscus",
+          color: "#E8E2D5",
+          roughness: 0.7,
+          metalness: 0.3,
+          rationale: "Matched right-side elevated floral centerpiece.",
+        },
+        {
+          id: "floral-pedestal-4",
+          kind: "decor",
+          label: "Elevated Trumpet Urn Floral Centerpiece",
+          position: [3.8, 1.45, 3.8],
+          rotation: [0, 0, 0],
+          dimensions: "0.8m diameter × 1.6m high",
+          material: "Polished Brass Trumpet Stand with White Roses & Ruscus",
+          color: "#E8E2D5",
+          roughness: 0.7,
+          metalness: 0.3,
+          rationale: "Matched right-side elevated floral centerpiece.",
+        },
+        {
+          id: "candle-lantern-l1",
+          kind: "light",
+          label: "Glass Hurricane Candle Lantern",
+          position: [-1.6, 0.22, -6.5],
+          rotation: [0, 0.15, 0],
+          dimensions: "0.3m × 0.3m × 0.45m",
+          material: "Beveled Glass Panes & Antiqued Brass Frame",
+          color: "#FFDE9E",
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: "#FFAE34",
+          emissiveIntensity: 2.2,
+          rationale: "Aisle-bordering candle lantern casting romantic floor glows.",
+        },
+        {
+          id: "candle-lantern-l2",
+          kind: "light",
+          label: "Glass Hurricane Candle Lantern",
+          position: [-1.6, 0.22, -2.5],
+          rotation: [0, -0.1, 0],
+          dimensions: "0.3m × 0.3m × 0.45m",
+          material: "Beveled Glass Panes & Antiqued Brass Frame",
+          color: "#FFDE9E",
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: "#FFAE34",
+          emissiveIntensity: 2.2,
+          rationale: "Mid-aisle candle reflection guide.",
+        },
+        {
+          id: "candle-lantern-l3",
+          kind: "light",
+          label: "Glass Hurricane Candle Lantern",
+          position: [-1.6, 0.22, 1.5],
+          rotation: [0, 0.2, 0],
+          dimensions: "0.3m × 0.3m × 0.45m",
+          material: "Beveled Glass Panes & Antiqued Brass Frame",
+          color: "#FFDE9E",
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: "#FFAE34",
+          emissiveIntensity: 2.2,
+          rationale: "Mid-aisle candle reflection guide.",
+        },
+        {
+          id: "candle-lantern-l4",
+          kind: "light",
+          label: "Glass Hurricane Candle Lantern",
+          position: [-1.6, 0.22, 5.5],
+          rotation: [0, -0.15, 0],
+          dimensions: "0.3m × 0.3m × 0.45m",
+          material: "Beveled Glass Panes & Antiqued Brass Frame",
+          color: "#FFDE9E",
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: "#FFAE34",
+          emissiveIntensity: 2.2,
+          rationale: "Entrance threshold candle lantern.",
+        },
+        {
+          id: "candle-lantern-r1",
+          kind: "light",
+          label: "Glass Hurricane Candle Lantern",
+          position: [1.6, 0.22, -6.5],
+          rotation: [0, -0.15, 0],
+          dimensions: "0.3m × 0.3m × 0.45m",
+          material: "Beveled Glass Panes & Antiqued Brass Frame",
+          color: "#FFDE9E",
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: "#FFAE34",
+          emissiveIntensity: 2.2,
+          rationale: "Paired right-side aisle candle lantern.",
+        },
+        {
+          id: "candle-lantern-r2",
+          kind: "light",
+          label: "Glass Hurricane Candle Lantern",
+          position: [1.6, 0.22, -2.5],
+          rotation: [0, 0.1, 0],
+          dimensions: "0.3m × 0.3m × 0.45m",
+          material: "Beveled Glass Panes & Antiqued Brass Frame",
+          color: "#FFDE9E",
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: "#FFAE34",
+          emissiveIntensity: 2.2,
+          rationale: "Paired right-side aisle candle lantern.",
+        },
+        {
+          id: "candle-lantern-r3",
+          kind: "light",
+          label: "Glass Hurricane Candle Lantern",
+          position: [1.6, 0.22, 1.5],
+          rotation: [0, -0.2, 0],
+          dimensions: "0.3m × 0.3m × 0.45m",
+          material: "Beveled Glass Panes & Antiqued Brass Frame",
+          color: "#FFDE9E",
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: "#FFAE34",
+          emissiveIntensity: 2.2,
+          rationale: "Paired right-side aisle candle lantern.",
+        },
+        {
+          id: "candle-lantern-r4",
+          kind: "light",
+          label: "Glass Hurricane Candle Lantern",
+          position: [1.6, 0.22, 5.5],
+          rotation: [0, 0.15, 0],
+          dimensions: "0.3m × 0.3m × 0.45m",
+          material: "Beveled Glass Panes & Antiqued Brass Frame",
+          color: "#FFDE9E",
+          roughness: 0.15,
+          metalness: 0.8,
+          emissive: "#FFAE34",
+          emissiveIntensity: 2.2,
+          rationale: "Entrance threshold candle lantern.",
+        },
+        {
+          id: "altar-table",
+          kind: "structure",
+          label: "Ceremonial Altar Credenza with Draped Linens",
+          position: [0, 0.45, -9.0],
+          rotation: [0, 0, 0],
+          dimensions: "2.8m × 0.9m × 0.9m",
+          material: "Solid Chestnut Timber & Ivory Raw Silk",
+          color: "#282522",
+          roughness: 0.75,
+          metalness: 0.1,
+          rationale: "Architectural focal altar anchoring the perspective convergence point.",
+        },
+      ],
+    };
+  }
 
   if (typology === "listening_room") {
     return {

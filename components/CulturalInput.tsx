@@ -12,6 +12,10 @@ import { useId, useState } from "react";
  */
 export const ARCHITECTURAL_EXAMPLES = [
   {
+    short: "Cathedral banquet",
+    full: "A cathedral banquet hall with exposed timber trusses, crystal chandeliers, warm candlelit aisle, and grand floral centerpieces.",
+  },
+  {
     short: "Japanese jazz room",
     full: "A Japanese jazz listening room with dark timber, warm paper lanterns, and intimate seating.",
   },

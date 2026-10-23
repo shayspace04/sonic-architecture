@@ -36,6 +36,11 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 - [x] Landing rebuild re-verified: `npm run lint` clean, `npm test` 37/37,
   `npm run build` clean; `/` and `/studio` both HTTP 200 in dev
 
+- [x] **Cathedral Timber Banquet Hall Typology & High-Fidelity 3D Details** (2026-10-23):
+  - [x] Added `grand_hall` typology (*Cathedral Timber Banquet Hall & Celebration Venue*, 14m × 22m × 7.2m volume) supporting weddings, banquets, cathedrals, ceremony halls, and celebrations.
+  - [x] Cathedral timber A-frame roof trusses (tie beams, king posts, rafters, purlins, longitudinal ridge beam).
+  - [x] Rhythmic arched window colonnades along side walls and ceremonial altar niche.
+  - [x] Procedural crystal chandeliers, hurricane candle lanterns with floor reflections, draped linen banquet tables, Chiavari chairs, trumpet urn floral centerpieces, botanical archway, and ceremonial altar.
 - [x] **Nest-inspired architectural design & interactive 3D layout planning** (2026-10-23):
   - [x] Centered hero landing page matching Nest aesthetic (`app/page.tsx`, `components/CulturalInput.tsx`): display serif typography ("A feeling, given form."), dark frosted glass prompt composer, minimal transition header.
   - [x] **Nest-style Exploded Architecture mode** (`components/three/Venue3D.tsx`): procedural deconstruction separating ceiling beams upwards, expanding perimeter walls outward, rendering vertical axonometric guide lines, and dynamic separation slider (0% to 100%).

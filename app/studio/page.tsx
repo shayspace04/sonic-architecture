@@ -22,6 +22,11 @@ const Venue3D = dynamic(() => import("@/components/three/Venue3D"), {
 
 const STUDIO_PRESETS = [
   {
+    label: "Cathedral Banquet Hall",
+    prompt: "A cathedral banquet hall with exposed timber trusses, crystal chandeliers, warm candlelit aisle, and grand floral centerpieces.",
+    typology: "grand_hall" as SpatialTypology,
+  },
+  {
     label: "Japanese Jazz Lounge",
     prompt: "A Japanese jazz listening room with dark timber, warm paper lanterns, and intimate seating.",
     typology: "listening_room" as SpatialTypology,
@@ -236,6 +241,7 @@ export default function StudioPage() {
                 className="w-full border border-[var(--lintel-paper)]/20 bg-[var(--lintel-night)] px-2.5 py-1.5 font-mono text-[10px] text-[var(--lintel-paper)] focus:outline-none"
               >
                 <option value="auto">Auto (from brief & signals)</option>
+                <option value="grand_hall">Cathedral Timber Banquet Hall</option>
                 <option value="listening_room">Japanese Jazz Listening Lounge</option>
                 <option value="party_venue">Underground Grunge Hall</option>
                 <option value="scandinavian_living">Minimalist Nordic Living</option>

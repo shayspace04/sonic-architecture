@@ -2,6 +2,29 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-23 (Cathedral Timber Banquet Hall & High-Fidelity 3D Details)
+
+### Added
+- **Cathedral Banquet Hall Typology (`lib/scene-spec.ts`, `components/three/Venue3D.tsx`)**:
+  - Added 6th major architectural typology: `grand_hall` (*Cathedral Timber Banquet Hall & Celebration Venue*, 14m × 22m × 7.2m volume) inspired by Spacely AI celebration architecture.
+  - Automatic prompt mapping for weddings, banquets, grand halls, cathedrals, ceremonies, receptions, chandeliers, and timber trusses.
+  - Three distinct functional zones: *Candlelit Central Runway & Procession* ($48\text{ m}^2$), *Banquet Dining & Reception Wings* ($110\text{ m}^2$), and *Ceremonial Altar & Floral Arch* ($35\text{ m}^2$).
+- **Authentic Cathedral Timber Roof Trusses (`components/three/Venue3D.tsx`)**:
+  - Sloped gabled roof panels meeting at an apex ridge beam ($H=7.2\text{m}$).
+  - 5 heavy timber A-frame trusses with horizontal tie beams, vertical king posts, diagonal rafters, and longitudinal purlins.
+- **Arched Window Colonnades (`components/three/Venue3D.tsx`)**:
+  - Rhythmic architectural arched window portals with steel frames and mullions along both side walls.
+  - Arched ceremonial altar niche in the back wall.
+- **Rich Procedural 3D Furnishings & Atmospheric Lighting (`components/three/Venue3D.tsx`)**:
+  - **Grand Baroque Crystal Chandeliers**: Multi-tier faceted crystal prisms, radiating brass branches, and warm glowing candle tips with dynamic point lights.
+  - **Hurricane Glass Candle Lanterns**: Brass-framed glass lanterns with wax pillar candles lining the central runway, casting romantic warm reflections on the floor.
+  - **Draped Belgian Linen Banquet Tables**: Symmetrical banquet tables with floor-length linens, table runners, tabletop candle votives, and Chiavari chairs.
+  - **Elevated Trumpet Urn Floral Centerpieces**: Polished brass pedestal stands with lush white roses, hydrangeas, and cascading eucalyptus foliage.
+  - **Cathedral Botanical Floral Archway**: Grand arched living greenery trellis framing the altar.
+- **Studio & Composer Updates (`app/studio/page.tsx`, `components/CulturalInput.tsx`)**:
+  - Added "Cathedral banquet" curated brief chip to hero composer.
+  - Added "Cathedral Banquet Hall" preset and typology override to `/studio`.
+
 ## 2026-10-23 (Nest Architectural Design & Interactive 3D Layout Planning)
 
 ### Added

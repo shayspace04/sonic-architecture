@@ -315,92 +315,234 @@ function ArchitecturalShell({
       {/* --- Perimeter Walls --- */}
       {showWalls && (
         <group>
-          {/* Back Wall */}
-          <mesh position={[0, H / 2, -halfD - expZ]} receiveShadow castShadow>
-            <boxGeometry args={[W, H, 0.4]} />
-            <meshStandardMaterial
-              color={wallColor}
-              roughness={spec.wallFinish === "gallery_white" ? 0.85 : 0.7}
-              metalness={0.05}
-            />
-          </mesh>
-
-          {/* Left Wall */}
-          <mesh position={[-halfW - expX, H / 2, 0]} receiveShadow castShadow>
-            <boxGeometry args={[0.4, H, D]} />
-            <meshStandardMaterial
-              color={wallColor}
-              roughness={0.75}
-              metalness={0.05}
-            />
-          </mesh>
-
-          {/* Right Wall (with Window Aperture if applicable) */}
-          {spec.hasWindowAperture ? (
-            <group position={[halfW + expX, H / 2, 0]}>
-              {/* Wall header above window */}
-              <mesh position={[0, H * 0.38, 0]} receiveShadow castShadow>
-                <boxGeometry args={[0.4, H * 0.24, D]} />
-                <meshStandardMaterial color={wallColor} roughness={0.75} />
-              </mesh>
-              {/* Wall base below window */}
-              <mesh position={[0, -H * 0.42, 0]} receiveShadow castShadow>
-                <boxGeometry args={[0.4, H * 0.16, D]} />
-                <meshStandardMaterial color={wallColor} roughness={0.75} />
-              </mesh>
-              {/* Window Glass Aperture */}
-              <mesh position={[0, 0, 0]}>
-                <boxGeometry args={[0.08, H * 0.6, D * 0.78]} />
-                <meshStandardMaterial
-                  color="#A8D8F0"
-                  roughness={0.1}
-                  metalness={0.8}
-                  transparent
-                  opacity={0.35}
-                />
-              </mesh>
-              {/* Window Mullions / Frame */}
-              {[-D * 0.25, 0, D * 0.25].map((z, idx) => (
-                <mesh key={idx} position={[0, 0, z]}>
-                  <boxGeometry args={[0.18, H * 0.6, 0.12]} />
-                  <meshStandardMaterial color="#1E1815" metalness={0.5} roughness={0.4} />
+          {spec.typology === "grand_hall" ? (
+            /* --- Cathedral Grand Hall Colonnades (Arched Portals & Pilasters) --- */
+            <group>
+              {/* Back Wall with Grand Arched Niche */}
+              <group position={[0, H / 2, -halfD - expZ]}>
+                <mesh receiveShadow castShadow>
+                  <boxGeometry args={[W, H, 0.45]} />
+                  <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
                 </mesh>
-              ))}
+                {/* Arched Altar Niche Frame */}
+                <mesh position={[0, 0.2, 0.24]}>
+                  <boxGeometry args={[5.2, 5.0, 0.12]} />
+                  <meshStandardMaterial color="#DDD6CB" roughness={0.85} />
+                </mesh>
+              </group>
+
+              {/* Left Wall Arched Colonnade */}
+              <group position={[-halfW - expX, H / 2, 0]}>
+                {/* Continuous wall base */}
+                <mesh position={[0, -H * 0.38, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[0.45, H * 0.24, D]} />
+                  <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
+                </mesh>
+                {/* Continuous wall header */}
+                <mesh position={[0, H * 0.38, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[0.45, H * 0.24, D]} />
+                  <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
+                </mesh>
+                {/* Arched Window Bays & Glass */}
+                {[-7.2, -2.4, 2.4, 7.2].map((z, idx) => (
+                  <group key={`arch-left-${idx}`} position={[0, 0, z]}>
+                    {/* Arched window glass */}
+                    <mesh position={[0, 0, 0]}>
+                      <boxGeometry args={[0.08, H * 0.52, 3.4]} />
+                      <meshStandardMaterial
+                        color="#BCE5FC"
+                        roughness={0.1}
+                        metalness={0.6}
+                        transparent
+                        opacity={0.32}
+                      />
+                    </mesh>
+                    {/* Steel Arch Frame & Mullions */}
+                    <mesh position={[0, 0, 0]}>
+                      <boxGeometry args={[0.18, H * 0.52, 0.08]} />
+                      <meshStandardMaterial color="#1E1C1A" metalness={0.7} roughness={0.3} />
+                    </mesh>
+                    <mesh position={[0, H * 0.1, 0]}>
+                      <boxGeometry args={[0.18, 0.08, 3.4]} />
+                      <meshStandardMaterial color="#1E1C1A" metalness={0.7} roughness={0.3} />
+                    </mesh>
+                  </group>
+                ))}
+              </group>
+
+              {/* Right Wall Arched Colonnade */}
+              <group position={[halfW + expX, H / 2, 0]}>
+                <mesh position={[0, -H * 0.38, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[0.45, H * 0.24, D]} />
+                  <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
+                </mesh>
+                <mesh position={[0, H * 0.38, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[0.45, H * 0.24, D]} />
+                  <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
+                </mesh>
+                {[-7.2, -2.4, 2.4, 7.2].map((z, idx) => (
+                  <group key={`arch-right-${idx}`} position={[0, 0, z]}>
+                    <mesh position={[0, 0, 0]}>
+                      <boxGeometry args={[0.08, H * 0.52, 3.4]} />
+                      <meshStandardMaterial
+                        color="#BCE5FC"
+                        roughness={0.1}
+                        metalness={0.6}
+                        transparent
+                        opacity={0.32}
+                      />
+                    </mesh>
+                    <mesh position={[0, 0, 0]}>
+                      <boxGeometry args={[0.18, H * 0.52, 0.08]} />
+                      <meshStandardMaterial color="#1E1C1A" metalness={0.7} roughness={0.3} />
+                    </mesh>
+                    <mesh position={[0, H * 0.1, 0]}>
+                      <boxGeometry args={[0.18, 0.08, 3.4]} />
+                      <meshStandardMaterial color="#1E1C1A" metalness={0.7} roughness={0.3} />
+                    </mesh>
+                  </group>
+                ))}
+              </group>
             </group>
           ) : (
-            <mesh position={[halfW + expX, H / 2, 0]} receiveShadow castShadow>
-              <boxGeometry args={[0.4, H, D]} />
-              <meshStandardMaterial color={wallColor} roughness={0.75} metalness={0.05} />
-            </mesh>
-          )}
+            /* --- Standard Architectural Shell Walls --- */
+            <group>
+              {/* Back Wall */}
+              <mesh position={[0, H / 2, -halfD - expZ]} receiveShadow castShadow>
+                <boxGeometry args={[W, H, 0.4]} />
+                <meshStandardMaterial
+                  color={wallColor}
+                  roughness={spec.wallFinish === "gallery_white" ? 0.85 : 0.7}
+                  metalness={0.05}
+                />
+              </mesh>
 
-          {/* Acoustic Slatted Timber Detail (Back Wall Feature) */}
-          {slats.length > 0 && (
-            <group position={[0, H / 2, -halfD - expZ + 0.22]}>
-              {slats.map((x, i) => (
-                <mesh key={i} position={[x, 0, 0]} castShadow>
-                  <boxGeometry args={[0.07, H * 0.88, 0.08]} />
-                  <meshStandardMaterial
-                    color="#452F1E"
-                    roughness={0.65}
-                    metalness={0.1}
-                  />
+              {/* Left Wall */}
+              <mesh position={[-halfW - expX, H / 2, 0]} receiveShadow castShadow>
+                <boxGeometry args={[0.4, H, D]} />
+                <meshStandardMaterial
+                  color={wallColor}
+                  roughness={0.75}
+                  metalness={0.05}
+                />
+              </mesh>
+
+              {/* Right Wall (with Window Aperture if applicable) */}
+              {spec.hasWindowAperture ? (
+                <group position={[halfW + expX, H / 2, 0]}>
+                  {/* Wall header above window */}
+                  <mesh position={[0, H * 0.38, 0]} receiveShadow castShadow>
+                    <boxGeometry args={[0.4, H * 0.24, D]} />
+                    <meshStandardMaterial color={wallColor} roughness={0.75} />
+                  </mesh>
+                  {/* Wall base below window */}
+                  <mesh position={[0, -H * 0.42, 0]} receiveShadow castShadow>
+                    <boxGeometry args={[0.4, H * 0.16, D]} />
+                    <meshStandardMaterial color={wallColor} roughness={0.75} />
+                  </mesh>
+                  {/* Window Glass Aperture */}
+                  <mesh position={[0, 0, 0]}>
+                    <boxGeometry args={[0.08, H * 0.6, D * 0.78]} />
+                    <meshStandardMaterial
+                      color="#A8D8F0"
+                      roughness={0.1}
+                      metalness={0.8}
+                      transparent
+                      opacity={0.35}
+                    />
+                  </mesh>
+                  {/* Window Mullions / Frame */}
+                  {[-D * 0.25, 0, D * 0.25].map((z, idx) => (
+                    <mesh key={idx} position={[0, 0, z]}>
+                      <boxGeometry args={[0.18, H * 0.6, 0.12]} />
+                      <meshStandardMaterial color="#1E1815" metalness={0.5} roughness={0.4} />
+                    </mesh>
+                  ))}
+                </group>
+              ) : (
+                <mesh position={[halfW + expX, H / 2, 0]} receiveShadow castShadow>
+                  <boxGeometry args={[0.4, H, D]} />
+                  <meshStandardMaterial color={wallColor} roughness={0.75} metalness={0.05} />
                 </mesh>
-              ))}
+              )}
+
+              {/* Acoustic Slatted Timber Detail (Back Wall Feature) */}
+              {slats.length > 0 && (
+                <group position={[0, H / 2, -halfD - expZ + 0.22]}>
+                  {slats.map((x, i) => (
+                    <mesh key={i} position={[x, 0, 0]} castShadow>
+                      <boxGeometry args={[0.07, H * 0.88, 0.08]} />
+                      <meshStandardMaterial
+                        color="#452F1E"
+                        roughness={0.65}
+                        metalness={0.1}
+                      />
+                    </mesh>
+                  ))}
+                </group>
+              )}
             </group>
           )}
         </group>
       )}
 
-      {/* --- Architectural Ceiling Beams / Soffits (Elevates in Exploded Mode) --- */}
+      {/* --- Architectural Ceiling Beams / Cathedral Timber Roof Trusses --- */}
       {showRoof && (
         <group position={[0, H - 0.1 + expY, 0]}>
-          {[-halfD * 0.6, -halfD * 0.2, halfD * 0.2, halfD * 0.6].map((z, i) => (
-            <mesh key={i} position={[0, 0, z]} castShadow>
-              <boxGeometry args={[W, 0.28, 0.35]} />
-              <meshStandardMaterial color="#18151D" metalness={0.3} roughness={0.6} />
-            </mesh>
-          ))}
+          {spec.typology === "grand_hall" ? (
+            /* Exposed Cathedral Timber A-Frame Trusses */
+            <group>
+              {/* Longitudinal Ridge Beam at apex */}
+              <mesh position={[0, 1.8, 0]} castShadow>
+                <boxGeometry args={[0.38, 0.45, D * 1.05]} />
+                <meshStandardMaterial color="#8B5E34" roughness={0.75} metalness={0.05} />
+              </mesh>
+              {/* Sloped Roof Deck panels */}
+              <mesh position={[-halfW * 0.5, 0.9, 0]} rotation-z={-Math.PI / 10} receiveShadow>
+                <boxGeometry args={[W * 0.58, 0.15, D * 1.02]} />
+                <meshStandardMaterial color="#A67B51" roughness={0.8} />
+              </mesh>
+              <mesh position={[halfW * 0.5, 0.9, 0]} rotation-z={Math.PI / 10} receiveShadow>
+                <boxGeometry args={[W * 0.58, 0.15, D * 1.02]} />
+                <meshStandardMaterial color="#A67B51" roughness={0.8} />
+              </mesh>
+              {/* Heavy Timber Trusses spaced along the hall */}
+              {[-8.5, -4.25, 0, 4.25, 8.5].map((z, i) => (
+                <group key={`truss-${i}`} position={[0, 0, z]}>
+                  {/* Horizontal Tie Beam */}
+                  <mesh position={[0, -0.2, 0]} castShadow>
+                    <boxGeometry args={[W * 0.98, 0.38, 0.35]} />
+                    <meshStandardMaterial color="#784E25" roughness={0.7} />
+                  </mesh>
+                  {/* Vertical King Post */}
+                  <mesh position={[0, 0.8, 0]} castShadow>
+                    <boxGeometry args={[0.32, 1.8, 0.32]} />
+                    <meshStandardMaterial color="#784E25" roughness={0.7} />
+                  </mesh>
+                  {/* Left Rafter */}
+                  <mesh position={[-halfW * 0.48, 0.8, 0]} rotation-z={-Math.PI / 10} castShadow>
+                    <boxGeometry args={[W * 0.56, 0.32, 0.32]} />
+                    <meshStandardMaterial color="#784E25" roughness={0.7} />
+                  </mesh>
+                  {/* Right Rafter */}
+                  <mesh position={[halfW * 0.48, 0.8, 0]} rotation-z={Math.PI / 10} castShadow>
+                    <boxGeometry args={[W * 0.56, 0.32, 0.32]} />
+                    <meshStandardMaterial color="#784E25" roughness={0.7} />
+                  </mesh>
+                </group>
+              ))}
+            </group>
+          ) : (
+            /* Standard Ceiling Beams */
+            <group>
+              {[-halfD * 0.6, -halfD * 0.2, halfD * 0.2, halfD * 0.6].map((z, i) => (
+                <mesh key={i} position={[0, 0, z]} castShadow>
+                  <boxGeometry args={[W, 0.28, 0.35]} />
+                  <meshStandardMaterial color="#18151D" metalness={0.3} roughness={0.6} />
+                </mesh>
+              ))}
+            </group>
+          )}
         </group>
       )}
     </group>
@@ -424,6 +566,264 @@ function ObjectMesh({
 
   // Render geometry based on kind and id
   const renderGeometry = () => {
+    /* --- Grand Baroque Multi-Tier Crystal Chandelier --- */
+    if (obj.id.includes("chandelier")) {
+      return (
+        <group>
+          {/* Suspension Chain */}
+          <mesh position={[0, 1.2, 0]}>
+            <cylinderGeometry args={[0.012, 0.012, 2.4, 8]} />
+            <meshStandardMaterial color="#B38A4B" metalness={0.9} roughness={0.2} />
+          </mesh>
+          {/* Central Ornate Brass Body */}
+          <mesh position={[0, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.28, 0.42, 0.6, 16]} />
+            <meshStandardMaterial color="#D4AF37" metalness={0.88} roughness={0.2} />
+          </mesh>
+          {/* Tiered Faceted Crystal Prisms */}
+          <mesh position={[0, -0.38, 0]}>
+            <cylinderGeometry args={[0.72, 0.22, 0.52, 16]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.08} metalness={0.2} transparent opacity={0.82} />
+          </mesh>
+          {/* Radiating Curved Brass Arms & Candle Lights */}
+          {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
+            const ang = (i * Math.PI) / 4;
+            const r = 0.88;
+            const x = Math.cos(ang) * r;
+            const z = Math.sin(ang) * r;
+            return (
+              <group key={i} position={[x, -0.08, z]}>
+                <mesh position={[-x * 0.45, 0, -z * 0.45]} rotation-y={ang}>
+                  <boxGeometry args={[0.04, 0.04, r * 0.85]} />
+                  <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.2} />
+                </mesh>
+                <mesh position={[0, 0.08, 0]}>
+                  <cylinderGeometry args={[0.04, 0.03, 0.16, 8]} />
+                  <meshStandardMaterial color="#FFF8E7" roughness={0.7} />
+                </mesh>
+                <mesh position={[0, 0.22, 0]}>
+                  <sphereGeometry args={[0.038, 8, 8]} />
+                  <meshStandardMaterial
+                    color="#FFAE42"
+                    emissive="#FF9D2E"
+                    emissiveIntensity={3.2}
+                    toneMapped={false}
+                  />
+                </mesh>
+              </group>
+            );
+          })}
+          {/* Warm Ambient Chandelier Glow */}
+          <pointLight color="#FFD992" distance={22} decay={2} intensity={4.8} />
+        </group>
+      );
+    }
+
+    /* --- Glass Hurricane Candle Lantern --- */
+    if (obj.id.includes("candle-lantern")) {
+      return (
+        <group>
+          {/* Glass Hurricane Enclosure */}
+          <mesh position={[0, 0, 0]} castShadow>
+            <boxGeometry args={[0.26, 0.42, 0.26]} />
+            <meshStandardMaterial
+              color="#FFFFFF"
+              roughness={0.05}
+              metalness={0.2}
+              transparent
+              opacity={0.35}
+            />
+          </mesh>
+          {/* Antiqued Brass Rims */}
+          <mesh position={[0, 0.21, 0]}>
+            <boxGeometry args={[0.28, 0.03, 0.28]} />
+            <meshStandardMaterial color="#B38A4B" metalness={0.85} roughness={0.25} />
+          </mesh>
+          <mesh position={[0, -0.21, 0]}>
+            <boxGeometry args={[0.28, 0.03, 0.28]} />
+            <meshStandardMaterial color="#B38A4B" metalness={0.85} roughness={0.25} />
+          </mesh>
+          {/* Wax Pillar Candle Inside */}
+          <mesh position={[0, -0.06, 0]}>
+            <cylinderGeometry args={[0.065, 0.065, 0.22, 16]} />
+            <meshStandardMaterial color="#FFF5E4" roughness={0.8} />
+          </mesh>
+          {/* Glowing Flame */}
+          <mesh position={[0, 0.1, 0]}>
+            <sphereGeometry args={[0.026, 8, 8]} />
+            <meshStandardMaterial
+              color="#FFA834"
+              emissive="#FF9D1E"
+              emissiveIntensity={3.8}
+              toneMapped={false}
+            />
+          </mesh>
+          {/* Localized Candlelight Bounce */}
+          <pointLight color="#FFAE34" distance={3.8} decay={2} intensity={1.8} />
+        </group>
+      );
+    }
+
+    /* --- Draped Linen Banquet Table with Tableware & Chiavari Chairs --- */
+    if (obj.id.includes("banquet-table")) {
+      return (
+        <group>
+          {/* Draped floor-length linen tablecloth */}
+          <mesh castShadow receiveShadow position={[0, -0.02, 0]}>
+            <boxGeometry args={[1.5, 0.74, 13.8]} />
+            <meshStandardMaterial
+              color="#F7F4EE"
+              roughness={0.94}
+              metalness={0.02}
+            />
+          </mesh>
+          {/* Table runner */}
+          <mesh position={[0, 0.36, 0]} receiveShadow>
+            <boxGeometry args={[0.65, 0.015, 13.6]} />
+            <meshStandardMaterial color="#EAE4D8" roughness={0.9} />
+          </mesh>
+          {/* Tabletop candle votives spaced along table */}
+          {[-5.0, -3.0, -1.0, 1.0, 3.0, 5.0].map((z, idx) => (
+            <group key={idx} position={[0, 0.42, z]}>
+              <mesh>
+                <cylinderGeometry args={[0.035, 0.03, 0.08, 12]} />
+                <meshStandardMaterial color="#FFF9E6" emissive="#FFA834" emissiveIntensity={1.8} />
+              </mesh>
+              <pointLight color="#FFA834" distance={1.8} decay={2} intensity={0.4} />
+            </group>
+          ))}
+          {/* Chiavari Banquet Chairs flanking table */}
+          {[-5.2, -3.6, -2.0, -0.4, 1.2, 2.8, 4.4].map((z, idx) => (
+            <group key={`chairs-${idx}`}>
+              {/* Left chair */}
+              <group position={[-1.0, -0.05, z]} rotation-y={Math.PI / 2}>
+                <mesh position={[0, 0, 0]} castShadow>
+                  <boxGeometry args={[0.42, 0.06, 0.42]} />
+                  <meshStandardMaterial color="#FFF8ED" roughness={0.8} />
+                </mesh>
+                <mesh position={[0, 0.25, -0.18]} castShadow>
+                  <boxGeometry args={[0.4, 0.46, 0.04]} />
+                  <meshStandardMaterial color="#B08D57" metalness={0.3} roughness={0.5} />
+                </mesh>
+                <mesh position={[0, -0.22, 0]}>
+                  <cylinderGeometry args={[0.018, 0.015, 0.42, 8]} />
+                  <meshStandardMaterial color="#B08D57" metalness={0.3} roughness={0.5} />
+                </mesh>
+              </group>
+              {/* Right chair */}
+              <group position={[1.0, -0.05, z]} rotation-y={-Math.PI / 2}>
+                <mesh position={[0, 0, 0]} castShadow>
+                  <boxGeometry args={[0.42, 0.06, 0.42]} />
+                  <meshStandardMaterial color="#FFF8ED" roughness={0.8} />
+                </mesh>
+                <mesh position={[0, 0.25, -0.18]} castShadow>
+                  <boxGeometry args={[0.4, 0.46, 0.04]} />
+                  <meshStandardMaterial color="#B08D57" metalness={0.3} roughness={0.5} />
+                </mesh>
+                <mesh position={[0, -0.22, 0]}>
+                  <cylinderGeometry args={[0.018, 0.015, 0.42, 8]} />
+                  <meshStandardMaterial color="#B08D57" metalness={0.3} roughness={0.5} />
+                </mesh>
+              </group>
+            </group>
+          ))}
+        </group>
+      );
+    }
+
+    /* --- Elevated Floral Centerpiece on Trumpet Pedestal --- */
+    if (obj.id.includes("floral-pedestal")) {
+      return (
+        <group>
+          {/* Polished Brass Trumpet Stand */}
+          <mesh position={[0, -0.4, 0]} castShadow>
+            <cylinderGeometry args={[0.04, 0.16, 1.2, 16]} />
+            <meshStandardMaterial color="#C5A059" metalness={0.85} roughness={0.25} />
+          </mesh>
+          <mesh position={[0, -0.98, 0]} castShadow>
+            <cylinderGeometry args={[0.22, 0.26, 0.06, 24]} />
+            <meshStandardMaterial color="#C5A059" metalness={0.85} roughness={0.25} />
+          </mesh>
+          <mesh position={[0, 0.2, 0]}>
+            <cylinderGeometry args={[0.26, 0.06, 0.22, 16]} />
+            <meshStandardMaterial color="#C5A059" metalness={0.85} roughness={0.25} />
+          </mesh>
+          {/* Lush White Rose & Hydrangea Bouquet */}
+          <mesh position={[0, 0.5, 0]} castShadow>
+            <sphereGeometry args={[0.46, 16, 16]} />
+            <meshStandardMaterial color="#F7F3EE" roughness={0.85} />
+          </mesh>
+          <mesh position={[-0.18, 0.65, 0.1]} castShadow>
+            <sphereGeometry args={[0.26, 12, 12]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.8} />
+          </mesh>
+          <mesh position={[0.2, 0.62, -0.1]} castShadow>
+            <sphereGeometry args={[0.24, 12, 12]} />
+            <meshStandardMaterial color="#EFE7DA" roughness={0.8} />
+          </mesh>
+          {/* Trailing Eucalyptus Foliage Collar */}
+          <mesh position={[0, 0.35, 0]}>
+            <torusGeometry args={[0.4, 0.14, 8, 16]} />
+            <meshStandardMaterial color="#354E38" roughness={0.9} />
+          </mesh>
+        </group>
+      );
+    }
+
+    /* --- Cathedral Botanical Floral Archway --- */
+    if (obj.id.includes("floral-arch")) {
+      return (
+        <group>
+          {/* Arched foliage crown */}
+          <mesh castShadow position={[0, 0, 0]}>
+            <torusGeometry args={[2.2, 0.42, 12, 24, Math.PI]} />
+            <meshStandardMaterial color="#2E4733" roughness={0.9} />
+          </mesh>
+          {/* Left and Right vertical foliage pillars */}
+          <mesh castShadow position={[-2.2, -1.1, 0]}>
+            <cylinderGeometry args={[0.38, 0.45, 2.4, 12]} />
+            <meshStandardMaterial color="#2E4733" roughness={0.9} />
+          </mesh>
+          <mesh castShadow position={[2.2, -1.1, 0]}>
+            <cylinderGeometry args={[0.38, 0.45, 2.4, 12]} />
+            <meshStandardMaterial color="#2E4733" roughness={0.9} />
+          </mesh>
+          {/* Blooming white garden rose clusters */}
+          {[-1.8, -0.9, 0, 0.9, 1.8].map((x, i) => (
+            <mesh key={i} position={[x, Math.sqrt(Math.max(0, 4.84 - x * x)), 0.15]}>
+              <sphereGeometry args={[0.26, 12, 12]} />
+              <meshStandardMaterial color="#FFF5EE" roughness={0.8} />
+            </mesh>
+          ))}
+        </group>
+      );
+    }
+
+    /* --- Ceremonial Altar Table with Draped Silks --- */
+    if (obj.id.includes("altar-table")) {
+      return (
+        <group>
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <boxGeometry args={[2.8, 0.88, 0.9]} />
+            <meshStandardMaterial color="#1E1C1A" roughness={0.7} metalness={0.15} />
+          </mesh>
+          <mesh position={[0, 0.05, 0.05]} castShadow>
+            <boxGeometry args={[2.85, 0.8, 0.95]} />
+            <meshStandardMaterial color="#F7F3EB" roughness={0.9} />
+          </mesh>
+          {[-0.8, 0, 0.8].map((x, i) => (
+            <group key={i} position={[x, 0.55, 0]}>
+              <mesh>
+                <cylinderGeometry args={[0.035, 0.035, 0.22, 12]} />
+                <meshStandardMaterial color="#FFF9EE" emissive="#FFA834" emissiveIntensity={2.0} />
+              </mesh>
+              <pointLight color="#FFA834" distance={2.5} decay={2} intensity={0.6} />
+            </group>
+          ))}
+        </group>
+      );
+    }
+
     if (obj.kind === "light" && obj.id.includes("lantern")) {
       return (
         <group>
