@@ -2,6 +2,43 @@
 
 All notable changes, reverse chronological. No secrets in this file.
 
+## 2026-10-23 (Universal Deep 3D Architectural Detail & Dynamic Qloo Element Synthesis)
+
+### Added
+- **Universal Multi-Typology Architectural Synthesis (`lib/scene-spec.ts`)**:
+  - Expanded from 6 to 9 richly detailed spatial typologies with bespoke envelope volumes, ceiling structures, wall architectures, and zoning:
+    1. `grand_hall` (*Cathedral Timber Banquet Hall & Celebration Venue*, 14m × 22m × 7.2m)
+    2. `listening_room` (*Japanese Jazz Listening Sanctuary & Audiophile Salon*, 11m × 15m × 3.6m)
+    3. `intimate_lounge` (*Mid-Century Cocktail Lounge & Velvet Speakeasy*, 13m × 17m × 4.2m)
+    4. `mediterranean_courtyard` (*Sunlit Mediterranean Riad Courtyard & Orangery*, 14m × 18m × 5.2m)
+    5. `industrial_loft` (*Warehouse Taproom & Roastery Loft*, 13m × 19m × 5.0m)
+    6. `party_venue` (*Underground Cyberpunk / Grunge Celebration Club*, 14m × 18m × 5.2m)
+    7. `scandinavian_living` (*Minimalist Nordic Light Pavilion*, 12m × 16m × 4.2m)
+    8. `futuristic_launch` (*Kinetic Horizon Product Stage*, 16m × 22m × 6.0m)
+    9. `gallery_pavilion` (*Sculptural Contemporary Art Pavilion*, 13m × 16m × 4.4m)
+- **Universal Dynamic Qloo Recommendations & Element Binding (`lib/scene-spec.ts`)**:
+  - **Dynamic Flooring Material Binding**: `vibe.flooringMaterial` from Qloo is dynamically interpreted into PBR shader properties (`spec.floorFinish`) and exposed directly in the 3D HUD, 2D blueprint, and studio inventory.
+  - **Dynamic Seating Fabric Infusion**: `vibe.seatingFabric` (e.g. crushed mohair velvet, saddle leather, bouclé, raw linen) dynamically mutates every seating archetype in the room with exact tactile material strings and acoustic absorption rationale.
+  - **Dynamic Lighting Kelvin & Atmosphere**: `vibe.lightingTemperatureK` and `vibe.concept.lightingDirection` directly drive the 3D lighting rig and downlight intensities.
+  - **Qloo Cultural Artist Showcase Node**: Surfaced affinity artists (`vibe.artists[0]`) dynamically spawn an architectural travertine/brass vitrine showcase plinth with a dedicated spotlight and functional cultural zone in both 3D and 2D.
+  - **Dynamic Evidence Tag Spawn**: Missing architectural archetypes (cocktail bars, library grid walls, hurricane candle lanterns, travertine hearths) are dynamically assembled from Qloo evidence tags (`vibe.evidence.tags`).
+- **New Procedural 3D Fixture Archetypes (`components/three/Venue3D.tsx`)**:
+  - **Fluted Cocktail Bar Counter**: Fluted walnut/marble front, honed brass footrail, and backlit under-counter LED glow.
+  - **Floor-to-Ceiling Grid Library & Vinyl Shelving Wall**: Multi-column timber grid shelving with vinyl record stacks and literature diffusers.
+  - **Carved Stone Water Fountain Basin**: Octagonal chiseled limestone basin, high-specular reflective water plane, and central brass bubbling spout.
+  - **Architectural Travertine Hearth / Fireplace**: Low cantilevered travertine slab, recessed firebox, and glowing embers casting warm firelight.
+  - **Qloo Cultural Showcase Vitrine**: Honed architectural stone pedestal with inscribed brass plaque and showcase vinyl disc under spotlight.
+  - **Mouth-Blown Amber Glass Pendants**: Murano amber teardrop glass pendants casting intimate warm downlight pools.
+- **Architectural Ceiling & Wall Shell Extensions (`components/three/Venue3D.tsx`)**:
+  - Modular ceiling structures: `cathedral_truss`, `acoustic_coffered`, `timber_pergola`, `concrete_beams`, `neon_lightgrid`, `minimal_soffit`.
+  - Modular wall architectures: `arched_colonnade`, `timber_slats`, `panoramic_glazing`, `fluted_stone`, `raw_concrete_panels`, `gallery_planes`.
+- **Planning HUD & 2D Blueprint Enhancements (`Venue3D.tsx`, `SpatialTranslation.tsx`, `rationale.ts`)**:
+  - 3D Layout Planning HUD displays a dedicated **Qloo Recommendations** panel with active flooring, seating, featured artist, and Kelvin bindings.
+  - 2D Schematic Floor Plan displays dynamic envelope volume ($m^3$), clear height with structural ceiling type, wall architecture, and Qloo flooring substrate.
+  - Rationale section surfaces a 7th card for Qloo Affinity Artist Showcase with full cross-domain provenance.
+- **Studio & Landing Composer Options (`app/studio/page.tsx`, `components/CulturalInput.tsx`)**:
+  - Added Mid-Century Speakeasy, Mediterranean Riad, and Industrial Loft Taproom presets.
+
 ## 2026-10-23 (Cathedral Timber Banquet Hall & High-Fidelity 3D Details)
 
 ### Added

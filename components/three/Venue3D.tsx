@@ -315,8 +315,8 @@ function ArchitecturalShell({
       {/* --- Perimeter Walls --- */}
       {showWalls && (
         <group>
-          {spec.typology === "grand_hall" ? (
-            /* --- Cathedral Grand Hall Colonnades (Arched Portals & Pilasters) --- */
+          {spec.wallArchitecture === "arched_colonnade" ? (
+            /* --- Arched Window Colonnades (Cathedrals & Courtyards) --- */
             <group>
               {/* Back Wall with Grand Arched Niche */}
               <group position={[0, H / 2, -halfD - expZ]}>
@@ -324,7 +324,7 @@ function ArchitecturalShell({
                   <boxGeometry args={[W, H, 0.45]} />
                   <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
                 </mesh>
-                {/* Arched Altar Niche Frame */}
+                {/* Arched Altar / Fountain Niche Frame */}
                 <mesh position={[0, 0.2, 0.24]}>
                   <boxGeometry args={[5.2, 5.0, 0.12]} />
                   <meshStandardMaterial color="#DDD6CB" roughness={0.85} />
@@ -333,20 +333,16 @@ function ArchitecturalShell({
 
               {/* Left Wall Arched Colonnade */}
               <group position={[-halfW - expX, H / 2, 0]}>
-                {/* Continuous wall base */}
                 <mesh position={[0, -H * 0.38, 0]} receiveShadow castShadow>
                   <boxGeometry args={[0.45, H * 0.24, D]} />
                   <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
                 </mesh>
-                {/* Continuous wall header */}
                 <mesh position={[0, H * 0.38, 0]} receiveShadow castShadow>
                   <boxGeometry args={[0.45, H * 0.24, D]} />
                   <meshStandardMaterial color="#EAE5DC" roughness={0.88} />
                 </mesh>
-                {/* Arched Window Bays & Glass */}
                 {[-7.2, -2.4, 2.4, 7.2].map((z, idx) => (
                   <group key={`arch-left-${idx}`} position={[0, 0, z]}>
-                    {/* Arched window glass */}
                     <mesh position={[0, 0, 0]}>
                       <boxGeometry args={[0.08, H * 0.52, 3.4]} />
                       <meshStandardMaterial
@@ -357,7 +353,6 @@ function ArchitecturalShell({
                         opacity={0.32}
                       />
                     </mesh>
-                    {/* Steel Arch Frame & Mullions */}
                     <mesh position={[0, 0, 0]}>
                       <boxGeometry args={[0.18, H * 0.52, 0.08]} />
                       <meshStandardMaterial color="#1E1C1A" metalness={0.7} roughness={0.3} />
@@ -405,7 +400,7 @@ function ArchitecturalShell({
               </group>
             </group>
           ) : (
-            /* --- Standard Architectural Shell Walls --- */
+            /* --- Architectural Shell Walls --- */
             <group>
               {/* Back Wall */}
               <mesh position={[0, H / 2, -halfD - expZ]} receiveShadow castShadow>
@@ -427,7 +422,7 @@ function ArchitecturalShell({
                 />
               </mesh>
 
-              {/* Right Wall (with Window Aperture if applicable) */}
+              {/* Right Wall (with Window Aperture or Panoramic Glazing) */}
               {spec.hasWindowAperture ? (
                 <group position={[halfW + expX, H / 2, 0]}>
                   {/* Wall header above window */}
@@ -442,7 +437,7 @@ function ArchitecturalShell({
                   </mesh>
                   {/* Window Glass Aperture */}
                   <mesh position={[0, 0, 0]}>
-                    <boxGeometry args={[0.08, H * 0.6, D * 0.78]} />
+                    <boxGeometry args={[0.08, H * 0.6, D * 0.82]} />
                     <meshStandardMaterial
                       color="#A8D8F0"
                       roughness={0.1}
@@ -452,7 +447,7 @@ function ArchitecturalShell({
                     />
                   </mesh>
                   {/* Window Mullions / Frame */}
-                  {[-D * 0.25, 0, D * 0.25].map((z, idx) => (
+                  {[-D * 0.28, -D * 0.1, D * 0.1, D * 0.28].map((z, idx) => (
                     <mesh key={idx} position={[0, 0, z]}>
                       <boxGeometry args={[0.18, H * 0.6, 0.12]} />
                       <meshStandardMaterial color="#1E1815" metalness={0.5} roughness={0.4} />
@@ -486,10 +481,10 @@ function ArchitecturalShell({
         </group>
       )}
 
-      {/* --- Architectural Ceiling Beams / Cathedral Timber Roof Trusses --- */}
+      {/* --- Architectural Ceiling Structures & Roof Trusses --- */}
       {showRoof && (
         <group position={[0, H - 0.1 + expY, 0]}>
-          {spec.typology === "grand_hall" ? (
+          {spec.ceilingStructure === "cathedral_truss" ? (
             /* Exposed Cathedral Timber A-Frame Trusses */
             <group>
               {/* Longitudinal Ridge Beam at apex */}
@@ -532,8 +527,74 @@ function ArchitecturalShell({
                 </group>
               ))}
             </group>
+          ) : spec.ceilingStructure === "acoustic_coffered" ? (
+            /* Deep Recessed Acoustic Coffered Timber Grid */
+            <group>
+              <mesh position={[0, 0.15, 0]}>
+                <boxGeometry args={[W, 0.25, D]} />
+                <meshStandardMaterial color="#221813" roughness={0.8} />
+              </mesh>
+              {/* Longitudinal Coffers */}
+              {[-halfW * 0.6, -halfW * 0.2, halfW * 0.2, halfW * 0.6].map((x, xi) => (
+                <mesh key={`coff-x-${xi}`} position={[x, -0.15, 0]} castShadow>
+                  <boxGeometry args={[0.24, 0.35, D * 0.96]} />
+                  <meshStandardMaterial color="#3A281E" roughness={0.65} />
+                </mesh>
+              ))}
+              {/* Transversal Coffers */}
+              {[-halfD * 0.65, -halfD * 0.32, 0, halfD * 0.32, halfD * 0.65].map((z, zi) => (
+                <mesh key={`coff-z-${zi}`} position={[0, -0.15, z]} castShadow>
+                  <boxGeometry args={[W * 0.96, 0.35, 0.24]} />
+                  <meshStandardMaterial color="#3A281E" roughness={0.65} />
+                </mesh>
+              ))}
+            </group>
+          ) : spec.ceilingStructure === "timber_pergola" ? (
+            /* Open Timber Pergola with Skylight Aperture */
+            <group>
+              <mesh position={[0, 0.12, 0]}>
+                <boxGeometry args={[W * 0.75, 0.06, D * 0.75]} />
+                <meshStandardMaterial color="#BCE5FC" roughness={0.1} metalness={0.6} transparent opacity={0.35} />
+              </mesh>
+              {[-halfD * 0.75, -halfD * 0.5, -halfD * 0.25, 0, halfD * 0.25, halfD * 0.5, halfD * 0.75].map((z, i) => (
+                <mesh key={`pergola-${i}`} position={[0, -0.14, z]} castShadow>
+                  <boxGeometry args={[W * 0.88, 0.28, 0.16]} />
+                  <meshStandardMaterial color="#8B5A2B" roughness={0.75} />
+                </mesh>
+              ))}
+            </group>
+          ) : spec.ceilingStructure === "neon_lightgrid" ? (
+            /* Suspended Geometric Neon Lightgrid */
+            <group>
+              <mesh position={[0, 0.05, 0]}>
+                <boxGeometry args={[W, 0.1, D]} />
+                <meshStandardMaterial color="#0A0B0E" roughness={0.9} />
+              </mesh>
+              {[-halfW * 0.5, 0, halfW * 0.5].map((x, xi) => (
+                <mesh key={`neon-x-${xi}`} position={[x, -0.35, 0]}>
+                  <boxGeometry args={[0.08, 0.08, D * 0.85]} />
+                  <meshStandardMaterial color="#FF1493" emissive="#FF007F" emissiveIntensity={2.5} toneMapped={false} />
+                </mesh>
+              ))}
+              {[-halfD * 0.5, 0, halfD * 0.5].map((z, zi) => (
+                <mesh key={`neon-z-${zi}`} position={[0, -0.32, z]}>
+                  <boxGeometry args={[W * 0.85, 0.08, 0.08]} />
+                  <meshStandardMaterial color="#00F0FF" emissive="#00E5FF" emissiveIntensity={2.5} toneMapped={false} />
+                </mesh>
+              ))}
+            </group>
+          ) : spec.ceilingStructure === "concrete_beams" ? (
+            /* Heavy Concrete Structural Beams */
+            <group>
+              {[-halfD * 0.65, -halfD * 0.22, halfD * 0.22, halfD * 0.65].map((z, i) => (
+                <mesh key={`conc-beam-${i}`} position={[0, -0.22, z]} castShadow>
+                  <boxGeometry args={[W * 0.98, 0.44, 0.48]} />
+                  <meshStandardMaterial color="#2E3035" roughness={0.8} />
+                </mesh>
+              ))}
+            </group>
           ) : (
-            /* Standard Ceiling Beams */
+            /* Minimal Soffit / Standard Beams */
             <group>
               {[-halfD * 0.6, -halfD * 0.2, halfD * 0.2, halfD * 0.6].map((z, i) => (
                 <mesh key={i} position={[0, 0, z]} castShadow>
@@ -1015,6 +1076,172 @@ function ObjectMesh({
       );
     }
 
+    /* --- Fluted Cocktail Bar Counter --- */
+    if (obj.id.includes("bar-counter") || obj.id.includes("bar")) {
+      return (
+        <group>
+          {/* Main Curved/Fluted Counter Base */}
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <boxGeometry args={[4.2, 1.05, 1.1]} />
+            <meshStandardMaterial color={obj.color} roughness={0.45} metalness={0.2} />
+          </mesh>
+          {/* Honed Stone / Marble Counter Top with Overhang */}
+          <mesh castShadow receiveShadow position={[0, 0.55, 0]}>
+            <boxGeometry args={[4.4, 0.08, 1.25]} />
+            <meshStandardMaterial color="#1E1B18" roughness={0.2} metalness={0.6} />
+          </mesh>
+          {/* Polished Brass Footrail */}
+          <mesh position={[0, -0.38, 0.62]}>
+            <cylinderGeometry args={[0.025, 0.025, 4.2, 16]} rotation-z={Math.PI / 2} />
+            <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.2} />
+          </mesh>
+          {/* Backlit Under-Counter Glow */}
+          <mesh position={[0, 0.48, 0.58]}>
+            <boxGeometry args={[4.2, 0.02, 0.04]} />
+            <meshStandardMaterial color="#FFB84D" emissive="#FFA834" emissiveIntensity={2.0} />
+          </mesh>
+        </group>
+      );
+    }
+
+    /* --- Floor-to-Ceiling Grid Library & Vinyl Shelving Wall --- */
+    if (obj.id.includes("shelving-wall") || obj.id.includes("shelf") || obj.id.includes("library")) {
+      return (
+        <group>
+          {/* Outer Grid Frame */}
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <boxGeometry args={[5.2, 3.4, 0.45]} />
+            <meshStandardMaterial color={obj.color} roughness={0.7} metalness={0.2} />
+          </mesh>
+          {/* Internal Grid Shelves & Record Sleeves */}
+          {[-1.8, -0.9, 0, 0.9, 1.8].map((x, xi) => (
+            <mesh key={`div-${xi}`} position={[x, 0, 0.02]}>
+              <boxGeometry args={[0.04, 3.35, 0.42]} />
+              <meshStandardMaterial color="#1A1512" roughness={0.6} />
+            </mesh>
+          ))}
+          {[-1.0, -0.3, 0.4, 1.1].map((y, yi) => (
+            <group key={`shelf-${yi}`}>
+              <mesh position={[0, y, 0.02]}>
+                <boxGeometry args={[5.15, 0.04, 0.42]} />
+                <meshStandardMaterial color="#1A1512" roughness={0.6} />
+              </mesh>
+              {/* Record album bundles on shelf */}
+              {[-1.4, -0.5, 0.5, 1.4].map((rx, ri) => (
+                <mesh key={`rec-${ri}`} position={[rx, y + 0.16, 0.05]}>
+                  <boxGeometry args={[0.28, 0.3, 0.32]} />
+                  <meshStandardMaterial color="#C5B095" roughness={0.8} />
+                </mesh>
+              ))}
+            </group>
+          ))}
+        </group>
+      );
+    }
+
+    /* --- Carved Stone Water Fountain Basin --- */
+    if (obj.id.includes("fountain")) {
+      return (
+        <group>
+          {/* Octagonal Carved Stone Basin */}
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <cylinderGeometry args={[1.5, 1.6, 0.75, 8]} />
+            <meshStandardMaterial color="#DDD5C7" roughness={0.65} metalness={0.1} />
+          </mesh>
+          {/* Inner Water Surface */}
+          <mesh position={[0, 0.32, 0]}>
+            <cylinderGeometry args={[1.35, 1.35, 0.02, 16]} />
+            <meshStandardMaterial color="#4A7C85" roughness={0.05} metalness={0.8} transparent opacity={0.85} />
+          </mesh>
+          {/* Central Water Plinth & Brass Spout */}
+          <mesh position={[0, 0.55, 0]} castShadow>
+            <cylinderGeometry args={[0.25, 0.35, 0.45, 8]} />
+            <meshStandardMaterial color="#DDD5C7" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 0.8, 0]}>
+            <sphereGeometry args={[0.08, 12, 12]} />
+            <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.2} />
+          </mesh>
+        </group>
+      );
+    }
+
+    /* --- Architectural Travertine Hearth / Fireplace --- */
+    if (obj.id.includes("hearth") || obj.id.includes("fireplace")) {
+      return (
+        <group>
+          {/* Cantilevered Travertine Slab */}
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <boxGeometry args={[2.8, 0.55, 0.9]} />
+            <meshStandardMaterial color={obj.color} roughness={0.7} metalness={0.1} />
+          </mesh>
+          {/* Recessed Firebox */}
+          <mesh position={[0, 0.35, 0]}>
+            <boxGeometry args={[1.8, 0.25, 0.6]} />
+            <meshStandardMaterial color="#141210" roughness={0.9} />
+          </mesh>
+          {/* Glowing Embers */}
+          <mesh position={[0, 0.28, 0]}>
+            <boxGeometry args={[1.5, 0.08, 0.4]} />
+            <meshStandardMaterial color="#FFA834" emissive="#FF7A18" emissiveIntensity={3.2} toneMapped={false} />
+          </mesh>
+          <pointLight color="#FF9C28" distance={4.5} decay={2} intensity={2.0} />
+        </group>
+      );
+    }
+
+    /* --- Qloo Cultural Artist Showcase Plinth --- */
+    if (obj.id.includes("showcase") || obj.id.includes("cultural-showcase")) {
+      return (
+        <group>
+          {/* Honed Architectural Stone Vitrine Pedestal */}
+          <mesh castShadow receiveShadow position={[0, 0, 0]}>
+            <boxGeometry args={[1.1, 1.0, 0.75]} />
+            <meshStandardMaterial color="#3A3836" roughness={0.4} metalness={0.3} />
+          </mesh>
+          {/* Inscribed Brushed Brass Plaque */}
+          <mesh position={[0, 0.1, 0.39]}>
+            <boxGeometry args={[0.75, 0.35, 0.02]} />
+            <meshStandardMaterial color="#D4AF37" metalness={0.9} roughness={0.25} />
+          </mesh>
+          {/* Glass Display Vitrine Hood */}
+          <mesh position={[0, 0.75, 0]}>
+            <boxGeometry args={[0.95, 0.5, 0.65]} />
+            <meshStandardMaterial color="#FFFFFF" roughness={0.05} metalness={0.1} transparent opacity={0.28} />
+          </mesh>
+          {/* Vinyl Showcase Record / Artifact Inside */}
+          <mesh position={[0, 0.75, 0]} rotation-x={Math.PI / 4}>
+            <cylinderGeometry args={[0.18, 0.18, 0.015, 32]} />
+            <meshStandardMaterial color="#111111" metalness={0.8} roughness={0.2} />
+          </mesh>
+          {/* Spotlight over showcase */}
+          <pointLight color="#FFE2A8" distance={3.5} decay={2} intensity={1.8} />
+        </group>
+      );
+    }
+
+    /* --- Mouth-Blown Amber Teardrop Glass Pendant --- */
+    if (obj.id.includes("pendant-amber")) {
+      return (
+        <group>
+          {/* Mouth-blown Amber Glass Pendant */}
+          <mesh castShadow>
+            <sphereGeometry args={[0.26, 24, 24]} />
+            <meshStandardMaterial color="#FFAE4A" roughness={0.1} metalness={0.1} transparent opacity={0.75} />
+          </mesh>
+          <mesh position={[0, 0, 0]}>
+            <sphereGeometry args={[0.08, 12, 12]} />
+            <meshStandardMaterial color="#FFAE34" emissive="#FF9D2E" emissiveIntensity={3.5} toneMapped={false} />
+          </mesh>
+          <mesh position={[0, 1.1, 0]}>
+            <cylinderGeometry args={[0.008, 0.008, 2.2, 8]} />
+            <meshStandardMaterial color="#2B1A0E" />
+          </mesh>
+          <pointLight color="#FF9C28" distance={6.0} decay={2} intensity={2.2} />
+        </group>
+      );
+    }
+
     // Default plinth / structure
     return (
       <mesh castShadow receiveShadow position={[0, 0, 0]}>
@@ -1369,6 +1596,44 @@ function VenueCanvas({
                 </span>
               </div>
             </div>
+
+            {/* Qloo Cultural Evidence & Dynamic Recommendations */}
+            {(spec.qlooFlooring || spec.qlooSeating || spec.qlooFeaturedArtist || spec.qlooLightingK) && (
+              <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3 text-[10px]">
+                <div className="flex items-center justify-between mb-1.5">
+                  <span className="text-[9px] tracking-[0.2em] text-[var(--lintel-moss)] uppercase font-semibold">
+                    Qloo Recommendations
+                  </span>
+                  <span className="text-[8px] text-white/40 font-mono">AFFINITY-DRIVEN</span>
+                </div>
+                <div className="space-y-1 text-white/70">
+                  {spec.qlooFlooring && (
+                    <div className="flex justify-between">
+                      <span className="text-white/40">Flooring:</span>
+                      <span className="text-white/90 font-medium text-right">{spec.qlooFlooring}</span>
+                    </div>
+                  )}
+                  {spec.qlooSeating && (
+                    <div className="flex justify-between">
+                      <span className="text-white/40">Seating:</span>
+                      <span className="text-white/90 font-medium text-right">{spec.qlooSeating}</span>
+                    </div>
+                  )}
+                  {spec.qlooFeaturedArtist && (
+                    <div className="flex justify-between">
+                      <span className="text-white/40">Cultural Artist:</span>
+                      <span className="text-[var(--lintel-terracotta)] font-semibold text-right">{spec.qlooFeaturedArtist}</span>
+                    </div>
+                  )}
+                  {spec.qlooLightingK && (
+                    <div className="flex justify-between">
+                      <span className="text-white/40">Kelvin:</span>
+                      <span className="text-white/90 font-medium text-right">{spec.qlooLightingK}K</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Interactive Spatial Zones */}
             <div className="mt-4">

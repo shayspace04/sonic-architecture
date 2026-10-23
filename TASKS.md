@@ -36,6 +36,14 @@ Statuses reflect **evidence in the repo / live checks as of 2026-10-19**, not pr
 - [x] Landing rebuild re-verified: `npm run lint` clean, `npm test` 37/37,
   `npm run build` clean; `/` and `/studio` both HTTP 200 in dev
 
+- [x] **Universal Deep 3D Architectural Detail & Dynamic Qloo Element Synthesis** (2026-10-23):
+  - [x] Expanded procedural typologies from 6 to 9 distinct architectural typologies (`grand_hall`, `listening_room`, `intimate_lounge`, `mediterranean_courtyard`, `industrial_loft`, `party_venue`, `scandinavian_living`, `futuristic_launch`, `gallery_pavilion`).
+  - [x] Universal dynamic Qloo element binding: `vibe.flooringMaterial` maps to PBR floor shaders & labels; `vibe.seatingFabric` dynamically mutates all room seating with tailored tactile specs; `vibe.lightingTemperatureK` and `lightingDirection` dynamically drive lighting rigs; `vibe.artists[0]` spawns a dedicated 3D Cultural Showcase vitrine and zoning card; Qloo evidence tags dynamically inject missing architectural archetypes.
+  - [x] Expanded procedural 3D fixture archetypes in `Venue3D.tsx`: fluted cocktail bar counter with brass footrail and under-glow; floor-to-ceiling grid vinyl library wall; carved stone water fountain basin; architectural travertine hearth fireplace; Qloo affinity artist showcase vitrine with brass plaque; amber Murano teardrop glass pendants.
+  - [x] Modular architectural ceiling structures (`cathedral_truss`, `acoustic_coffered`, `timber_pergola`, `concrete_beams`, `neon_lightgrid`, `minimal_soffit`) and wall architectures (`arched_colonnade`, `timber_slats`, `panoramic_glazing`, `fluted_stone`, `raw_concrete_panels`, `gallery_planes`).
+  - [x] Dedicated Qloo Recommendations section in 3D Planning HUD Drawer and 2D Schematic Blueprint.
+  - [x] Added curated briefs for speakeasies, riad courtyards, and warehouse lofts in landing composer and `/studio`.
+
 - [x] **Cathedral Timber Banquet Hall Typology & High-Fidelity 3D Details** (2026-10-23):
   - [x] Added `grand_hall` typology (*Cathedral Timber Banquet Hall & Celebration Venue*, 14m × 22m × 7.2m volume) supporting weddings, banquets, cathedrals, ceremony halls, and celebrations.
   - [x] Cathedral timber A-frame roof trusses (tie beams, king posts, rafters, purlins, longitudinal ridge beam).

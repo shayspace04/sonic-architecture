@@ -117,5 +117,20 @@ export function buildDetailedRationale(
     isDefault: source === "local-fallback",
   });
 
+  // 7. Qloo Curated Cultural Artist Showcase (when available)
+  if (vibe.artists && vibe.artists.length > 0) {
+    const topArtist = vibe.artists[0];
+    entries.push({
+      decision: "culturalArtist",
+      label: "Acoustic Showcase Node",
+      value: topArtist.name,
+      provenance: "qloo",
+      provenanceLabel: PROVENANCE_LABELS.qloo,
+      interpretation: `Surfaced from Qloo cross-domain affinity analysis from ${topArtist.sourceEntity || "cultural input"}. Directly integrated into 3D architectural showcase node.`,
+      evidence: [{ group: "affinity", items: vibe.artists.slice(0, 4).map((a) => a.name) }],
+      isDefault: false,
+    });
+  }
+
   return entries;
 }

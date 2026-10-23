@@ -20,6 +20,14 @@ export const ARCHITECTURAL_EXAMPLES = [
     full: "A Japanese jazz listening room with dark timber, warm paper lanterns, and intimate seating.",
   },
   {
+    short: "Mid-century speakeasy",
+    full: "A moody mid-century cocktail lounge with fluted walnut bar, amber lighting, and crushed mohair velvet banquettes.",
+  },
+  {
+    short: "Mediterranean riad",
+    full: "A sunlit Mediterranean riad courtyard with terracotta tiles, carved stone fountain, and shaded olive pergolas.",
+  },
+  {
     short: "Pink grungy party",
     full: "A pink grungy birthday party with chrome furniture, dramatic lighting, and playful details.",
   },

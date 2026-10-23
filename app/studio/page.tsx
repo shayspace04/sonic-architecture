@@ -32,6 +32,21 @@ const STUDIO_PRESETS = [
     typology: "listening_room" as SpatialTypology,
   },
   {
+    label: "Mid-Century Speakeasy",
+    prompt: "A moody mid-century cocktail lounge with fluted walnut bar, amber lighting, and crushed mohair velvet banquettes.",
+    typology: "intimate_lounge" as SpatialTypology,
+  },
+  {
+    label: "Mediterranean Courtyard",
+    prompt: "A sunlit Mediterranean riad courtyard with terracotta tiles, carved stone fountain, and shaded olive pergolas.",
+    typology: "mediterranean_courtyard" as SpatialTypology,
+  },
+  {
+    label: "Industrial Loft Taproom",
+    prompt: "An industrial warehouse taproom with exposed concrete beams, steel tap bar, and communal reclaimed chestnut tables.",
+    typology: "industrial_loft" as SpatialTypology,
+  },
+  {
     label: "Pink Grunge Party",
     prompt: "A pink grungy birthday party with chrome furniture, dramatic lighting, and playful details.",
     typology: "party_venue" as SpatialTypology,
@@ -243,7 +258,10 @@ export default function StudioPage() {
                 <option value="auto">Auto (from brief & signals)</option>
                 <option value="grand_hall">Cathedral Timber Banquet Hall</option>
                 <option value="listening_room">Japanese Jazz Listening Lounge</option>
-                <option value="party_venue">Underground Grunge Hall</option>
+                <option value="intimate_lounge">Mid-Century Cocktail Lounge</option>
+                <option value="mediterranean_courtyard">Mediterranean Riad Courtyard</option>
+                <option value="industrial_loft">Industrial Warehouse Loft</option>
+                <option value="party_venue">Underground Grunge Club</option>
                 <option value="scandinavian_living">Minimalist Nordic Living</option>
                 <option value="futuristic_launch">Kinetic Launch Pavilion</option>
                 <option value="gallery_pavilion">Contemplative Spatial Gallery</option>
@@ -363,6 +381,14 @@ export default function StudioPage() {
                       {sceneSpec.hasWindowAperture ? "Natural Daylight Slot Active" : "Enclosed Cocoon"}
                     </span>
                   </div>
+                  {sceneSpec.qlooFeaturedArtist && (
+                    <div>
+                      <span className="text-[var(--lintel-terracotta)] font-semibold">Qloo Affinity Artist:</span>{" "}
+                      <span className="text-[var(--lintel-paper)] font-semibold">
+                        {sceneSpec.qlooFeaturedArtist}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="border-t border-[var(--lintel-paper)]/10 pt-3">

@@ -329,19 +329,21 @@ export default function SpatialTranslation({
               <div className="grid grid-cols-2 gap-2 text-[10px] font-mono">
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                   <span className="text-white/40 block">TOTAL ENVELOPE</span>
-                  <span className="text-white font-semibold">{W * D} m²</span>
+                  <span className="text-white font-semibold">{W * D} m² ({sceneSpec.roomDimensions.width * sceneSpec.roomDimensions.depth * sceneSpec.roomDimensions.height} m³)</span>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
                   <span className="text-white/40 block">CEILING CLEAR</span>
-                  <span className="text-white font-semibold">{sceneSpec.roomDimensions.height}m</span>
+                  <span className="text-white font-semibold">{sceneSpec.roomDimensions.height}m ({sceneSpec.ceilingStructure.replace("_", " ")})</span>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <span className="text-white/40 block">WALL SPEC</span>
-                  <span className="text-white font-semibold">{sceneSpec.wallFinish.replace("_", " ").toUpperCase()}</span>
+                  <span className="text-white/40 block">WALL ARCHITECTURE</span>
+                  <span className="text-white font-semibold">{sceneSpec.wallArchitecture.replace("_", " ").toUpperCase()}</span>
                 </div>
                 <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                  <span className="text-white/40 block">FLOOR SPEC</span>
-                  <span className="text-white font-semibold">{sceneSpec.floorFinish.replace("_", " ").toUpperCase()}</span>
+                  <span className="text-white/40 block">FLOORING (QLOO)</span>
+                  <span className="text-white font-semibold truncate block" title={sceneSpec.qlooFlooring || sceneSpec.floorFinish}>
+                    {sceneSpec.qlooFlooring || sceneSpec.floorFinish.replace("_", " ").toUpperCase()}
+                  </span>
                 </div>
               </div>
             </div>
