@@ -1,0 +1,62 @@
+[
+  {
+    "prompt": "Jazz + Brutalist Architecture",
+    "slug": "01-jazz-brutalist",
+    "filePath": "screenshots\\final\\01-jazz-brutalist.png",
+    "width": 1232,
+    "height": 621,
+    "meanLuminance": 0.2883,
+    "blownHighlightsPct": 0.04,
+    "crushedShadowsPct": 1.54
+  },
+  {
+    "prompt": "Japanese tea room",
+    "slug": "02-japanese-tea-room",
+    "filePath": "screenshots\\final\\02-japanese-tea-room.png",
+    "width": 1232,
+    "height": 621,
+    "meanLuminance": 0.282,
+    "blownHighlightsPct": 0,
+    "crushedShadowsPct": 0.16
+  },
+  {
+    "prompt": "Cathedral banquet",
+    "slug": "03-cathedral-banquet",
+    "filePath": "screenshots\\final\\03-cathedral-banquet.png",
+    "width": 1232,
+    "height": 621,
+    "meanLuminance": 0.2735,
+    "blownHighlightsPct": 0,
+    "crushedShadowsPct": 1.35
+  },
+  {
+    "prompt": "Grunge loft club",
+    "slug": "04-grunge-loft-club",
+    "filePath": "screenshots\\final\\04-grunge-loft-club.png",
+    "width": 1232,
+    "height": 621,
+    "meanLuminance": 0.2613,
+    "blownHighlightsPct": 0.06,
+    "crushedShadowsPct": 1.36
+  },
+  {
+    "prompt": "Mediterranean courtyard",
+    "slug": "05-mediterranean-courtyard",
+    "filePath": "screenshots\\final\\05-mediterranean-courtyard.png",
+    "width": 1232,
+    "height": 621,
+    "meanLuminance": 0.3819,
+    "blownHighlightsPct": 0.02,
+    "crushedShadowsPct": 0.3
+  },
+  {
+    "prompt": "Product launch pavilion",
+    "slug": "06-product-launch-pavilion",
+    "filePath": "screenshots\\final\\06-product-launch-pavilion.png",
+    "width": 1232,
+    "height": 621,
+    "meanLuminance": 0.246,
+    "blownHighlightsPct": 0.02,
+    "crushedShadowsPct": 2.62
+  }
+]
