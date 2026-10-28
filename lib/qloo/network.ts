@@ -49,10 +49,10 @@ export function ensureQlooNetworkConfigured(): void {
       new Agent({
         connect: {
           lookup: resilientQlooLookup,
-          timeout: 25_000, // 25s connect timeout for slow cellular hops
+          timeout: 35_000, // 35s connect timeout for slow cellular hops
         },
-        headersTimeout: 25_000,
-        bodyTimeout: 25_000,
+        headersTimeout: 35_000,
+        bodyTimeout: 35_000,
         keepAliveTimeout: 15_000,
         keepAliveMaxTimeout: 60_000,
       })

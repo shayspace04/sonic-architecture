@@ -31,6 +31,9 @@ next-env.d.ts.bak
 .eslintcache
 .qloo-samples/
 .qloo-cache/
+.qloo-proof/
+proof-output/
+*.proof.json
 
 # OS & Editor files (Windows / macOS / Linux)
 .DS_Store

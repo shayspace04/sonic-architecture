@@ -83,6 +83,9 @@ export function QlooGroundingPanel({
                 Live Qloo unavailable — sample data
               </span>
             )}
+            <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-neutral-900 text-neutral-400 border border-neutral-800">
+              Baseline: Without Qloo (prompt-only design)
+            </span>
           </div>
           <p className="m-0 text-xs text-[var(--muted)] font-mono">
             Proving cross-domain taste graphs directly dictate 3D geometry, materials, lighting, and acoustic physics.

@@ -11,10 +11,11 @@
 import type { QlooContext, Provenance } from "@/lib/types";
 
 export const STARTER_PROMPTS = [
+  "Miles Davis + Brutalist concrete",
+  "Aphex Twin + gallery warehouse",
+  "A24 films + indie music",
+  "Japanese Gardens + ambient",
   "Jazz + Brutalist Architecture",
-  "A24 Films + Indie Music",
-  "Japanese Gardens + Ambient",
-  "Chrome + Club Culture",
 ] as const;
 
 export type StarterPrompt = (typeof STARTER_PROMPTS)[number];
@@ -550,11 +551,14 @@ export function getQlooFixture(promptText: string): QlooContext | null {
   }
 
   // 2. Key phrases
+  if (clean.includes("miles davis") || (clean.includes("jazz") && (clean.includes("brutal") || clean.includes("concrete")))) {
+    return QLOO_SAMPLE_FIXTURES["jazz + brutalist architecture"];
+  }
+  if (clean.includes("aphex twin") || ((clean.includes("chrome") || clean.includes("club") || clean.includes("warehouse")) && (clean.includes("techno") || clean.includes("gallery")))) {
+    return QLOO_SAMPLE_FIXTURES["chrome + club culture"];
+  }
   if (clean.includes("pink") || clean.includes("grunge") || clean.includes("flash studio")) {
     return QLOO_SAMPLE_FIXTURES["pink grunge editorial loft & flash studio"];
-  }
-  if (clean.includes("jazz") && (clean.includes("brutal") || clean.includes("concrete"))) {
-    return QLOO_SAMPLE_FIXTURES["jazz + brutalist architecture"];
   }
   if ((clean.includes("a24") || clean.includes("indie")) && (clean.includes("film") || clean.includes("music"))) {
     return QLOO_SAMPLE_FIXTURES["a24 films + indie music"];

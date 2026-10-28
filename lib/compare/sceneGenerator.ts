@@ -131,24 +131,38 @@ export function designScene({
     []
   );
 
-  // Extract concatenated Qloo signals to drive load-bearing physical modulations
-  const allSignals = qlooContext.entities
-    .flatMap((e) => e.signals)
-    .join(" ")
-    .toLowerCase();
-  const allEntities = qlooContext.entities
-    .map((e) => e.name.toLowerCase())
-    .join(" ");
-
   const bundle = qlooContext.crossDomainBundle;
 
-  const primaryEntity = qlooContext.entities[0] || {
+  // Extract concatenated Qloo signals from both entities and resolved tags
+  const allSignals = [
+    ...qlooContext.entities.flatMap((e) => e.signals),
+    ...(bundle?.resolvedTags || []).map((t: any) => t.name),
+    ...(bundle?.places || []).map((p: any) => p.name),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const allEntities = [
+    ...qlooContext.entities.map((e) => e.name),
+    ...(bundle?.resolvedTags || []).map((t: any) => t.name),
+  ]
+    .join(" ")
+    .toLowerCase();
+
+  const primaryTag = bundle?.resolvedTags?.[0];
+  const primaryEntity = qlooContext.entities[0] || (primaryTag ? {
+    id: primaryTag.id,
+    name: primaryTag.name,
+    type: "cultural_tag",
+    signals: [primaryTag.name.toLowerCase()],
+    provenance: defaultProv,
+  } : {
     id: "entity:qloo-core",
     name: "Qloo Cultural Vector",
     type: "cultural_entity",
     signals: ["cultural_grounding"],
     provenance: defaultProv,
-  };
+  });
 
   const provenanceMap: Record<string, DerivedFrom> = {};
 
@@ -742,6 +756,9 @@ export function generateSceneComparison({
     diff,
     isSampleFixture,
     source,
+    baselineMode: "prompt-only design",
+    unresolvedCandidates: qlooContext?.unresolved,
+    matchedTags: qlooContext?.crossDomainBundle?.resolvedTags,
   };
 
   return comparison;

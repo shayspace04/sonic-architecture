@@ -844,6 +844,9 @@ export interface SceneComparison {
   diff: DiffItem[];
   isSampleFixture?: boolean;
   source?: "live" | "cache" | "fixture" | "fallback";
+  baselineMode?: "prompt-only design" | "llm-prompt-only";
+  unresolvedCandidates?: { name: string; reason: string }[];
+  matchedTags?: any[];
 }
 
 export interface QlooContextEntity {

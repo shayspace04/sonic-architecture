@@ -94,8 +94,9 @@ export async function POST(req: Request) {
       }
     }
 
+    const hasLiveSignal = liveEntities.length > 0 || (resolution.matchedTags && resolution.matchedTags.length > 0);
     const liveContext: QlooContext | undefined =
-      liveEntities.length > 0
+      hasLiveSignal
         ? {
             prompt,
             entities: liveEntities,
@@ -140,6 +141,8 @@ export async function POST(req: Request) {
       qloo_evidence: sceneSpec.qloo_evidence,
       comparison,
       unresolved: resolution.unresolved,
+      matchedTags: resolution.matchedTags,
+      unmatchedConcepts: resolution.unmatchedConcepts,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unexpected generation error";

@@ -41,20 +41,24 @@ export const EDITORIAL_ROUTES: Readonly<Record<EditorialRouteKey, EditorialRoute
     metaDescription: "Translate music, cinema, and cultural signals into inhabitable 3D architectural spaces, acoustic telemetry, and spatial soundtracks.",
     promptChips: [
       {
-        label: "Brutalist Reverb",
-        prompt: "Brutalist cathedral reverb with 14s decay, raw board-formed concrete ribs, and high-altitude sound baffles",
+        label: "Miles Davis",
+        prompt: "Miles Davis + Brutalist concrete",
       },
       {
-        label: "Modular Pavilion",
-        prompt: "Modular synth pavilion with walnut acoustic diffusers, 120bpm rhythmic lighting, and suspended fabric canopy",
+        label: "Aphex Twin",
+        prompt: "Aphex Twin + gallery warehouse",
       },
       {
-        label: "Subterranean Vault",
-        prompt: "Subterranean techno vault with monolithic black steel columns, deep sub-bass acoustic traps, and amber lighting",
+        label: "A24 Films",
+        prompt: "A24 films + indie music",
       },
       {
-        label: "Ambient Sanctuary",
-        prompt: "Ambient moss sanctuary with aromatic cedar pergolas, natural diffuse daylight, and continuous binaural mist",
+        label: "Japanese Gardens",
+        prompt: "Japanese Gardens + ambient",
+      },
+      {
+        label: "Concept Tags",
+        prompt: "Jazz + Brutalist Architecture",
       },
     ],
   },

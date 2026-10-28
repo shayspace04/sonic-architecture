@@ -145,17 +145,59 @@ export interface QlooTagsSearchResponse {
 /**
  * Consolidated cross-domain intelligence bundle verified against live Qloo
  */
+export interface ExtractedNamedEntity {
+  name: string;
+  type: "artist" | "movie" | "tv_show" | "place" | "brand" | "person";
+}
+
+export interface ExtractedConcept {
+  term: string;
+  kind: "genre" | "style" | "mood" | "material" | "era";
+}
+
+export interface ExtractionOutput {
+  namedEntities: ExtractedNamedEntity[];
+  concepts: ExtractedConcept[];
+  extractorUsed: "llm" | "rules";
+}
+
+export interface ResolvedTagEvidence {
+  id: string;
+  name: string;
+  type: string;
+  conceptTerm: string;
+  popularity?: number;
+  provenance: "qloo-evidence" | "sample-fixture";
+}
+
+export interface UnmatchedConcept {
+  term: string;
+  reason: "no Qloo tag";
+}
+
+export interface SurfaceExplainability {
+  contributorId: string;
+  contributorName: string;
+  contributorType: "entity" | "tag";
+  score: number;
+}
+
 export interface RealQlooEvidenceBundle {
   source: "live" | "cache" | "fixture" | "fallback";
   inputParsed: string;
-  resolvedEntity: QlooSearchEntity;
+  resolvedEntity: QlooSearchEntity | null;
+  resolvedEntities: QlooSearchEntity[];
+  resolvedTags: ResolvedTagEvidence[];
+  unmatchedConcepts: UnmatchedConcept[];
+  unresolved: { name: string; reason: string }[];
   places: QlooInsightEntity[];
   relatedArtists: QlooInsightEntity[];
   movies: QlooInsightEntity[];
   brands: QlooInsightEntity[];
   tasteTags: QlooTasteTag[];
   demographics: QlooDemographic | null;
-  explainabilityScores: Record<string, number>; // entity_id -> score (0-1)
+  explainabilityScores: Record<string, number>; // entity_id / tag_id -> score (0-1)
+  surfaceExplainability: Record<string, SurfaceExplainability>; // entity_id -> top driver
   latencyMs: number;
   timestamp: number;
 }

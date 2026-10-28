@@ -51,28 +51,59 @@ export function WhatQlooChangedList({
           </div>
 
           {/* Source Status Badge */}
-          {comparison.source === "live" ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 text-[10px] font-semibold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              <span>Live Qloo API Grounding</span>
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 text-neutral-400 border border-neutral-800 text-[10px] font-mono">
+              <span className="text-[var(--muted)]">Baseline:</span>
+              <span className="text-neutral-200">Without Qloo (prompt-only design)</span>
             </div>
-          ) : comparison.source === "cache" ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/80 text-[10px] font-semibold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
-              <span>Cached Qloo Signal</span>
-            </div>
-          ) : comparison.source === "fallback" ? (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 text-neutral-300 border border-neutral-700 text-[10px] font-semibold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
-              <span>Procedural Fallback — no Qloo data</span>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-950/80 text-amber-300 border border-amber-800/80 text-[10px] font-semibold uppercase tracking-wider">
-              <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              <span>Live Qloo unavailable — sample data</span>
-            </div>
-          )}
+
+            {comparison.source === "live" ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/80 text-[10px] font-semibold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span>Live Qloo API Grounding</span>
+              </div>
+            ) : comparison.source === "cache" ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-800/80 text-[10px] font-semibold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+                <span>Cached Qloo Signal</span>
+              </div>
+            ) : comparison.source === "fallback" ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 text-neutral-300 border border-neutral-700 text-[10px] font-semibold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />
+                <span>Procedural Fallback — no Qloo data</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-950/80 text-amber-300 border border-amber-800/80 text-[10px] font-semibold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
+                <span>Live Qloo unavailable — sample data</span>
+              </div>
+            )}
+          </div>
         </div>
+
+        {/* Unresolved Candidates Warning Banner */}
+        {comparison.unresolvedCandidates && comparison.unresolvedCandidates.length > 0 && (
+          <div className="p-2.5 rounded bg-amber-950/30 border border-amber-900/50 text-[11px] text-amber-200 font-mono space-y-1">
+            {comparison.unresolvedCandidates.map((u, i) => (
+              <div key={i} className="flex items-center gap-1.5">
+                <span className="text-amber-400">⚠️</span>
+                <span>Couldn&apos;t find in Qloo: &ldquo;{u.name}&rdquo; ({u.reason})</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Matched Qloo Tags Evidence Strip */}
+        {comparison.matchedTags && comparison.matchedTags.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 p-2 rounded bg-black/40 border border-white/5 text-[10px] font-mono">
+            <span className="text-[var(--muted)] uppercase font-semibold">Qloo Tags:</span>
+            {comparison.matchedTags.map((t: any, i: number) => (
+              <span key={i} className="px-1.5 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/40">
+                {t.name} <span className="text-emerald-600">({t.id})</span>
+              </span>
+            ))}
+          </div>
+        )}
 
         {/* Factual Counters Strip (Section 3 requirement: "Facts, not vibes") */}
         <div className="p-3 bg-black/60 border border-[var(--line-subtle)] rounded flex flex-wrap items-center justify-between gap-4 text-[11px]">

@@ -223,7 +223,8 @@ export async function executeQlooSearch(
 }
 
 /**
- * Health check endpoint runner: minimal single request
+ * Health check endpoint runner: minimal single request that ALWAYS bypasses any cache
+ * and reports real measured network latency directly from live Qloo API.
  */
 export async function testQlooHealth(): Promise<{
   ok: boolean;
@@ -245,16 +246,19 @@ export async function testQlooHealth(): Promise<{
 
   const start = Date.now();
   try {
-    const resp = await fetch(`${QLOO_BASE_URL}/search?query=health&take=1`, {
+    const resp = await fetch(`${QLOO_BASE_URL}/search?query=health&take=1&_cb=${Date.now()}`, {
+      cache: "no-store",
       headers: {
         "X-Api-Key": apiKey,
+        "Cache-Control": "no-cache, no-store, must-revalidate",
+        Pragma: "no-cache",
         Accept: "application/json",
       },
-      signal: AbortSignal.timeout(14000),
+      signal: AbortSignal.timeout(16000),
     });
     const latencyMs = Date.now() - start;
     console.log(
-      `[Qloo Outbound] /search?query=health status=${resp.status} latency=${latencyMs}ms cache=miss`
+      `[Qloo Outbound] /search?query=health status=${resp.status} latency=${latencyMs}ms cache=bypass`
     );
 
     return {
