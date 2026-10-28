@@ -21,6 +21,10 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
+# Test capture outputs
+screenshots/**/*.png
+screenshots/*.png
+
 # TypeScript & caches
 *.tsbuildinfo
 next-env.d.ts.bak
