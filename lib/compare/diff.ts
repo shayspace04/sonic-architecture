@@ -189,6 +189,17 @@ function findTraceableEntity(
     }
   }
 
+  // Fall back to primary active Qloo entity driving this grounded run
+  const primary = qlooContext.entities[0];
+  if (primary) {
+    return {
+      entityName: primary.name,
+      entityType: primary.type.replace(/_/g, " "),
+      signal: primary.signals[0] || "cultural_grounding",
+      provenance: primary.provenance,
+    };
+  }
+
   return undefined;
 }
 

@@ -3,8 +3,10 @@ import { enrichPayloadWithKnowledge } from "@/lib/enrichment";
 import { buildSceneSpecFromPayload } from "@/lib/scene-spec";
 import { applyTargetedRevision } from "@/lib/revisions";
 import { generateSceneComparison } from "@/lib/compare/sceneGenerator";
-import { executeQlooSearch } from "@/lib/qloo/client";
-import type { ResolvedEntity, SceneSpec, QuotaInfo, QlooContext } from "@/lib/types";
+import { getCrossDomainEvidenceForPrompt } from "@/lib/qloo/pipeline";
+import type { ResolvedEntity, SceneSpec, QuotaInfo, QlooContext, QlooContextEntity } from "@/lib/types";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: Request) {
   try {
@@ -28,46 +30,87 @@ export async function POST(req: Request) {
       );
     }
 
-    // Execute safe, instrumented Qloo search with server-side latency & cache logging
-    const searchResult = await executeQlooSearch(prompt, 4);
+    // Execute full Phase C cross-domain extraction and parallel insights pipeline
+    const { resolution, bundle } = await getCrossDomainEvidenceForPrompt(prompt);
 
-    const resolvedEntities: ResolvedEntity[] = searchResult.entities.map((item) => ({
-      id: item.id,
+    const resolvedEntities: ResolvedEntity[] = resolution.resolved.map((item) => ({
+      id: item.entity_id,
       name: item.name,
-      type: item.type,
+      type: item.types?.[0] || item.type || "cultural_entity",
       searchTerm: prompt.slice(0, 40),
     }));
 
-    const qlooErrors: string[] = searchResult.error ? [searchResult.error] : [];
-    const quotaInfo: QuotaInfo | undefined = searchResult.quota;
+    const qlooErrors: string[] = resolution.unresolved.map(
+      (u) => `Candidate "${u.name}" unresolved: ${u.reason}`
+    );
 
     const payload = enrichPayloadWithKnowledge(
       prompt,
       resolvedEntities,
-      undefined,
+      bundle
+        ? {
+            genreTags: bundle.tasteTags.map((t) => t.name),
+            styleTags: bundle.brands.map((b) => b.name),
+            themeTags: bundle.movies.map((m) => m.name),
+            adjectives: bundle.tasteTags.slice(0, 4).map((t) => t.name.toLowerCase()),
+          }
+        : undefined,
       qlooErrors
     );
-    if (quotaInfo) {
-      payload.quota = quotaInfo;
-    }
 
     // Grounded Qloo Context with truthful provenance and source
+    const liveEntities: QlooContextEntity[] = resolution.resolved.map((e) => ({
+      id: e.entity_id,
+      name: e.name,
+      type: e.types?.[0] || e.type || "cultural_entity",
+      signals: ["verified_qloo_taste_graph"],
+      provenance:
+        resolution.source === "live" || resolution.source === "cache"
+          ? "qloo-evidence"
+          : "sample-fixture",
+    }));
+
+    // Augment with top places & brands from cross-domain bundle if available
+    if (bundle) {
+      if (bundle.places.length > 0) {
+        const topPlace = bundle.places[0];
+        liveEntities.push({
+          id: topPlace.entity_id,
+          name: topPlace.name,
+          type: "venue",
+          signals: [topPlace.properties?.description?.slice(0, 60) || "spatial_venue_reference"],
+          provenance: bundle.source === "live" || bundle.source === "cache" ? "qloo-evidence" : "sample-fixture",
+        });
+      }
+      if (bundle.brands.length > 0) {
+        const topBrand = bundle.brands[0];
+        liveEntities.push({
+          id: topBrand.entity_id,
+          name: topBrand.name,
+          type: "brand",
+          signals: ["material_and_equipment_standard"],
+          provenance: bundle.source === "live" || bundle.source === "cache" ? "qloo-evidence" : "sample-fixture",
+        });
+      }
+    }
+
     const liveContext: QlooContext | undefined =
-      resolvedEntities.length > 0
+      liveEntities.length > 0
         ? {
             prompt,
-            entities: searchResult.entities.map((e) => ({
-              id: e.id,
-              name: e.name,
-              type: e.type,
-              signals: e.signals && e.signals.length > 0 ? e.signals : ["live_qloo_verified"],
-              provenance:
-                searchResult.source === "live" || searchResult.source === "cache"
-                  ? "qloo-evidence"
-                  : "sample-fixture",
-            })),
-            source: searchResult.source,
-            qlooCallsUsed: 1,
+            entities: liveEntities,
+            culturalEvidence: bundle
+              ? {
+                  genreTags: bundle.tasteTags.map((t) => t.name),
+                  styleTags: bundle.brands.map((b) => b.name),
+                  themeTags: bundle.movies.map((m) => m.name),
+                  adjectives: bundle.tasteTags.slice(0, 4).map((t) => t.name.toLowerCase()),
+                }
+              : undefined,
+            source: resolution.source,
+            qlooCallsUsed: resolution.totalCalls + (bundle?.source === "live" ? 6 : 0),
+            unresolved: resolution.unresolved,
+            crossDomainBundle: bundle,
           }
         : undefined;
 
@@ -75,13 +118,13 @@ export async function POST(req: Request) {
       prompt,
       forcedContext: liveContext,
     });
-    comparison.source = searchResult.source;
+    comparison.source = resolution.source;
 
     // The grounded scene is the modulated output reflecting Qloo signals
     const sceneSpec = comparison.grounded;
-    sceneSpec.qlooSource = searchResult.source;
+    sceneSpec.qlooSource = resolution.source;
     if (sceneSpec.qloo_evidence) {
-      sceneSpec.qloo_evidence.source = searchResult.source;
+      sceneSpec.qloo_evidence.source = resolution.source;
     }
 
     // Make sure neither scene carries a comparison field (prevents cycle)
@@ -91,11 +134,12 @@ export async function POST(req: Request) {
 
     return NextResponse.json({
       ...payload,
-      source: searchResult.source,
+      source: resolution.source,
       scene: sceneSpec,
       sceneSpec,
       qloo_evidence: sceneSpec.qloo_evidence,
       comparison,
+      unresolved: resolution.unresolved,
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unexpected generation error";

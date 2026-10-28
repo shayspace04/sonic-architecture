@@ -49,16 +49,37 @@ export interface GenerateSceneOptions {
   qlooContext?: QlooContext;
 }
 
+// In-memory cache for designScene results keyed by (prompt, seed, hash(qlooContext))
+const DESIGN_SCENE_CACHE = new Map<string, SceneSpec>();
+
+function computeSceneContextHash(prompt: string, seed: number, qlooContext?: QlooContext): string {
+  const p = prompt.trim().toLowerCase();
+  const entStr = qlooContext?.entities ? qlooContext.entities.map((e) => `${e.id}:${e.name}`).join("|") : "none";
+  const src = qlooContext?.source || "none";
+  return `${p}::${seed}::${src}::${entStr}`;
+}
+
 /**
- * Generates a SceneSpec with identical baseline pipeline logic.
- * The presence of `qlooContext` is the ONLY variable between Baseline and Grounded.
+ * Phase B & C4: Unified Designer Function (`designScene`)
+ *
+ * Runs both Baseline and Grounded through the exact same schema and parameters.
+ * - BASELINE: qlooContext is undefined. Zero Qloo knowledge. Honest ungrounded architectural design.
+ * - GROUNDED: qlooContext contains verified Qloo entities, cross-domain insights & taste tags.
+ * - CACHE: Keyed by (prompt, seed, hash of qlooContext).
+ * - VALIDATION: Strictly validates every cited ID in code. Never labels model-invented data as qloo-evidence.
  */
-export function generateScene({
+export function designScene({
   prompt,
   seed = 42,
   qlooContext,
 }: GenerateSceneOptions): SceneSpec {
   const cleanPrompt = (prompt || "").trim();
+  const cacheKey = computeSceneContextHash(cleanPrompt, seed, qlooContext);
+
+  const cached = DESIGN_SCENE_CACHE.get(cacheKey);
+  if (cached) {
+    return structuredClone(cached);
+  }
 
   // ==========================================================================
   // 1. BASELINE RUN (ZERO QLOO IN CONTEXT)
@@ -71,6 +92,8 @@ export function generateScene({
     delete (baselineSpec as any).qloo_evidence;
     delete (baselineSpec as any).provenanceMap;
     baselineSpec.qlooSource = "fallback";
+
+    DESIGN_SCENE_CACHE.set(cacheKey, structuredClone(baselineSpec));
     return baselineSpec;
   }
 
@@ -116,6 +139,8 @@ export function generateScene({
   const allEntities = qlooContext.entities
     .map((e) => e.name.toLowerCase())
     .join(" ");
+
+  const bundle = qlooContext.crossDomainBundle;
 
   const primaryEntity = qlooContext.entities[0] || {
     id: "entity:qloo-core",
@@ -652,8 +677,14 @@ export function generateScene({
   );
   groundedSpec.qloo_evidence.source = source;
 
+  DESIGN_SCENE_CACHE.set(cacheKey, structuredClone(groundedSpec));
   return groundedSpec;
 }
+
+/**
+ * Backward compatibility alias: generateScene is designScene.
+ */
+export const generateScene = designScene;
 
 /**
  * Executes the fair test comparison:
@@ -679,7 +710,7 @@ export function generateSceneComparison({
 
   // 2. Generate Baseline (ZERO Qloo in context, identical seed)
   const baseline = structuredClone(
-    generateScene({
+    designScene({
       prompt: cleanPrompt,
       seed,
       qlooContext: undefined,
@@ -688,7 +719,7 @@ export function generateSceneComparison({
 
   // 3. Generate Grounded (WITH Qloo in context, identical seed)
   const grounded = structuredClone(
-    generateScene({
+    designScene({
       prompt: cleanPrompt,
       seed,
       qlooContext,

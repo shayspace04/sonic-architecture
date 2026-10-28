@@ -868,6 +868,8 @@ export interface QlooContext {
   fallbackChoices?: QlooFallbackChoice[];
   source: "live" | "cache" | "fixture" | "fallback";
   qlooCallsUsed?: number;
+  unresolved?: { name: string; reason: string }[];
+  crossDomainBundle?: any;
 }
 
 export interface QlooResolvedEntity {

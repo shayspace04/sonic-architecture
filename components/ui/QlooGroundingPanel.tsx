@@ -40,11 +40,9 @@ export function QlooGroundingPanel({
   } = qlooData;
 
   const evidenceCount = resolved_entities.filter(
-    (e) =>
-      e.provenance === "qloo-evidence" ||
-      (e.provenance as string) === "evidence" ||
-      e.provenance === "sample-fixture"
+    (e) => e.provenance === "qloo-evidence" || (e.provenance as string) === "evidence"
   ).length;
+  const sampleFixtureCount = resolved_entities.filter((e) => e.provenance === "sample-fixture").length;
   const inferredCount = resolved_entities.filter((e) => e.provenance === "inferred").length;
   const fallbackCount = resolved_entities.filter((e) => e.provenance === "fallback").length;
 
@@ -76,9 +74,13 @@ export function QlooGroundingPanel({
               <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-cyan-950/80 text-cyan-400 border border-cyan-800/60 font-medium">
                 Cached Qloo Signal
               </span>
+            ) : qlooData.source === "fallback" ? (
+              <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-neutral-900 text-neutral-400 border border-neutral-700 font-medium">
+                Procedural Fallback — no Qloo data
+              </span>
             ) : (
               <span className="px-2 py-0.5 rounded text-[10px] font-mono uppercase bg-amber-950/80 text-amber-300 border border-amber-800/60 font-medium">
-                Sample data — not live Qloo
+                Live Qloo unavailable — sample data
               </span>
             )}
           </div>
@@ -142,12 +144,21 @@ export function QlooGroundingPanel({
                   <span className="px-2 py-0.5 rounded bg-white/5 border border-white/10 text-neutral-300">
                     {resolved_entities.length} Entities Resolved
                   </span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50">
-                    {evidenceCount} Evidence
-                  </span>
-                  <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-400 border border-amber-800/50">
-                    {inferredCount} Inferred
-                  </span>
+                  {evidenceCount > 0 && (
+                    <span className="px-2 py-0.5 rounded bg-emerald-950/60 text-emerald-400 border border-emerald-800/50">
+                      {evidenceCount} Evidence
+                    </span>
+                  )}
+                  {sampleFixtureCount > 0 && (
+                    <span className="px-2 py-0.5 rounded bg-amber-950/60 text-amber-300 border border-amber-800/50">
+                      {sampleFixtureCount} Sample Data
+                    </span>
+                  )}
+                  {inferredCount > 0 && (
+                    <span className="px-2 py-0.5 rounded bg-yellow-950/60 text-yellow-400 border border-yellow-800/50">
+                      {inferredCount} Inferred
+                    </span>
+                  )}
                   {fallbackCount > 0 && (
                     <span className="px-2 py-0.5 rounded bg-neutral-900 text-neutral-400 border border-neutral-700">
                       {fallbackCount} Fallback

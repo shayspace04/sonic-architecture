@@ -69,7 +69,7 @@ export function WhatQlooChangedList({
           ) : (
             <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-950/80 text-amber-300 border border-amber-800/80 text-[10px] font-semibold uppercase tracking-wider">
               <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-              <span>Sample data — not live Qloo</span>
+              <span>Live Qloo unavailable — sample data</span>
             </div>
           )}
         </div>
@@ -104,7 +104,7 @@ export function WhatQlooChangedList({
       <div className="p-4 sm:p-5 space-y-3">
         {diff.length === 0 ? (
           <div className="p-4 text-center text-neutral-400 italic">
-            Zero detected variance: both baseline and grounded yielded identical outputs.
+            Qloo did not change this design (both baseline and grounded yielded identical outputs).
           </div>
         ) : (
           <div className="space-y-2.5">

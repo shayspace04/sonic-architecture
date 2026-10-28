@@ -198,7 +198,7 @@ export const AgentTracePanel: React.FC<AgentTracePanelProps> = ({
               className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-mono font-medium bg-amber-500/15 text-amber-300 border border-amber-500/30"
               title="Qloo fixture data active while backend is not connected or in sandbox test mode"
             >
-              ⚠️ Sample data — not live Qloo
+              ⚠️ Live Qloo unavailable — sample data
             </span>
           )}
           {isRunning && (

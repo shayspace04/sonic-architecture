@@ -29,6 +29,8 @@ screenshots/*.png
 *.tsbuildinfo
 next-env.d.ts.bak
 .eslintcache
+.qloo-samples/
+.qloo-cache/
 
 # OS & Editor files (Windows / macOS / Linux)
 .DS_Store

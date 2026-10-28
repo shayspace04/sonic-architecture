@@ -9,6 +9,7 @@
  * 4. Automatic TTL Cache (15 min) to protect API quotas.
  */
 
+import "./network";
 import type { QlooContext, ResolvedEntity, CulturalEvidence } from "@/lib/types";
 import { getQlooFixture } from "@/lib/fixtures/qlooSamples";
 

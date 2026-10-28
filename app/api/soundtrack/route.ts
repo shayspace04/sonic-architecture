@@ -121,9 +121,27 @@ export async function POST(req: NextRequest): Promise<NextResponse> {
     }
 
     const clientKey = resolveClientKey(req);
+
+    // Phase C5: Auto-extract Qloo music/artist entities if not provided explicitly in body
+    let activeQlooSignals = Array.isArray(body.qlooSignals) ? body.qlooSignals : undefined;
+    if (!activeQlooSignals && validation.scene.qloo_evidence?.resolved_entities) {
+      activeQlooSignals = validation.scene.qloo_evidence.resolved_entities
+        .filter(
+          (e) =>
+            e.entity_type.includes("artist") ||
+            e.entity_type.includes("musician") ||
+            e.entity_type.includes("music")
+        )
+        .map((e) => ({
+          name: e.entity_name,
+          type: e.entity_type,
+          tags: [e.qloo_signal],
+        }));
+    }
+
     const playlist = await generateVerifiedSoundtrackPlaylist({
       scene: validation.scene,
-      qlooSignals: Array.isArray(body.qlooSignals) ? body.qlooSignals : undefined,
+      qlooSignals: activeQlooSignals && activeQlooSignals.length > 0 ? activeQlooSignals : undefined,
       clientKey,
       forceRefresh: Boolean(body.forceRefresh),
     });
