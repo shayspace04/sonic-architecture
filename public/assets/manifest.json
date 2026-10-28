@@ -1,0 +1,722 @@
+{
+  "updatedAt": "2026-10-28T10:07:56.204Z",
+  "licence": "CC0 1.0 Universal (Public Domain Dedication)",
+  "termsSummary": "Free for personal and commercial use without attribution or royalties. Attribution preserved in manifest.",
+  "source": "https://polyhaven.com",
+  "textures": {
+    "raw_concrete": {
+      "semanticName": "raw_concrete",
+      "polyhavenId": "rough_concrete",
+      "assetName": "Rough Concrete",
+      "authors": {
+        "Dimitrios Savva": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 2,
+      "category": "concrete",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/raw_concrete/albedo.webp",
+          "sizeBytes": 357992,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_concrete/rough_concrete_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/raw_concrete/normal.webp",
+          "sizeBytes": 596818,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_concrete/rough_concrete_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/raw_concrete/roughness.webp",
+          "sizeBytes": 177688,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_concrete/rough_concrete_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/raw_concrete/ao.webp",
+          "sizeBytes": 362772,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rough_concrete/rough_concrete_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "polished_concrete": {
+      "semanticName": "polished_concrete",
+      "polyhavenId": "smooth_concrete_floor",
+      "assetName": "Smooth Concrete Floor",
+      "authors": {
+        "Dimitrios Savva": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 3,
+      "category": "concrete",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/polished_concrete/albedo.webp",
+          "sizeBytes": 221436,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/smooth_concrete_floor/smooth_concrete_floor_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/polished_concrete/normal.webp",
+          "sizeBytes": 68448,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/smooth_concrete_floor/smooth_concrete_floor_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/polished_concrete/roughness.webp",
+          "sizeBytes": 113720,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/smooth_concrete_floor/smooth_concrete_floor_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/polished_concrete/ao.webp",
+          "sizeBytes": 163186,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/smooth_concrete_floor/smooth_concrete_floor_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "board_formed_concrete": {
+      "semanticName": "board_formed_concrete",
+      "polyhavenId": "wood_textured_concrete",
+      "assetName": "Wood Textured Concrete",
+      "authors": {
+        "Dimitrios Savva": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 2.5,
+      "category": "concrete",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/board_formed_concrete/albedo.webp",
+          "sizeBytes": 85674,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_textured_concrete/wood_textured_concrete_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/board_formed_concrete/normal.webp",
+          "sizeBytes": 166050,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_textured_concrete/wood_textured_concrete_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/board_formed_concrete/roughness.webp",
+          "sizeBytes": 64698,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_textured_concrete/wood_textured_concrete_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/board_formed_concrete/ao.webp",
+          "sizeBytes": 184214,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/wood_textured_concrete/wood_textured_concrete_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "dark_wood": {
+      "semanticName": "dark_wood",
+      "polyhavenId": "dark_wood",
+      "assetName": "Dark Wood",
+      "authors": {
+        "Dario Barresi": "Baking",
+        "Dimitrios Savva": "Photography",
+        "Rico Cilliers": "Tiling"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 2,
+      "category": "wood",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/dark_wood/albedo.webp",
+          "sizeBytes": 155340,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wood/dark_wood_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/dark_wood/normal.webp",
+          "sizeBytes": 25582,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wood/dark_wood_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/dark_wood/roughness.webp",
+          "sizeBytes": 187996,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wood/dark_wood_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/dark_wood/ao.webp",
+          "sizeBytes": 28732,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/dark_wood/dark_wood_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "light_oak": {
+      "semanticName": "light_oak",
+      "polyhavenId": "oak_wood_planks",
+      "assetName": "Oak Wood Planks",
+      "authors": {
+        "Dimitrios Savva": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 2,
+      "category": "wood",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/light_oak/albedo.webp",
+          "sizeBytes": 143364,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_wood_planks/oak_wood_planks_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/light_oak/normal.webp",
+          "sizeBytes": 26022,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_wood_planks/oak_wood_planks_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/light_oak/roughness.webp",
+          "sizeBytes": 397142,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_wood_planks/oak_wood_planks_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/light_oak/ao.webp",
+          "sizeBytes": 174230,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/oak_wood_planks/oak_wood_planks_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "plaster": {
+      "semanticName": "plaster",
+      "polyhavenId": "white_rough_plaster",
+      "assetName": "White Rough Plaster",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 2.5,
+      "category": "plaster",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/plaster/albedo.webp",
+          "sizeBytes": 366952,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_rough_plaster/white_rough_plaster_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/plaster/normal.webp",
+          "sizeBytes": 322060,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_rough_plaster/white_rough_plaster_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/plaster/roughness.webp",
+          "sizeBytes": 109742,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_rough_plaster/white_rough_plaster_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/plaster/ao.webp",
+          "sizeBytes": 175496,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/white_rough_plaster/white_rough_plaster_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "brick": {
+      "semanticName": "brick",
+      "polyhavenId": "brick_wall_001",
+      "assetName": "Brick Wall 001",
+      "authors": {
+        "Rob Tuytel": "Processing",
+        "Dimitrios Savva": "Photography"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 1.8,
+      "category": "brick",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/brick/albedo.webp",
+          "sizeBytes": 218368,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brick_wall_001/brick_wall_001_diffuse_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/brick/normal.webp",
+          "sizeBytes": 304122,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brick_wall_001/brick_wall_001_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/brick/roughness.webp",
+          "sizeBytes": 84252,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brick_wall_001/brick_wall_001_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/brick/ao.webp",
+          "sizeBytes": 86206,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brick_wall_001/brick_wall_001_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "terrazzo": {
+      "semanticName": "terrazzo",
+      "polyhavenId": "terrazzo_tiles",
+      "assetName": "Terrazzo Tiles",
+      "authors": {
+        "Amal Kumar": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 1.5,
+      "category": "terrazzo",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/terrazzo/albedo.webp",
+          "sizeBytes": 401080,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/terrazzo/normal.webp",
+          "sizeBytes": 3586,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/terrazzo/roughness.webp",
+          "sizeBytes": 98508,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/terrazzo/ao.webp",
+          "sizeBytes": 10916,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/terrazzo_tiles/terrazzo_tiles_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "brushed_metal": {
+      "semanticName": "brushed_metal",
+      "polyhavenId": "metal_plate",
+      "assetName": "Metal Plate",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 1,
+      "category": "metal",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/brushed_metal/albedo.webp",
+          "sizeBytes": 123626,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/brushed_metal/normal.webp",
+          "sizeBytes": 196112,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/brushed_metal/roughness.webp",
+          "sizeBytes": 316874,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/brushed_metal/ao.webp",
+          "sizeBytes": 112680,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/metal_plate/metal_plate_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "leather": {
+      "semanticName": "leather",
+      "polyhavenId": "brown_leather",
+      "assetName": "Brown Leather",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 1,
+      "category": "leather",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/leather/albedo.webp",
+          "sizeBytes": 196600,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_albedo_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/leather/normal.webp",
+          "sizeBytes": 330460,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/leather/roughness.webp",
+          "sizeBytes": 518470,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/leather/ao.webp",
+          "sizeBytes": 213474,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/brown_leather/brown_leather_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "velvet": {
+      "semanticName": "velvet",
+      "polyhavenId": "velour_velvet",
+      "assetName": "Velour Velvet",
+      "authors": {
+        "colormass": "Photography",
+        "Rico Cilliers": "Processing"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 1,
+      "category": "fabric",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/velvet/albedo.webp",
+          "sizeBytes": 184794,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/velvet/normal.webp",
+          "sizeBytes": 163518,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/velvet/roughness.webp",
+          "sizeBytes": 445414,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/velvet/ao.webp",
+          "sizeBytes": 247344,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/velour_velvet/velour_velvet_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "marble": {
+      "semanticName": "marble",
+      "polyhavenId": "marble_01",
+      "assetName": "Marble 01",
+      "authors": {
+        "Rob Tuytel": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 2,
+      "category": "marble",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/marble/albedo.webp",
+          "sizeBytes": 77228,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/marble/normal.webp",
+          "sizeBytes": 10818,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/marble/roughness.webp",
+          "sizeBytes": 25540,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/marble/ao.webp",
+          "sizeBytes": 28178,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/marble_01/marble_01_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "tatami": {
+      "semanticName": "tatami",
+      "polyhavenId": "tatami_mat",
+      "assetName": "Tatami Mat",
+      "authors": {
+        "Charlotte Baglioni": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 1.8,
+      "category": "mat",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/tatami/albedo.webp",
+          "sizeBytes": 120320,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/tatami_mat/tatami_mat_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/tatami/normal.webp",
+          "sizeBytes": 50396,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/tatami_mat/tatami_mat_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/tatami/roughness.webp",
+          "sizeBytes": 34310,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/tatami_mat/tatami_mat_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/tatami/ao.webp",
+          "sizeBytes": 121040,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/tatami_mat/tatami_mat_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "stone_tile": {
+      "semanticName": "stone_tile",
+      "polyhavenId": "stone_tiles",
+      "assetName": "Stone Tiles",
+      "authors": {
+        "Christopher Melani": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 2,
+      "category": "stone",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/stone_tile/albedo.webp",
+          "sizeBytes": 209446,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/stone_tile/normal.webp",
+          "sizeBytes": 228984,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/stone_tile/roughness.webp",
+          "sizeBytes": 318760,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/stone_tile/ao.webp",
+          "sizeBytes": 242644,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/stone_tiles/stone_tiles_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    },
+    "rubber_flooring": {
+      "semanticName": "rubber_flooring",
+      "polyhavenId": "rubber_tiles",
+      "assetName": "Rubber Tiles",
+      "authors": {
+        "Amal Kumar": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "realScaleMeters": 1.5,
+      "category": "rubber",
+      "maps": {
+        "albedo": {
+          "file": "/assets/textures/rubber_flooring/albedo.webp",
+          "sizeBytes": 7686,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rubber_tiles/rubber_tiles_diff_1k.jpg",
+          "format": "webp"
+        },
+        "normal": {
+          "file": "/assets/textures/rubber_flooring/normal.webp",
+          "sizeBytes": 34480,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rubber_tiles/rubber_tiles_nor_gl_1k.jpg",
+          "format": "webp"
+        },
+        "roughness": {
+          "file": "/assets/textures/rubber_flooring/roughness.webp",
+          "sizeBytes": 206900,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rubber_tiles/rubber_tiles_rough_1k.jpg",
+          "format": "webp"
+        },
+        "ao": {
+          "file": "/assets/textures/rubber_flooring/ao.webp",
+          "sizeBytes": 10402,
+          "sourceUrl": "https://dl.polyhaven.org/file/ph-assets/Textures/jpg/1k/rubber_tiles/rubber_tiles_ao_1k.jpg",
+          "format": "webp"
+        }
+      }
+    }
+  },
+  "hdris": {
+    "brown_photostudio_02": {
+      "id": "brown_photostudio_02",
+      "filename": "/assets/hdris/studio_warm.hdr",
+      "sizeBytes": 1648130,
+      "licence": "CC0 1.0 Universal"
+    },
+    "abandoned_hall_01": {
+      "id": "abandoned_hall_01",
+      "filename": "/assets/hdris/cathedral_hall.hdr",
+      "sizeBytes": 1636687,
+      "licence": "CC0 1.0 Universal"
+    }
+  },
+  "models": {
+    "wooden_chair": {
+      "semanticName": "wooden_chair",
+      "polyhavenId": "WoodenChair_01",
+      "assetName": "Wooden Chair 01",
+      "authors": {
+        "Jake Mobley": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "seating",
+      "gltfPath": "/assets/models/WoodenChair_01/WoodenChair_01_1k.gltf",
+      "sizeBytes": 1079531,
+      "sizeFormatted": "1.03 MB",
+      "defaultScale": 1
+    },
+    "armchair": {
+      "semanticName": "armchair",
+      "polyhavenId": "modern_arm_chair_01",
+      "assetName": "Modern Arm Chair 01",
+      "authors": {
+        "Vibrant Nordic": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "seating",
+      "gltfPath": "/assets/models/modern_arm_chair_01/modern_arm_chair_01_1k.gltf",
+      "sizeBytes": 2698032,
+      "sizeFormatted": "2.57 MB",
+      "defaultScale": 0.95
+    },
+    "coffee_table": {
+      "semanticName": "coffee_table",
+      "polyhavenId": "modern_coffee_table_01",
+      "assetName": "Modern Coffee Table 01",
+      "authors": {
+        "Amin": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "table",
+      "gltfPath": "/assets/models/modern_coffee_table_01/modern_coffee_table_01_1k.gltf",
+      "sizeBytes": 1331297,
+      "sizeFormatted": "1.27 MB",
+      "defaultScale": 0.9
+    },
+    "dining_table": {
+      "semanticName": "dining_table",
+      "polyhavenId": "dining_table",
+      "assetName": "Dining Table",
+      "authors": {
+        "Aron Łyczek": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "table",
+      "gltfPath": "/assets/models/dining_table/dining_table_1k.gltf",
+      "sizeBytes": 2283933,
+      "sizeFormatted": "2.18 MB",
+      "defaultScale": 1
+    },
+    "wooden_stool": {
+      "semanticName": "wooden_stool",
+      "polyhavenId": "wooden_stool_01",
+      "assetName": "Wooden Stool 01",
+      "authors": {
+        "Kuutti Siitonen": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "seating",
+      "gltfPath": "/assets/models/wooden_stool_01/wooden_stool_01_1k.gltf",
+      "sizeBytes": 961720,
+      "sizeFormatted": "0.92 MB",
+      "defaultScale": 0.9
+    },
+    "lounge_sofa": {
+      "semanticName": "lounge_sofa",
+      "polyhavenId": "sofa_02",
+      "assetName": "Sofa 02",
+      "authors": {
+        "Kirill Sannikov": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "seating",
+      "gltfPath": "/assets/models/sofa_02/sofa_02_1k.gltf",
+      "sizeBytes": 427171,
+      "sizeFormatted": "0.41 MB",
+      "defaultScale": 1
+    },
+    "potted_plant": {
+      "semanticName": "potted_plant",
+      "polyhavenId": "potted_plant_01",
+      "assetName": "Potted Plant 01",
+      "authors": {
+        "Rico Cilliers": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "decor",
+      "gltfPath": "/assets/models/potted_plant_01/potted_plant_01_1k.gltf",
+      "sizeBytes": 6325139,
+      "sizeFormatted": "6.03 MB",
+      "defaultScale": 0.8
+    },
+    "wine_bottles": {
+      "semanticName": "wine_bottles",
+      "polyhavenId": "wine_bottles_01",
+      "assetName": "Wine Bottles 01",
+      "authors": {
+        "Rico Cilliers": "modeling",
+        "Jurita Burger": "graphic design"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "clutter",
+      "gltfPath": "/assets/models/wine_bottles_01/wine_bottles_01_1k.gltf",
+      "sizeBytes": 3909317,
+      "sizeFormatted": "3.73 MB",
+      "defaultScale": 0.85
+    },
+    "hanging_lamp": {
+      "semanticName": "hanging_lamp",
+      "polyhavenId": "hanging_industrial_lamp",
+      "assetName": "Hanging Industrial Lamp",
+      "authors": {
+        "Kuutti Siitonen": "All"
+      },
+      "licence": "CC0 1.0 Universal",
+      "category": "lighting",
+      "gltfPath": "/assets/models/hanging_industrial_lamp/hanging_industrial_lamp_1k.gltf",
+      "sizeBytes": 3243654,
+      "sizeFormatted": "3.09 MB",
+      "defaultScale": 0.9
+    }
+  },
+  "proceduralFallbacks": {
+    "brass": {
+      "description": "Physical metallic PBR tuned with brushed_metal micro-roughness/normal maps and brass specular albedo",
+      "licence": "Procedural Shader / CC0 derivative"
+    },
+    "glass_frosted": {
+      "description": "Physical transmission PBR with micro-surface roughness and IOR 1.45",
+      "licence": "Procedural Shader / Three.js MeshPhysicalMaterial"
+    }
+  },
+  "totalSizeBytes": 36203501,
+  "totalSizeFormatted": "34.53 MB"
+}
