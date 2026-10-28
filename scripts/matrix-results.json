@@ -1,0 +1,126 @@
+{
+  "pass1": [
+    {
+      "prompt": "Jazz + Brutalist Architecture",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 5,
+      "entityNames": "Miles Davis, Brutalist Architecture, Blue Note Records Era, Kissaten Audiophile Tradition, Intimate Scale (Containment Paradox)",
+      "paletteDiff": "Baseline Floor:#2D3137 Wall:#52565C Accent:#C87D4B -> Grounded Floor:#2B2E33 Wall:#45494F Accent:#C9A961",
+      "materialsDiff": "Baseline: [board_concrete, polished_concrete] -> Grounded: [board_concrete, polished_concrete]",
+      "lightingDiff": "Baseline: 2200K (0.28 amb) -> Grounded: 2700K (0.28 amb)",
+      "geometryDiff": "Baseline: 7.8x6.2x3.4m (coffered_timber) -> Grounded: 16x26x9m (monolithic_cantilever)",
+      "propsDiff": "Baseline: 10 assemblies -> Grounded: 8 assemblies (focal: \"20m Mirror-Obsidian Catwalk Spine & Monolithic Portal\")"
+    },
+    {
+      "prompt": "A24 Films + Indie Music",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 4,
+      "entityNames": "A24 Production Aesthetic, Phoebe Bridgers / Boygenius, Charlotte Wells / Aftersun, Quiet Cinematic Melancholy",
+      "paletteDiff": "Baseline Floor:#7D5130 Wall:#724626 Accent:#C87D4B -> Grounded Floor:#C8B9A6 Wall:#DFD5C6 Accent:#E5D9C5",
+      "materialsDiff": "Baseline: [acoustic_slats, warm_oak] -> Grounded: [limewash_plaster, honed_limestone]",
+      "lightingDiff": "Baseline: 2200K (0.28 amb) -> Grounded: 3200K (0.28 amb)",
+      "geometryDiff": "Baseline: 7.8x6.2x3.4m (coffered_timber) -> Grounded: 7.8x6.2x3.6m (coffered_timber)",
+      "propsDiff": "Baseline: 10 assemblies -> Grounded: 10 assemblies (focal: \"Analog Turntable & Dual Horn Speaker Wall\")"
+    },
+    {
+      "prompt": "Japanese Gardens + Ambient",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 4,
+      "entityNames": "Chisen-Kaiyūshiki Strolling Garden, Hiroshi Yoshimura, Brian Eno, Meditative Garden Sanctuary",
+      "paletteDiff": "Baseline Floor:#9C6B43 Wall:#B5A48B Accent:#0EA5E9 -> Grounded Floor:#9E978E Wall:#2E3A2C Accent:#38BDF8",
+      "materialsDiff": "Baseline: [honed_limestone, teak_decking] -> Grounded: [honed_limestone, warm_sandstone]",
+      "lightingDiff": "Baseline: 4400K (0.85 amb) -> Grounded: 5300K (0.85 amb)",
+      "geometryDiff": "Baseline: 22x20x4.8m (open_sky_pergola) -> Grounded: 16x12.5x3.4m (open_sky_pergola)",
+      "propsDiff": "Baseline: 14 assemblies -> Grounded: 12 assemblies (focal: \"Four-Pillar Carved Sandstone Wedding Mandap & Sacred Havan Kund\")"
+    },
+    {
+      "prompt": "Chrome + Club Culture",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 4,
+      "entityNames": "Y2K Chrome & Metallic Futurism, Berlin Industrial Club Culture, Aphex Twin / Richard D. James, Hypnotic Industrial Immersion",
+      "paletteDiff": "Baseline Floor:#7D5130 Wall:#724626 Accent:#C87D4B -> Grounded Floor:#11141A Wall:#1E2430 Accent:#00F0FF",
+      "materialsDiff": "Baseline: [acoustic_slats, warm_oak] -> Grounded: [board_concrete, obsidian_terrazzo]",
+      "lightingDiff": "Baseline: 2200K (0.28 amb) -> Grounded: 6500K (0.28 amb)",
+      "geometryDiff": "Baseline: 7.8x6.2x3.4m (coffered_timber) -> Grounded: 18x14x5.2m (space_frame_truss)",
+      "propsDiff": "Baseline: 10 assemblies -> Grounded: 14 assemblies (focal: \"Caged Brutalist Concrete DJ Bunker & Quad Horn Sound System\")"
+    },
+    {
+      "prompt": "Pink Grunge Editorial Loft & Flash Studio",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 3,
+      "entityNames": "Hole (Courtney Love), 90s Editorial Grunge Movement, Commercial Editorial Photo Studio",
+      "paletteDiff": "Baseline Floor:#171C24 Wall:#6E3B32 Accent:#CBD5E1 -> Grounded Floor:#4A353F Wall:#8C5167 Accent:#F472B6",
+      "materialsDiff": "Baseline: [distressed_brick, obsidian_terrazzo] -> Grounded: [stacked_brick, polished_concrete]",
+      "lightingDiff": "Baseline: 3000K (0.28 amb) -> Grounded: 5600K (0.28 amb)",
+      "geometryDiff": "Baseline: 14x12x4.6m (exposed_industrial_rig) -> Grounded: 14.5x11.2x4.2m (exposed_timber_beams)",
+      "propsDiff": "Baseline: 4 assemblies -> Grounded: 5 assemblies (focal: \"Fashion Editorial Cyclorama & Flash Strobe Stage\")"
+    }
+  ],
+  "pass2": [
+    {
+      "prompt": "Jazz + Brutalist Architecture",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 5,
+      "entityNames": "Miles Davis, Brutalist Architecture, Blue Note Records Era, Kissaten Audiophile Tradition, Intimate Scale (Containment Paradox)",
+      "paletteDiff": "Baseline Floor:#2D3137 Wall:#52565C Accent:#C87D4B -> Grounded Floor:#2B2E33 Wall:#45494F Accent:#C9A961",
+      "materialsDiff": "Baseline: [board_concrete, polished_concrete] -> Grounded: [board_concrete, polished_concrete]",
+      "lightingDiff": "Baseline: 2200K (0.28 amb) -> Grounded: 2700K (0.28 amb)",
+      "geometryDiff": "Baseline: 7.8x6.2x3.4m (coffered_timber) -> Grounded: 16x26x9m (monolithic_cantilever)",
+      "propsDiff": "Baseline: 10 assemblies -> Grounded: 8 assemblies (focal: \"20m Mirror-Obsidian Catwalk Spine & Monolithic Portal\")"
+    },
+    {
+      "prompt": "A24 Films + Indie Music",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 4,
+      "entityNames": "A24 Production Aesthetic, Phoebe Bridgers / Boygenius, Charlotte Wells / Aftersun, Quiet Cinematic Melancholy",
+      "paletteDiff": "Baseline Floor:#7D5130 Wall:#724626 Accent:#C87D4B -> Grounded Floor:#C8B9A6 Wall:#DFD5C6 Accent:#E5D9C5",
+      "materialsDiff": "Baseline: [acoustic_slats, warm_oak] -> Grounded: [limewash_plaster, honed_limestone]",
+      "lightingDiff": "Baseline: 2200K (0.28 amb) -> Grounded: 3200K (0.28 amb)",
+      "geometryDiff": "Baseline: 7.8x6.2x3.4m (coffered_timber) -> Grounded: 7.8x6.2x3.6m (coffered_timber)",
+      "propsDiff": "Baseline: 10 assemblies -> Grounded: 10 assemblies (focal: \"Analog Turntable & Dual Horn Speaker Wall\")"
+    },
+    {
+      "prompt": "Japanese Gardens + Ambient",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 4,
+      "entityNames": "Chisen-Kaiyūshiki Strolling Garden, Hiroshi Yoshimura, Brian Eno, Meditative Garden Sanctuary",
+      "paletteDiff": "Baseline Floor:#9C6B43 Wall:#B5A48B Accent:#0EA5E9 -> Grounded Floor:#9E978E Wall:#2E3A2C Accent:#38BDF8",
+      "materialsDiff": "Baseline: [honed_limestone, teak_decking] -> Grounded: [honed_limestone, warm_sandstone]",
+      "lightingDiff": "Baseline: 4400K (0.85 amb) -> Grounded: 5300K (0.85 amb)",
+      "geometryDiff": "Baseline: 22x20x4.8m (open_sky_pergola) -> Grounded: 16x12.5x3.4m (open_sky_pergola)",
+      "propsDiff": "Baseline: 14 assemblies -> Grounded: 12 assemblies (focal: \"Four-Pillar Carved Sandstone Wedding Mandap & Sacred Havan Kund\")"
+    },
+    {
+      "prompt": "Chrome + Club Culture",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 4,
+      "entityNames": "Y2K Chrome & Metallic Futurism, Berlin Industrial Club Culture, Aphex Twin / Richard D. James, Hypnotic Industrial Immersion",
+      "paletteDiff": "Baseline Floor:#7D5130 Wall:#724626 Accent:#C87D4B -> Grounded Floor:#11141A Wall:#1E2430 Accent:#00F0FF",
+      "materialsDiff": "Baseline: [acoustic_slats, warm_oak] -> Grounded: [board_concrete, obsidian_terrazzo]",
+      "lightingDiff": "Baseline: 2200K (0.28 amb) -> Grounded: 6500K (0.28 amb)",
+      "geometryDiff": "Baseline: 7.8x6.2x3.4m (coffered_timber) -> Grounded: 18x14x5.2m (space_frame_truss)",
+      "propsDiff": "Baseline: 10 assemblies -> Grounded: 14 assemblies (focal: \"Caged Brutalist Concrete DJ Bunker & Quad Horn Sound System\")"
+    },
+    {
+      "prompt": "Pink Grunge Editorial Loft & Flash Studio",
+      "source": "fixture",
+      "callsUsed": 1,
+      "resolvedCount": 3,
+      "entityNames": "Hole (Courtney Love), 90s Editorial Grunge Movement, Commercial Editorial Photo Studio",
+      "paletteDiff": "Baseline Floor:#171C24 Wall:#6E3B32 Accent:#CBD5E1 -> Grounded Floor:#4A353F Wall:#8C5167 Accent:#F472B6",
+      "materialsDiff": "Baseline: [distressed_brick, obsidian_terrazzo] -> Grounded: [stacked_brick, polished_concrete]",
+      "lightingDiff": "Baseline: 3000K (0.28 amb) -> Grounded: 5600K (0.28 amb)",
+      "geometryDiff": "Baseline: 14x12x4.6m (exposed_industrial_rig) -> Grounded: 14.5x11.2x4.2m (exposed_timber_beams)",
+      "propsDiff": "Baseline: 4 assemblies -> Grounded: 5 assemblies (focal: \"Fashion Editorial Cyclorama & Flash Strobe Stage\")"
+    }
+  ]
+}

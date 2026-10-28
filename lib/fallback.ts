@@ -1,50 +1,19 @@
 /**
- * Honest local fallback payload: deterministic, neutral, and explicitly
- * labeled `local-fallback`. Never fabricates Qloo evidence, artists, or
- * tracks. Used when the API key is missing, no reference resolves, or the
- * application request budget is exhausted.
+ * Honest local & LLM-enriched fallback payload.
+ * Never fabricates Qloo evidence, entity IDs, or tracks when Qloo is unavailable.
+ * Instead, engages Layer-4 LLM architectural & cultural knowledge enrichment
+ * with explicit provenance labels (`llm_knowledge`, `design_inference`, `fallback`).
  */
 
 import type { VibePayload } from "./types";
-import { neutralSpatialMapping } from "./spatial-rules";
+import { enrichPayloadWithKnowledge } from "./enrichment";
 
 export function localFallbackPayload(
   submittedTerms: string[],
   errors: string[],
-  extraLimitations: string[] = []
+  promptText?: string
 ): VibePayload {
-  const mapping = neutralSpatialMapping(submittedTerms);
-  return {
-    primaryColorHex: mapping.primaryColorHex,
-    accentColorHex: mapping.accentColorHex,
-    lightingTemperatureK: mapping.lightingTemperatureK,
-    flooringMaterial: mapping.flooringMaterial,
-    seatingFabric: mapping.seatingFabric,
-    tracks: [],
-    menu: "Local fallback (live cultural intelligence unavailable).",
-    fallback: true,
-    reasoning: {
-      source: "local-fallback",
-      evidence: [],
-      rules: {
-        primaryColorHex: "Qloo unavailable; neutral default color.",
-        accentColorHex: "Qloo unavailable; neutral default accent.",
-        lightingTemperatureK: "Qloo unavailable; 4500K default.",
-        flooringMaterial: "Qloo unavailable; neutral default flooring.",
-        seatingFabric: "Qloo unavailable; neutral default seating.",
-      },
-    },
-    partial: false,
-    submittedTerms,
-    entities: [],
-    unresolvedTerms: submittedTerms,
-    evidence: { genreTags: [], styleTags: [], themeTags: [], adjectives: [], characteristics: [] },
-    artists: [],
-    concept: mapping.concept,
-    limitations: [
-      "Live Qloo cultural intelligence was unavailable; this concept is a labeled local fallback.",
-      ...extraLimitations,
-    ],
-    errors,
-  };
+  const effectivePrompt =
+    promptText || submittedTerms.join(" ") || "Intimate architectural listening sanctuary";
+  return enrichPayloadWithKnowledge(effectivePrompt, [], undefined, errors);
 }

@@ -1,190 +1,964 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * ============================================================================
+ * SONIC ARCHITECTURE — STEP 1–6 GLOBAL DESIGN TOKENS, SHELL, MOTION,
+ * ACCESSIBILITY, REDUCED MOTION & MOBILE CSS (`app/globals.css`)
+ * ============================================================================
+ * Single source of truth for CSS variables, WCAG AA contrast tokens (>= 4.5:1),
+ * typography rules (>= 0.7rem floor), shared layout proportions (nav, footer,
+ * background media, wash, grain, parallax), masked line reveals, interruptible
+ * submit transitions, Web Audio analyser bars, reduced-motion overrides,
+ * mobile (<800px) & short-viewport rules, and 3D scene isolation.
+ * Zero runtime @import statements; fonts are injected via next/font/google.
+ */
 
 :root {
-  /* Lintel-inspired architectural palette */
-  --lintel-night: #0a0e1a;
-  --lintel-paper: #eee8dc;
-  --lintel-ink: #171a1f;
-  --lintel-moss: #2f5a4c;
-  --lintel-terracotta: #d9532b;
-  --lintel-muted: #5b5f66;
-  --lintel-rule: rgba(23, 26, 31, 0.2);
+  /* Core Brutalist-Editorial Palette (Ported from meadowhero template + WCAG AA audit) */
+  --ink: #f1f0eb;
+  --dark: #111312;
+  --page: #171918;
+  --red: #e51f35;         /* Brand accent for large display text (H1 italic), rules, and solid fills */
+  --red-text: #ff4a5e;    /* WCAG AA compliant small red text (5.45:1 on #111312, 5.18:1 on #171918) */
+  --muted: rgba(241, 240, 235, 0.7);
+  --muted-strong: rgba(241, 240, 235, 0.78); /* Raised from template's .44/.52 so helper/footer text passes >= 4.5:1 */
+  --line: rgba(241, 240, 235, 0.28);
+  --line-subtle: rgba(241, 240, 235, 0.16);
 
-  --sa-charcoal: #0b0a0d;
-  --sa-plum: #151018;
-  --sa-lime: #d5ff3f;
-  --sa-violet: #8b5cf6;
-  --sa-white: #f4f0e8;
-  --sa-gray: #a6a0aa;
-  --sa-line: rgba(244, 240, 232, 0.08);
-  --sa-glass: rgba(21, 16, 24, 0.55);
+  /* Cursor Parallax & Radial Glow CSS Variables (Updated via Framer Motion values with 0 React re-renders) */
+  --shift-x: 0px;
+  --shift-y: 0px;
+  --move-x: 0px;
+  --move-y: 0px;
+  --glow-x: 50%;
+  --glow-y: 45%;
 
-  /* Landing editorial palette (architectural) */
-  --sa-ink: var(--lintel-ink);
-  --sa-ink-soft: var(--lintel-muted);
-  --sa-paper: var(--lintel-paper);
-  --sa-moss: var(--lintel-moss);
-  --sa-terracotta: var(--lintel-terracotta);
+  /* Typography Stack Aliases (Populated by next/font/google in app/layout.tsx) */
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-manrope), -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  --background: var(--lintel-night);
-  --foreground: var(--sa-white);
+  /* Minimum Accessible Font Size Floor (11.2px / 0.7rem — eliminates template's .45rem-.59rem micro-type) */
+  --text-floor: 0.7rem;
 
-  --sa-ease: cubic-bezier(0.22, 1, 0.36, 1);
-  --sa-fast: 180ms;
-  --sa-med: 420ms;
-  --sa-slow: 900ms;
+  /* Editorial Motion Easing Curves */
+  --ease-editorial-submit: cubic-bezier(0.2, 0.8, 0.25, 1);
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out-quart: cubic-bezier(0.76, 0, 0.24, 1);
+  --ease-out-quart: cubic-bezier(0.25, 1, 0.5, 1);
 
-  --gutter: clamp(16px, 5vw, 88px);
+  /* Legacy Studio / 3D Inspector Tokens (Kept intact so existing 3D & studio panels never break or get tinted) */
+  --bg-obsidian: #111312;
+  --bg-obsidian-elevated: #171918;
+  --bg-glass: rgba(17, 19, 18, 0.78);
+  --bg-glass-hover: rgba(23, 25, 24, 0.88);
+  --text-alabaster: #f1f0eb;
+  --text-stone: rgba(241, 240, 235, 0.72);
+  --text-muted-ash: rgba(241, 240, 235, 0.7);
+  --accent-amber: #d4a373;
+  --accent-terracotta: #e51f35;
+  --accent-cyan: #38bdf8;
+  --accent-emerald: #34d399;
+  --accent-rose: #ff4a5e;
+  --border-hairline: rgba(241, 240, 235, 0.28);
+  --border-active: rgba(229, 31, 53, 0.65);
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-lime: var(--sa-lime);
-  --color-violet: var(--sa-violet);
-  --color-warm: var(--sa-white);
-  --color-muted: var(--sa-gray);
-  --color-plum: var(--sa-plum);
-  --color-line: var(--sa-line);
-  --color-ink: var(--sa-ink);
-  --color-inksoft: var(--sa-ink-soft);
-  --color-paper: var(--lintel-paper);
-  --color-moss: var(--lintel-moss);
-  --color-terracotta: var(--lintel-terracotta);
-  --font-sans: var(--font-schibsted);
-  --font-mono: var(--font-ibm-plex-mono);
-  --font-display: var(--font-libre-caslon);
+* {
+  box-sizing: border-box;
 }
 
-html {
-  scroll-behavior: smooth;
+html,
+body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  min-height: 100%;
+  /* Use min-height instead of overflow:hidden so the page can scroll at large text sizes or short viewports */
+  overflow-x: clip;
+  background-color: var(--dark);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
+
+a,
+button {
+  color: inherit;
+}
+
+a {
+  text-decoration: none;
+}
+
+button {
+  font: inherit;
+  border: 0;
+  cursor: pointer;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ============================================================================
+ * STEP 5 ACCESSIBILITY: SKIP LINKS & VISIBLE FOCUS RINGS IN BRAND ACCENT
+ * ============================================================================ */
+
+.sa-skip-link,
+.editorial-skip-link {
+  position: fixed;
+  top: -100px;
+  left: 1rem;
+  z-index: 9999;
+  padding: 0.65rem 1.1rem;
+  background: var(--dark);
+  color: var(--ink);
+  border: 2px solid var(--red-text);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: top 150ms var(--ease-out-quart);
+}
+
+.sa-skip-link--secondary {
+  left: 15.5rem;
+}
+
+.sa-skip-link:focus,
+.sa-skip-link:focus-visible,
+.editorial-skip-link:focus,
+.editorial-skip-link:focus-visible {
+  top: 1rem;
+  outline: none;
+}
+
+:focus-visible {
+  outline: 2px solid var(--red-text);
+  outline-offset: 3px;
+}
+
+::selection {
+  background-color: var(--red);
+  color: #ffffff;
+}
+
+/* ============================================================================
+ * STEP 2 & STEP 4: SHARED LAYOUT SHELL, BACKGROUND MEDIA, WASH, GRAIN & ZOOM
+ * ============================================================================ */
+
+.sonic-page,
+.sa-experience-shell {
+  position: relative;
+  width: 100%;
+  min-height: 100svh;
+  /* Scrollable at large text sizes or short viewports (no overflow: hidden lock) */
+  overflow-x: clip;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--page);
+  color: var(--ink);
+  isolation: isolate;
+  --glow-x: 50%;
+  --glow-y: 45%;
+  transition: background-color 420ms var(--ease-out-quart);
+}
+
+.sonic-media-stage {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.sonic-image-zoom-stage {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  will-change: transform, opacity;
+}
+
+.sonic-image-wrapper {
+  position: absolute;
+  inset: -2%;
+  width: 104%;
+  height: 104%;
+  pointer-events: none;
+  will-change: opacity;
+}
+
+.sonic-image,
+.sa-bg-media {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  filter: grayscale(1) contrast(1.08) brightness(0.56);
+  transform: translate3d(var(--shift-x), var(--shift-y), 0) scale(1.035);
+  will-change: transform, opacity;
+  transition: filter 480ms ease;
+}
+
+.sonic-poster-image {
+  z-index: 0;
+}
+
+.sonic-video-element {
+  z-index: 1;
+}
+
+/* Left-heavy dark gradient (90deg rgba(8,10,9,.82) -> .35 at 41% -> .06 at 75% -> .63)
+   + bottom-up gradient + cursor radial glow rgba(91,109,96,.13) */
+.sonic-wash,
+.sa-bg-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      circle at var(--glow-x) var(--glow-y),
+      rgba(91, 109, 96, 0.13),
+      transparent 28%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(8, 10, 9, 0.82) 0%,
+      rgba(8, 10, 9, 0.35) 41%,
+      rgba(8, 10, 9, 0.06) 75%,
+      rgba(8, 10, 9, 0.63) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(8, 10, 9, 0.77) 0%,
+      transparent 36%,
+      rgba(8, 10, 9, 0.42) 100%
+    );
+  transition: background 420ms ease;
+}
+
+/* Film-grain layer: SVG feTurbulence, opacity .1, mix-blend-mode: screen */
+.sonic-grain,
+.sa-film-grain,
+.editorial-film-grain {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  opacity: 0.1;
+  mix-blend-mode: screen;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.3'/%3E%3C/svg%3E");
+}
+
+/* Route-Specific Background Treatments */
+.sonic-page.route-archive {
+  background: #252b27;
+}
+
+.sonic-page.route-archive .sonic-image {
+  filter: grayscale(1) contrast(1.16) brightness(0.68) sepia(0.12);
+}
+
+.sonic-page.route-archive .sonic-wash {
+  background:
+    radial-gradient(
+      circle at var(--glow-x) var(--glow-y),
+      rgba(91, 109, 96, 0.13),
+      transparent 28%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(12, 14, 13, 0.78) 0%,
+      rgba(12, 14, 13, 0.25) 48%,
+      rgba(12, 14, 13, 0.5) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(12, 14, 13, 0.8) 0%,
+      transparent 42%,
+      rgba(12, 14, 13, 0.38) 100%
+    );
+}
+
+.sonic-page.route-studio {
+  background: #252b27;
+}
+
+.sonic-page.route-studio .sonic-image {
+  filter: grayscale(1) contrast(1.1) brightness(0.5);
+}
+
+.sonic-page.route-studio .sonic-wash {
+  background:
+    radial-gradient(
+      circle at 70% 35%,
+      rgba(185, 91, 67, 0.25),
+      transparent 28%
+    ),
+    linear-gradient(
+      90deg,
+      rgba(15, 18, 16, 0.88) 0%,
+      rgba(15, 18, 16, 0.35) 62%,
+      rgba(15, 18, 16, 0.7) 100%
+    );
+}
+
+.sonic-page.route-about {
+  background: radial-gradient(
+    circle at 70% 35%,
+    #45554b 0%,
+    #1a211d 38%,
+    #101311 78%
+  );
+}
+
+.sonic-page.route-about .sonic-wash {
+  background:
+    linear-gradient(
+      90deg,
+      rgba(9, 12, 10, 0.76) 0%,
+      rgba(9, 12, 10, 0.18) 57%,
+      rgba(9, 12, 10, 0.54) 100%
+    ),
+    linear-gradient(
+      0deg,
+      rgba(9, 12, 10, 0.78) 0%,
+      transparent 50%,
+      rgba(9, 12, 10, 0.45) 100%
+    );
+}
+
+/* ============================================================================
+ * TOP NAVIGATION BAR (`.sonic-nav`) & STEP 5 WEB AUDIO ANALYSER TOGGLE
+ * ============================================================================ */
+
+.sonic-nav-header {
+  position: relative;
+  z-index: 5;
+  width: 100%;
+}
+
+.sonic-nav {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 1.25rem clamp(1.2rem, 3.4vw, 3.8rem);
+}
+
+.sonic-logo {
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.72rem);
+  line-height: 1.15;
+  letter-spacing: 0.17em;
+  text-transform: uppercase;
+  color: var(--ink);
+}
+
+.sonic-navlinks {
+  display: flex;
+  align-items: center;
+  gap: clamp(1rem, 2.5vw, 3rem);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.7rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sonic-navlinks a,
+.sonic-navlinks button {
+  color: rgba(241, 240, 235, 0.86);
+  transition:
+    opacity 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+.sonic-navlinks a:hover,
+.sonic-navlinks a.is-active,
+.sonic-navlinks button:hover,
+.sonic-navlinks button.is-on {
+  opacity: 1;
+  color: var(--red-text);
+}
+
+.sonic-sound-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0 0 0.25rem;
+  background: transparent;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.7rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sonic-sound-toggle.is-on {
+  border-bottom-color: var(--red-text);
+}
+
+.sonic-sound-glyph {
+  color: var(--red-text);
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.sonic-sound-eq {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 0.68rem;
+  padding-bottom: 1px;
+}
+
+.sonic-sound-eq-bar {
+  display: inline-block;
+  width: 2px;
+  height: 100%;
+  background: rgba(241, 240, 235, 0.42);
+  transform-origin: bottom center;
+  transform: scaleY(0.22);
+  will-change: transform;
+  transition: background-color 180ms ease;
+}
+
+.sonic-sound-eq.is-playing .sonic-sound-eq-bar {
+  background: var(--red-text);
+}
+
+.sonic-sound-toggle.is-disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}
+
+/* ============================================================================
+ * STEP 3 & STEP 4: HERO BLOCK PROPORTIONS & MASKED LINE REVEALS
+ * ============================================================================ */
+
+.sonic-main-region {
+  position: relative;
+  z-index: 4;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.sonic-main-region:focus {
+  outline: none;
+}
+
+.sonic-route-transition-stage {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  will-change: transform, opacity;
+}
+
+.sonic-line-mask {
+  display: block;
+  overflow: hidden;
+}
+
+.sonic-h1-mask {
+  padding-bottom: 0.09em;
+  margin-bottom: -0.09em;
+}
+
+.sonic-hero,
+.hero-content {
+  position: relative;
+  z-index: 4;
+  margin-top: clamp(3.5rem, 11vh, 8.5rem);
+  margin-left: clamp(1.2rem, 9vw, 10rem);
+  margin-right: 1.2rem;
+  margin-bottom: 3rem;
+  width: min(52rem, 58vw);
+  will-change: transform, opacity;
+}
+
+.sonic-kicker,
+.sa-kicker,
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0 0 1.7rem;
+  color: var(--red-text);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.72rem);
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.sonic-kicker > span:first-child,
+.eyebrow > span:first-child {
+  display: block;
+  width: 2.2rem;
+  height: 1px;
+  background: var(--red);
+  flex: 0 0 auto;
+}
+
+.sonic-hero h1,
+.hero-content h1,
+.sa-hero-h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: clamp(4.8rem, 9.5vw, 10rem);
+  line-height: 0.77;
+  letter-spacing: -0.095em;
+  color: var(--ink);
+  font-variation-settings: "opsz" 144;
+}
+
+.sonic-hero h1 em,
+.hero-content h1 em,
+.sa-hero-h1 em,
+.sa-hero-h1 .sa-hero-accent {
+  font-style: italic;
+  font-weight: 400;
+  font-synthesis: none;
+  color: var(--red);
+  letter-spacing: -0.1em;
+}
+
+.sonic-subtitle,
+.sa-hero-subtitle,
+.lead {
+  margin: 1.35rem 0 0;
+  color: var(--ink);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: clamp(1.2rem, 2.3vw, 2rem);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.sonic-description,
+.sa-hero-description,
+.sublead {
+  max-width: 28rem;
+  margin: 0.8rem 0 0;
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: clamp(0.85rem, 1.1vw, 1rem);
+  line-height: 1.5;
+}
+
+.sonic-form,
+.world-form {
+  display: flex;
+  align-items: center;
+  width: min(36rem, 100%);
+  margin-top: 2.1rem;
+  border-bottom: 1px solid rgba(241, 240, 235, 0.7);
+  transition: border-color 180ms ease;
+}
+
+.sonic-form:focus-within,
+.world-form:focus-within {
+  border-bottom-color: var(--red-text);
+}
+
+.sonic-form input,
+.world-form input {
+  min-width: 0;
+  flex: 1;
+  padding: 0.85rem 0;
+  background: transparent;
+  border: 0;
+  outline: 0;
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: max(var(--text-floor), 0.82rem);
+  letter-spacing: 0.02em;
+}
+
+.sonic-form input:focus-visible,
+.world-form input:focus-visible {
+  outline: 2px solid var(--red-text);
+  outline-offset: 4px;
+}
+
+.sonic-form input::placeholder,
+.world-form input::placeholder {
+  color: rgba(241, 240, 235, 0.68);
+}
+
+.sonic-form button,
+.world-form .enter-button {
+  padding: 0.85rem 0 0.85rem 1rem;
+  background: transparent;
+  color: var(--red-text);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.72rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: color 180ms ease, transform 180ms ease;
+}
+
+.sonic-helper,
+.sa-helper-line,
+.form-helper {
+  margin: 0.8rem 0 0;
+  color: var(--muted-strong);
+  font-family: var(--font-mono);
+  font-weight: 400;
+  font-size: max(var(--text-floor), 0.7rem);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.sonic-chips,
+.prompt-Directives {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  margin-top: 1.5rem;
+  max-width: 38rem;
+}
+
+.sonic-chips button,
+.sa-prompt-chip,
+.prompt-chip {
+  padding: 0.48rem 0.7rem;
+  border: 1px solid rgba(241, 240, 235, 0.28);
+  background: rgba(8, 10, 9, 0.38);
+  color: rgba(241, 240, 235, 0.86);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.7rem);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition:
+    border-color 200ms ease,
+    color 200ms ease,
+    background-color 200ms ease;
+}
+
+.sonic-chips button:hover,
+.sonic-chips button:focus-visible,
+.sonic-chips button[data-selected="true"],
+.sa-prompt-chip:hover,
+.sa-prompt-chip:focus-visible,
+.sa-prompt-chip[data-selected="true"],
+.prompt-chip:hover,
+.prompt-chip:focus-visible,
+.prompt-chip[data-selected="true"] {
+  border-color: var(--red-text);
+  background: rgba(229, 31, 53, 0.16);
+  color: var(--ink);
+}
+
+/* ============================================================================
+ * INTERRUPTIBLE SUBMIT-TRANSITION PILL
+ * ============================================================================ */
+
+.sonic-submit-interrupt-bar {
+  position: fixed;
+  z-index: 55;
+  left: 50%;
+  top: 5.5rem;
+  transform: translate3d(-50%, 0, 0);
+}
+
+.sonic-interrupt-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.95rem;
+  border: 1px solid var(--red-text);
+  background: rgba(17, 19, 18, 0.92);
+  backdrop-filter: blur(8px);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.7rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.sonic-interrupt-btn:hover,
+.sonic-interrupt-btn:focus-visible {
+  background: rgba(229, 31, 53, 0.22);
+  color: var(--ink);
+}
+
+/* ============================================================================
+ * BOTTOM EDITORIAL FOOTER (`.sonic-footer`) & STATUS TOAST (`.sonic-toast`)
+ * ============================================================================ */
+
+.sonic-footer {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem clamp(1.2rem, 3.4vw, 3.8rem) 1.3rem;
+  color: var(--muted-strong);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.7rem);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.sonic-footer__line {
+  height: 1px;
+  flex: 1;
+  background: var(--line);
+}
+
+.sonic-about-link {
+  margin-left: auto;
+  color: var(--muted-strong);
+  transition: color 200ms ease;
+}
+
+.sonic-about-link:hover,
+.sonic-about-link.is-active {
+  color: var(--red-text);
+}
+
+.sonic-toast {
+  position: fixed;
+  z-index: 50;
+  left: 50%;
+  bottom: 4.5rem;
+  transform: translate3d(-50%, 1rem, 0);
+  padding: 0.65rem 1rem;
+  border: 1px solid rgba(241, 240, 235, 0.28);
+  border-radius: 2rem;
+  background: rgba(15, 17, 16, 0.9);
+  backdrop-filter: blur(8px);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-weight: 500;
+  font-size: max(var(--text-floor), 0.72rem);
+  letter-spacing: 0.06em;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 200ms ease,
+    transform 200ms ease;
+}
+
+.sonic-toast.is-visible {
+  opacity: 1;
+  transform: translate3d(-50%, 0, 0);
+}
+
+/* ============================================================================
+ * 3D SCENE ISOLATION (Prevents UI Chrome from Washing, Tinting, or Muting R3F)
+ * ============================================================================ */
+
+.sa-scene-viewport-isolated {
+  position: relative;
+  isolation: isolate;
+  filter: none !important;
+  mix-blend-mode: normal !important;
+}
+
+/* Brutalist Hairline Utilities */
+.hairline-border {
+  border: 1px solid var(--line);
+}
+
+.hairline-bottom {
+  border-bottom: 1px solid var(--line);
+}
+
+.hairline-top {
+  border-top: 1px solid var(--line);
+}
+
+/* ============================================================================
+ * STEP 5 MOBILE BREAKPOINT (<800px) & SHORT VIEWPORT ADAPTATION
+ * ============================================================================ */
+
+@media (max-width: 800px) {
+  .sonic-page {
+    min-height: 100svh;
+  }
+
+  .sa-skip-link--secondary {
+    left: 1rem;
+    top: -140px;
+  }
+
+  .sa-skip-link--secondary:focus,
+  .sa-skip-link--secondary:focus-visible {
+    top: 3.6rem;
+  }
+
+  .sonic-nav {
+    padding: 0.95rem 1rem;
+  }
+
+  .sonic-navlinks {
+    gap: 0.85rem;
+  }
+
+  /* Hide the first nav link ("The Experience") and the footer "About the practice ↗" link on <800px */
+  .sa-hide-mobile,
+  .sonic-navlinks a:first-child,
+  .sonic-about-link {
+    display: none !important;
+  }
+
+  .sonic-hero,
+  .hero-content {
+    margin-top: 2rem;
+    margin-left: 1rem;
+    margin-right: 1rem;
+    margin-bottom: 2rem;
+    width: auto;
+  }
+
+  .sonic-kicker,
+  .eyebrow {
+    max-width: 20rem;
+    margin-bottom: 1.1rem;
+    line-height: 1.4;
+  }
+
+  /* Mobile H1 scale: clamp(2.7rem, 11vw, 4.6rem) */
+  .sonic-hero h1,
+  .hero-content h1,
+  .sa-hero-h1 {
+    font-size: clamp(2.7rem, 11vw, 4.6rem);
+    letter-spacing: -0.1em;
+  }
+
+  .sonic-subtitle,
+  .sa-hero-subtitle,
+  .lead {
+    margin-top: 1rem;
+    font-size: clamp(1.08rem, 4.5vw, 1.45rem);
+  }
+
+  .sonic-description,
+  .sublead {
+    max-width: 22rem;
+  }
+
+  .sonic-form,
+  .world-form {
+    margin-top: 1.5rem;
+  }
+
+  .sonic-chips,
+  .prompt-Directives {
+    gap: 0.4rem;
+    margin-top: 1.1rem;
+  }
+
+  .sonic-chips button,
+  .sa-prompt-chip,
+  .prompt-chip {
+    min-height: 2.35rem;
+    padding: 0.52rem 0.75rem;
+  }
+
+  .sonic-footer {
+    padding: 0.85rem 1rem 1rem;
+    gap: 0.65rem;
+  }
+
+  .sonic-wash {
+    background:
+      linear-gradient(
+        90deg,
+        rgba(8, 10, 9, 0.78) 0%,
+        rgba(8, 10, 9, 0.22) 74%,
+        rgba(8, 10, 9, 0.5) 100%
+      ),
+      linear-gradient(
+        0deg,
+        rgba(8, 10, 9, 0.86) 0%,
+        transparent 48%,
+        rgba(8, 10, 9, 0.44) 100%
+      );
+  }
+}
+
+/* Short-viewport / landscape mobile & 200% zoom resilience (never clips content) */
+@media (max-height: 640px) {
+  .sonic-hero,
+  .hero-content {
+    margin-top: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .sonic-kicker,
+  .eyebrow {
+    margin-bottom: 0.85rem;
+  }
+
+  .sonic-form,
+  .world-form {
+    margin-top: 1.25rem;
+  }
+
+  .sonic-chips,
+  .prompt-Directives {
+    margin-top: 0.95rem;
+  }
+}
+
+/* ============================================================================
+ * STEP 5 REDUCED MOTION OVERRIDES (OS Media Query + In-App data-reduced-motion)
+ * No Parallax, No Video, Near-Instant Fades
+ * ============================================================================ */
 
 @media (prefers-reduced-motion: reduce) {
-  html {
-    scroll-behavior: auto;
-  }
   *,
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .sonic-image,
+  .sa-bg-media {
+    transform: none !important;
+    transition: opacity 80ms linear !important;
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: var(--font-schibsted), system-ui, -apple-system, "Segoe UI", sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
-
-::selection {
-  background: var(--sa-lime);
-  color: var(--sa-charcoal);
-}
-
-:focus-visible {
-  outline: 2px solid var(--sa-lime);
-  outline-offset: 3px;
-}
-
-.sa-label {
-  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
-  font-size: 0.65rem;
-  letter-spacing: 0.28em;
-  text-transform: uppercase;
-  color: var(--sa-gray);
-}
-
-.sa-glass {
-  background: var(--sa-glass);
-  border: 1px solid var(--sa-line);
-  backdrop-filter: blur(14px);
-  -webkit-backdrop-filter: blur(14px);
-}
-
-.sa-rule {
-  border-color: var(--sa-line);
-}
-
-/* ---------------------------------------------------------------------------
-   Editorial architectural landing (Lintel + NEST inspired)
---------------------------------------------------------------------------- */
-
-.sa-ink {
-  color: var(--sa-ink);
-}
-
-.sa-ink-soft {
-  color: var(--sa-ink-soft);
-}
-
-.sa-gutter {
-  padding-left: max(var(--gutter), env(safe-area-inset-left, 0px));
-  padding-right: max(var(--gutter), env(safe-area-inset-right, 0px));
-}
-
-.sa-panel {
-  background: var(--lintel-paper);
-  color: var(--lintel-ink);
-  border: 1px solid var(--lintel-rule);
-  box-shadow: 0 28px 60px -24px rgba(0, 0, 0, 0.6);
-}
-
-.sa-eyebrow {
-  font-family: var(--font-ibm-plex-mono), ui-monospace, monospace;
-  font-size: 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--lintel-moss);
-}
-
-.sa-display {
-  font-family: var(--font-libre-caslon), "Libre Caslon Display", Georgia, serif;
-  font-weight: 400;
-  line-height: 0.98;
-  letter-spacing: -0.005em;
-  text-wrap: balance;
-}
-
-.sa-copywash {
-  background: radial-gradient(
-    62% 58% at 22% 72%,
-    rgba(10, 14, 26, 0.7) 0%,
-    rgba(10, 14, 26, 0.4) 40%,
-    rgba(10, 14, 26, 0) 76%
-  );
-}
-
-/* Keep legacy frost styles for backward compatibility but toned down */
-.sa-frost {
-  background: rgba(238, 232, 220, 0.92);
-  color: var(--lintel-ink);
-  border: 1px solid var(--lintel-rule);
-  backdrop-filter: blur(12px) saturate(1.05);
-  -webkit-backdrop-filter: blur(12px) saturate(1.05);
-  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.7);
-}
-
-.sa-cast {
-  filter: drop-shadow(0 24px 50px rgba(0, 0, 0, 0.25));
-}
-
-.sa-veil {
-  background: radial-gradient(
-    62% 58% at 50% 46%,
-    rgba(10, 14, 26, 0.45) 0%,
-    rgba(10, 14, 26, 0.18) 46%,
-    rgba(10, 14, 26, 0) 74%
-  );
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .sa-cloud-a,
-  .sa-cloud-b,
-  .sa-cloud-c {
-    animation: none;
-  }
+[data-reduced-motion="true"] .sonic-image,
+[data-reduced-motion="true"] .sa-bg-media {
+  transform: none !important;
+  transition: opacity 80ms linear !important;
 }
