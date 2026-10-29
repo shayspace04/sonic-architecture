@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SonicMark } from '@/components/brand/SonicMark';
 
 export const metadata: Metadata = {
   title: 'About the Methodology — Sonic Architecture',
@@ -13,7 +14,7 @@ export default function AboutPage() {
       {/* Navigation */}
       <nav className="site-nav" aria-label="Primary navigation">
         <Link className="wordmark" href="/">
-          <span className="wordmark-mark" aria-hidden="true" />
+          <SonicMark height={24} aria-hidden="true" className="wordmark-mark" />
           SONIC / ARCHITECTURE
         </Link>
         <div className="nav-links">

@@ -4,6 +4,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { SonicMark } from '@/components/brand/SonicMark';
 import type {
   DiffCategory,
   ProcurementLineItem,
@@ -365,7 +366,7 @@ function StudioEditorialWorkspaceInner() {
       <aside className="studio-sidebar" aria-label="Studio workbench sidebar">
         <div className="studio-sidebar__top">
           <Link className="wordmark" href="/">
-            <span className="wordmark-mark" aria-hidden="true" />
+            <SonicMark height={24} aria-hidden="true" className="wordmark-mark" />
             SONIC / ARCHITECTURE
           </Link>
           <button
