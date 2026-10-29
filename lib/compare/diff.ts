@@ -189,14 +189,14 @@ function findTraceableEntity(
     }
   }
 
-  // Fall back to primary active Qloo entity driving this grounded run
+  // Fall back to rule-based calibration attributed to the primary active context
   const primary = qlooContext.entities[0];
   if (primary) {
     return {
       entityName: primary.name,
       entityType: primary.type.replace(/_/g, " "),
       signal: primary.signals[0] || "cultural_grounding",
-      provenance: primary.provenance,
+      provenance: primary.provenance === "sample-fixture" ? "sample-fixture" : "rule-based",
     };
   }
 
@@ -423,12 +423,11 @@ export function diffScenes(
       [
         ...(grounded.musicProfile?.genres || []),
         ...(grounded.musicProfile?.moodTags || []),
-        "jazz",
-        "ambient",
-        "techno",
-        "folk",
-        "music",
         "soundtrack",
+        "composer",
+        "musician",
+        "artist",
+        "audio",
       ],
       qlooContext
     );

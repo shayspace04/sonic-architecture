@@ -102,6 +102,7 @@ const MOMENT_DISPLAY_TITLES: Readonly<
 const PROVENANCE_DISPLAY_TAGS: Readonly<Record<SoundtrackProvenanceLabel, string>> = {
   "qloo-evidence": "QLOO-EVIDENCE (Live Qloo Entity)",
   inferred: "INFERRED (SceneSpec Acoustics/Materials)",
+  "rule-based": "RULE-BASED (Deterministic Mapping Rule)",
   fallback: "FALLBACK (Local Typology Rule)",
   "sample-fixture": "SAMPLE-FIXTURE (Offline Sample Data)",
 };

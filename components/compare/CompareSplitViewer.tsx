@@ -125,7 +125,7 @@ export function CompareSplitViewer({
   return (
     <div
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden select-none bg-[#0B0E14]"
+      className="compare-split-viewer relative w-full h-full overflow-hidden select-none bg-[#0B0E14]"
       style={{ touchAction: "none" }}
       role="region"
       aria-label="With Qloo vs Without Qloo split viewer"

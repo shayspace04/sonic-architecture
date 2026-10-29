@@ -111,6 +111,7 @@ export function designScene({
       : source === "fixture"
       ? "sample-fixture"
       : "fallback";
+  const ruleProv: Provenance = source === "fixture" ? "sample-fixture" : "rule-based";
 
   const resolvedEntities: ResolvedEntity[] = qlooContext.entities.map((e) => ({
     id: e.id,
@@ -211,7 +212,7 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: isBrutalistPrompt ? "brutalist_listening_room" : "intimate_jazz_acoustic",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: isBrutalistPrompt
         ? `Selected brutalist acoustic listening room derived from ${primaryEntity.name} jazz venue affinities paired with monolithic concrete massing.`
         : `Selected intimate acoustic listening room derived from ${primaryEntity.name} jazz cellar affinities.`,
@@ -224,18 +225,21 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "industrial_warehouse_volume",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: `Selected industrial warehouse typology derived from ${primaryEntity.name} electronic and warehouse venue affinities.`,
     };
   } else if (isGardenContemplative) {
-    payload.typology = "garden_mandap";
+    const isIndianWedding = /mandap|sangeet|indian wedding|marigold|diwan/i.test(allText);
+    payload.typology = isIndianWedding ? "garden_mandap" : "tea_room";
     provenanceMap["typology"] = {
       toolCallId: "call_qloo_resolve",
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
-      signal: "borrowed_scenery_shakkei",
-      provenance: defaultProv,
-      rationale: `Selected contemplative open-air pavilion for ${primaryEntity.name}.`,
+      signal: isIndianWedding ? "mandap_canopy_assembly" : "borrowed_scenery_shakkei",
+      provenance: ruleProv,
+      rationale: isIndianWedding
+        ? `Selected festive open-air garden mandap pavilion for ${primaryEntity.name}.`
+        : `Selected contemplative open-air tea pavilion for ${primaryEntity.name}.`,
     };
   } else if (isA24AmbientCinema) {
     payload.typology = "gallery_pavilion";
@@ -244,7 +248,7 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "ambient_cinema_screening",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: `Selected micro-cinema screening gallery for ${primaryEntity.name}.`,
     };
   } else if (isFashionEditorialLoft) {
@@ -254,7 +258,7 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "editorial_loft_studio",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: `Selected industrial grunge loft typology based on ${primaryEntity.name} cultural affinity.`,
     };
   } else if (isFashionRunway) {
@@ -264,7 +268,7 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "haute_couture_runway",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: `Selected brutalist monumental runway volume derived from ${primaryEntity.name}.`,
     };
   } else if (isBrutalistPrompt) {
@@ -274,8 +278,17 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "brutalist_concrete_volume",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: `Selected brutalist listening space with monolithic concrete massing.`,
+    };
+  } else {
+    provenanceMap["typology"] = {
+      toolCallId: "call_qloo_resolve",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "prompt_spatial_typology",
+      provenance: ruleProv,
+      rationale: `Selected ${(payload.typology || "listening_room").replace(/_/g, " ")} typology calibrated from prompt specifications.`,
     };
   }
 
@@ -299,7 +312,7 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: choice.triggeredBy,
       signal: choice.tagType,
-      provenance: defaultProv,
+      provenance: choice.tagType === "fallback" ? "fallback" : ruleProv,
       rationale: choice.rationale,
     };
   }
@@ -320,16 +333,6 @@ export function designScene({
     groundedSpec.palette.fallbackNotice = derivedDesign.palette.fallbackNotice || "No Qloo-derived palette for this reference";
   }
 
-  // Generate plain "because" design rationales constructed strictly from real Qloo data and final scene typology
-  const becauseSentences = generateBecauseSentences(
-    cleanPrompt,
-    bundle,
-    qlooContext.entities,
-    derivedDesign,
-    groundedSpec.typology
-  );
-  groundedSpec.becauseSentences = becauseSentences;
-
   // ==========================================================================
   // MODULATION 5: MASSING GEOMETRY & ACOUSTIC TUNING
   // ==========================================================================
@@ -346,7 +349,7 @@ export function designScene({
         entityId: primaryEntity.id,
         entityName: primaryEntity.name,
         signal: "brutalist_listening_room_geometry",
-        provenance: defaultProv,
+        provenance: ruleProv,
         rationale: "14.0m × 10.5m monolithic brutalist listening volume with 4.4m ceiling for controlled jazz acoustic intimacy.",
       };
     } else {
@@ -361,7 +364,7 @@ export function designScene({
         entityId: primaryEntity.id,
         entityName: primaryEntity.name,
         signal: "intimate_acoustic_listening_geometry",
-        provenance: defaultProv,
+        provenance: ruleProv,
         rationale: "12.0m × 9.0m intimate listening room envelope calibrated for high-fidelity acoustic reproduction.",
       };
     }
@@ -379,7 +382,7 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "industrial_warehouse_envelope",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: "20.0m × 15.0m industrial warehouse envelope with 6.8m clear-span structural trusses.",
     };
   } else if (payload.typology === "grunge_loft") {
@@ -396,7 +399,7 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "open_clear_span_loft",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: "14.5m × 11.2m clear-span editorial photo loft with 4.2m ceiling.",
     };
   } else if (payload.typology === "gallery_pavilion") {
@@ -411,8 +414,25 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "intimate_acoustic_containment",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: "13.0m × 10.0m gallery space with 3.8m ceiling creating dry, intimate acoustic envelope.",
+    };
+  } else if (payload.typology === "tea_room") {
+    groundedSpec.roomDimensions.width = 10.0;
+    groundedSpec.roomDimensions.depth = 8.5;
+    groundedSpec.roomDimensions.height = 3.2;
+    groundedSpec.roomDimensions.ridgeHeight = 3.6;
+    groundedSpec.acousticTarget.calculatedRT60Seconds = 0.32;
+    groundedSpec.acousticTarget.complianceStatus = "optimal";
+    groundedSpec.isOpenAir = false;
+    groundedSpec.enclosureMode = "indoor";
+    provenanceMap["geometry"] = {
+      toolCallId: "call_qloo_signals",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "contemplative_tea_room_proportions",
+      provenance: ruleProv,
+      rationale: "10.0m × 8.5m intimate timber tea room pavilion with 3.2m tatami-proportioned ceiling.",
     };
   } else if (payload.typology === "garden_mandap") {
     groundedSpec.isOpenAir = true;
@@ -426,14 +446,64 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "open_sky_reflection",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: "16.0m × 12.5m open-air pavilion layout with dispersive acoustic reflections.",
+    };
+  } else if (payload.typology === "mediterranean_courtyard") {
+    groundedSpec.roomDimensions.width = 16.0;
+    groundedSpec.roomDimensions.depth = 12.0;
+    groundedSpec.roomDimensions.height = 3.8;
+    groundedSpec.acousticTarget.calculatedRT60Seconds = 0.40;
+    groundedSpec.acousticTarget.complianceStatus = "optimal";
+    groundedSpec.isOpenAir = true;
+    provenanceMap["geometry"] = {
+      toolCallId: "call_qloo_signals",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "courtyard_colonnade_envelope",
+      provenance: ruleProv,
+      rationale: "16.0m × 12.0m open-air courtyard perimeter with travertine colonnades and acoustic dispersion.",
+    };
+  } else if (payload.typology === "underground_club") {
+    groundedSpec.roomDimensions.width = 18.0;
+    groundedSpec.roomDimensions.depth = 14.0;
+    groundedSpec.roomDimensions.height = 5.2;
+    groundedSpec.acousticTarget.calculatedRT60Seconds = 0.75;
+    groundedSpec.acousticTarget.complianceStatus = "optimal";
+    groundedSpec.isOpenAir = false;
+    groundedSpec.enclosureMode = "underground";
+    provenanceMap["geometry"] = {
+      toolCallId: "call_qloo_signals",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "subterranean_club_envelope",
+      provenance: ruleProv,
+      rationale: "18.0m × 14.0m subterranean club envelope tuned for low-frequency acoustic containment.",
     };
   } else {
     groundedSpec.roomDimensions.height = Number((groundedSpec.roomDimensions.height * 1.25).toFixed(1));
     groundedSpec.acousticTarget.calculatedRT60Seconds = 0.50;
     groundedSpec.acousticTarget.complianceStatus = "optimal";
+    provenanceMap["geometry"] = {
+      toolCallId: "call_qloo_signals",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "calibrated_proportions",
+      provenance: ruleProv,
+      rationale: `Calibrated ${groundedSpec.roomDimensions.width}m × ${groundedSpec.roomDimensions.depth}m envelope for ${(payload.typology || "listening_room").replace(/_/g, " ")}.`,
+    };
   }
+
+  // Generate plain "because" design rationales constructed strictly from real Qloo data, final scene typology, and authoritative acoustics
+  const becauseSentences = generateBecauseSentences(
+    cleanPrompt,
+    bundle,
+    qlooContext.entities,
+    derivedDesign,
+    groundedSpec.typology,
+    groundedSpec.acousticTarget
+  );
+  groundedSpec.becauseSentences = becauseSentences;
 
   // ==========================================================================
   // MODULATION 6: PROPS & STAGED ASSEMBLIES
@@ -522,8 +592,17 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "flash_photography_equipment",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: "Installed photographic strobe tripods, seamless pink cyclorama, and tufted velvet sofa.",
+    };
+  } else {
+    provenanceMap["props"] = {
+      toolCallId: "call_qloo_crossDomain",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "spatial_focal_assembly",
+      provenance: ruleProv,
+      rationale: `Installed ${groundedSpec.focalPoint.name} with bespoke materiality calibrated to ${groundedSpec.typology.replace(/_/g, " ")}.`,
     };
   }
 
@@ -556,9 +635,34 @@ export function designScene({
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "raw_distortion",
-      provenance: defaultProv,
+      provenance: ruleProv,
       rationale: "Curated 90s Grunge, Riot Grrrl & Shoegaze high-energy score.",
     };
+  } else {
+    const musicEntity = qlooContext.entities.find((e) =>
+      (e.type || "").toLowerCase().includes("musician") ||
+      (e.type || "").toLowerCase().includes("artist") ||
+      (e.type || "").toLowerCase().includes("music")
+    );
+    if (musicEntity) {
+      provenanceMap["soundtrack"] = {
+        toolCallId: "call_qloo_signals",
+        entityId: musicEntity.id,
+        entityName: musicEntity.name,
+        signal: musicEntity.signals[0] || "musical_affinity",
+        provenance: source === "live" || source === "cache" ? "qloo-evidence" : "sample-fixture",
+        rationale: `Curated ${groundedSpec.musicProfile?.genres?.slice(0, 3).join(", ") || "cultural"} soundtrack grounded in ${musicEntity.name} taste profile.`,
+      };
+    } else if (groundedSpec.musicProfile?.genres?.length) {
+      provenanceMap["soundtrack"] = {
+        toolCallId: "call_qloo_signals",
+        entityId: primaryEntity.id,
+        entityName: primaryEntity.name,
+        signal: "genre_calibration",
+        provenance: ruleProv,
+        rationale: `Curated ${groundedSpec.musicProfile.genres.slice(0, 3).join(", ")} soundtrack calibrated to ${groundedSpec.typology.replace(/_/g, " ")}.`,
+      };
+    }
   }
 
   // Seal validated provenance map
@@ -566,6 +670,7 @@ export function designScene({
     "call_qloo_resolve",
     "call_qloo_signals",
     "call_qloo_crossDomain",
+    "call_qloo_mapping",
   ]);
   const validationReport = validateProvenanceMap(provenanceMap, executedIds);
   groundedSpec.provenanceMap = validationReport.validatedMap;

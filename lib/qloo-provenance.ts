@@ -30,18 +30,27 @@ export function generateQlooEvidence(
   const prompt = (rawPrompt || sceneSpec.promptText || "Jazz + Brutalism").trim();
   const lower = prompt.toLowerCase();
 
+  // Strictly enforce truthful provenance:
+  // Static pre-canned starter fixture scenarios run ONLY in pure fixture mode when no live entities exist.
+  const useStaticStarterFixtures = source === "fixture" && liveEntities.length === 0;
+
   const isJazzBrutalis =
-    (lower.includes("jazz") && lower.includes("brutal")) ||
-    (lower.includes("jazz") && lower.includes("concrete"));
+    useStaticStarterFixtures &&
+    ((lower.includes("jazz") && lower.includes("brutal")) ||
+      (lower.includes("jazz") && lower.includes("concrete")));
   const isA24Ambient =
+    useStaticStarterFixtures &&
     (lower.includes("a24") || lower.includes("cinema") || lower.includes("film")) &&
     (lower.includes("ambient") || lower.includes("drone") || lower.includes("minimal"));
   const isJapaneseLounge =
-    lower.includes("japanese") || lower.includes("kissa") || lower.includes("listening lounge");
+    useStaticStarterFixtures &&
+    (lower.includes("japanese") || lower.includes("kissa") || lower.includes("listening lounge"));
   const isTechnoClub =
-    lower.includes("techno") || lower.includes("club") || lower.includes("berlin") || lower.includes("bunker");
+    useStaticStarterFixtures &&
+    (lower.includes("techno") || lower.includes("club") || lower.includes("berlin") || lower.includes("bunker"));
   const isIndianMandap =
-    lower.includes("mandap") || lower.includes("wedding") || lower.includes("indian");
+    useStaticStarterFixtures &&
+    (lower.includes("mandap") || lower.includes("wedding") || lower.includes("indian"));
 
   let resolved_entities: QlooResolvedEntity[] = [];
   let cross_domain_signals: QlooCrossDomainSignal[] = [];
@@ -339,32 +348,43 @@ export function generateQlooEvidence(
     const title = sceneSpec.title || "Custom Cultural Spatial Concept";
     const typologyName = sceneSpec.typology.replace(/_/g, " ");
 
-    resolved_entities = [
-      {
-        entity_id: `concept:${sceneSpec.typology}`,
-        entity_name: `${typologyName.toUpperCase()} Architectural Tradition`,
-        entity_type: "architectural_style",
-        qloo_signal: "cultural_resonance, material_authenticity, spatial_narrative",
-        provenance: directProv,
-        driven_choice: `${sceneSpec.materials.floor.name} flooring paired with ${sceneSpec.materials.wall.name} walls`,
-      },
-      {
-        entity_id: `music:${sceneSpec.layoutMode}`,
-        entity_name: `${sceneSpec.musicProfile?.genres?.[0] ?? "Atmospheric"} Musical Archetype`,
-        entity_type: "musical_genre",
-        qloo_signal: "harmonic_frequency, rhythmic_density, emotional_tempo",
-        provenance: directProv,
-        driven_choice: `Acoustic envelope tuned to ${sceneSpec.acousticTarget.calculatedRT60Seconds}s RT60 for clear acoustic projection`,
-      },
-      {
-        entity_id: `spatial:${sceneSpec.id}`,
-        entity_name: `${title} Spatial Narrative`,
-        entity_type: "spatial_mood",
-        qloo_signal: "experiential_flow + tactile_honesty = immersive_atmosphere",
-        provenance: "inferred",
-        driven_choice: `${sceneSpec.lighting.temperatureK}K illumination with focal emphasis on ${sceneSpec.focalPoint.name}`,
-      },
-    ];
+    if (liveEntities.length > 0 && (source === "live" || source === "cache")) {
+      resolved_entities = liveEntities.map((le, idx) => ({
+        entity_id: `live:${le.id || `qloo-${idx}`}`,
+        entity_name: le.name,
+        entity_type: le.type || "cultural_entity",
+        qloo_signal: "live_qloo_affinity_verified, cultural_anchor",
+        provenance: "qloo-evidence",
+        driven_choice: `Grounds primary palette and acoustic materiality on verified ${le.name} entity vector`,
+      }));
+    } else {
+      resolved_entities = [
+        {
+          entity_id: `concept:${sceneSpec.typology}`,
+          entity_name: `${typologyName.toUpperCase()} Architectural Tradition`,
+          entity_type: "architectural_style",
+          qloo_signal: "cultural_resonance, material_authenticity, spatial_narrative",
+          provenance: source === "fixture" ? "sample-fixture" : "rule-based",
+          driven_choice: `${sceneSpec.materials.floor.name} flooring paired with ${sceneSpec.materials.wall.name} walls`,
+        },
+        {
+          entity_id: `music:${sceneSpec.layoutMode}`,
+          entity_name: `${sceneSpec.musicProfile?.genres?.[0] ?? "Atmospheric"} Musical Archetype`,
+          entity_type: "musical_genre",
+          qloo_signal: "harmonic_frequency, rhythmic_density, emotional_tempo",
+          provenance: source === "fixture" ? "sample-fixture" : "inferred",
+          driven_choice: `Acoustic envelope tuned to ${sceneSpec.acousticTarget.calculatedRT60Seconds}s RT60 for clear acoustic projection`,
+        },
+        {
+          entity_id: `spatial:${sceneSpec.id}`,
+          entity_name: `${title} Spatial Narrative`,
+          entity_type: "spatial_mood",
+          qloo_signal: "experiential_flow + tactile_honesty = immersive_atmosphere",
+          provenance: "inferred",
+          driven_choice: `${sceneSpec.lighting.temperatureK}K illumination with focal emphasis on ${sceneSpec.focalPoint.name}`,
+        },
+      ];
+    }
 
     cross_domain_signals = [
       {
@@ -390,7 +410,7 @@ export function generateQlooEvidence(
     ];
   }
 
-  // Merge any real live Qloo search results if provided
+  // Merge any additional real live Qloo search results if provided
   if (liveEntities.length > 0) {
     liveEntities.forEach((le, idx) => {
       if (!resolved_entities.some((re) => re.entity_name.toLowerCase() === le.name.toLowerCase())) {
@@ -399,7 +419,7 @@ export function generateQlooEvidence(
           entity_name: le.name,
           entity_type: le.type || "cultural_entity",
           qloo_signal: "live_qloo_affinity_verified, cultural_anchor",
-          provenance: "qloo-evidence",
+          provenance: (source === "live" || source === "cache") ? "qloo-evidence" : "sample-fixture",
           driven_choice: `Grounds primary palette and acoustic materiality on verified ${le.name} entity vector`,
         });
       }

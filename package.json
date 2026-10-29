@@ -10,6 +10,7 @@
     "test": "node --test tests/acceptance.test.mjs",
     "test:qloo": "node --test --test-force-exit tests/qloo-proof.test.mjs",
     "test:judges": "node --test tests/truthful-sentences-and-generalisation.test.mjs",
+    "test:reliability": "node --test tests/system-reliability.test.mjs",
     "proof:cold": "node scripts/qloo-telemetry-proof.mjs --clear-cache",
     "proof:matrix": "node scripts/qloo-telemetry-proof.mjs",
     "prewarm": "node scripts/prewarm-kv.mjs",

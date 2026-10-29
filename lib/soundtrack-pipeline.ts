@@ -750,6 +750,48 @@ const TYPOLOGY_FALLBACK_CANDIDATES: Readonly<
 // 4. CANDIDATE GENERATION (QLOO-EVIDENCE -> INFERRED -> FALLBACK)
 // ============================================================================
 
+export function extractMusicArtistEntities(
+  scene: SceneSpec,
+  qlooSignals?: ReadonlyArray<QlooMusicEntityInput>
+): Array<{ name: string; source: "qloo-evidence" | "inferred" }> {
+  const artists: Array<{ name: string; source: "qloo-evidence" | "inferred" }> = [];
+  const seen = new Set<string>();
+
+  const add = (name: string, source: "qloo-evidence" | "inferred") => {
+    const clean = name.replace(/^Qloo\s+affinity\s*:\s*/i, "").replace(/\([^)]*\)/g, "").trim();
+    const key = clean.toLowerCase();
+    if (!key || seen.has(key)) return;
+    seen.add(key);
+    artists.push({ name: clean, source });
+  };
+
+  if (qlooSignals && qlooSignals.length > 0) {
+    for (const sig of qlooSignals) {
+      if (sig.name) add(sig.name, "qloo-evidence");
+    }
+  }
+
+  if (scene.qloo_evidence?.resolved_entities) {
+    for (const ent of scene.qloo_evidence.resolved_entities) {
+      if (
+        (ent.entity_type || "").includes("artist") ||
+        (ent.entity_type || "").includes("musician") ||
+        (ent.entity_type || "").includes("music")
+      ) {
+        add(ent.entity_name, ent.provenance === "qloo-evidence" ? "qloo-evidence" : "inferred");
+      }
+    }
+  }
+
+  if (scene.musicProfile?.provenanceSummary?.qlooEntitiesUsed && Array.isArray(scene.musicProfile.provenanceSummary.qlooEntitiesUsed)) {
+    for (const a of scene.musicProfile.provenanceSummary.qlooEntitiesUsed) {
+      add(a, "inferred");
+    }
+  }
+
+  return artists;
+}
+
 function extractQlooEvidenceCandidates(
   scene: SceneSpec,
   qlooSignals?: ReadonlyArray<QlooMusicEntityInput>
@@ -840,7 +882,15 @@ export function generateOrderedCandidates(
     gallery_pavilion: "keynote_pavilion",
     custom_hybrid: "listening_lounge",
   };
-  const mappedKey = typologyAliasMap[scene.typology] ?? scene.typology;
+  const promptAndGenres = `${scene.promptText || ""} ${scene.musicProfile?.genres?.join(" ") || ""}`.toLowerCase();
+  let mappedKey = typologyAliasMap[scene.typology] ?? scene.typology;
+  if (/ambient|zen|japanese|tea|shakkei|tranquil garden/i.test(promptAndGenres)) {
+    mappedKey = "zen_tea_pavilion";
+  } else if (/techno|club|rave|warehouse|electronic|berlin/i.test(promptAndGenres)) {
+    mappedKey = "grunge_loft_party";
+  } else if (/jazz|bebop|modal/i.test(promptAndGenres)) {
+    mappedKey = "listening_lounge";
+  }
   const inferredRaw =
     TYPOLOGY_INFERRED_CANDIDATES[mappedKey] ??
     TYPOLOGY_INFERRED_CANDIDATES.listening_lounge;
@@ -1013,7 +1063,15 @@ export function buildLabeledFallbackPlaylist(
     gallery_pavilion: "keynote_pavilion",
     custom_hybrid: "listening_lounge",
   };
-  const mappedKey = typologyAliasMap[scene.typology] ?? scene.typology;
+  const promptAndGenres = `${scene.promptText || ""} ${musicProfile.genres?.join(" ") || ""}`.toLowerCase();
+  let mappedKey = typologyAliasMap[scene.typology] ?? scene.typology;
+  if (/ambient|zen|japanese|tea|shakkei|tranquil garden/i.test(promptAndGenres)) {
+    mappedKey = "zen_tea_pavilion";
+  } else if (/techno|club|rave|warehouse|electronic|berlin/i.test(promptAndGenres)) {
+    mappedKey = "grunge_loft_party";
+  } else if (/jazz|bebop|modal/i.test(promptAndGenres)) {
+    mappedKey = "listening_lounge";
+  }
   const fallbackRaw =
     TYPOLOGY_FALLBACK_CANDIDATES[mappedKey] ??
     TYPOLOGY_FALLBACK_CANDIDATES.listening_lounge;
@@ -1164,31 +1222,88 @@ export async function generateVerifiedSoundtrackPlaylist(options: {
   let candidatesDroppedUnresolved = 0;
   const BATCH_SIZE = 6;
 
-  for (let i = 0; i < uniqueCandidates.length; i += BATCH_SIZE) {
-    const slice = uniqueCandidates.slice(i, i + BATCH_SIZE);
-    const batchResults = await Promise.all(
-      slice.map(async (candidate) => {
-        try {
-          const resolved = await compositeProvider.search(
-            candidate.artist,
-            candidate.title
-          );
-          return { candidate, resolved };
-        } catch {
-          return { candidate, resolved: null };
+  // 5a. Dynamically query live music provider for resolved artists if provider supports it
+  const artistEntities = extractMusicArtistEntities(scene, qlooSignals);
+  if (artistEntities.length > 0 && typeof (compositeProvider as any).searchArtistTopTracks === "function") {
+    const moments: SoundtrackMomentName[] = ["arrival", "dining", "peak", "wind-down"];
+    for (const art of artistEntities.slice(0, 3)) {
+      try {
+        const topTracks = await (compositeProvider as any).searchArtistTopTracks(art.name, 4);
+        if (Array.isArray(topTracks) && topTracks.length > 0) {
+          topTracks.forEach((t: ResolvedTrack, tIdx: number) => {
+            const cand: TrackCandidate = {
+              artist: t.artist,
+              title: t.title,
+              preferredMoment: moments[tIdx % moments.length],
+              estimatedEnergy: 0.28 + (tIdx * 0.16),
+              bpmEstimate: 72 + (tIdx * 14),
+              provenance: art.source,
+              provenanceSourceDetail:
+                art.source === "qloo-evidence"
+                  ? `Live Qloo music/artist entity: "${art.name}" (verified via Apple iTunes)`
+                  : `Inferred music profile artist: "${art.name}" (verified via Apple iTunes)`,
+            };
+            verifiedRecords.push({ candidate: cand, resolved: t });
+          });
         }
-      })
-    );
+      } catch {}
+    }
+  }
 
-    for (const item of batchResults) {
-      if (item.resolved) {
-        verifiedRecords.push({
-          candidate: item.candidate,
-          resolved: item.resolved,
-        });
-      } else {
-        candidatesDroppedUnresolved++;
+  // 5b. If no artist tracks resolved, dynamically query live provider for scene genre tracks
+  if (verifiedRecords.length === 0 && derivedProfile.genres?.length > 0 && typeof (compositeProvider as any).searchGenreTracks === "function") {
+    const moments: SoundtrackMomentName[] = ["arrival", "dining", "peak", "wind-down"];
+    for (const genre of derivedProfile.genres.slice(0, 2)) {
+      try {
+        const genreTracks = await (compositeProvider as any).searchGenreTracks(genre, 4);
+        if (Array.isArray(genreTracks) && genreTracks.length > 0) {
+          genreTracks.forEach((t: ResolvedTrack, tIdx: number) => {
+            const cand: TrackCandidate = {
+              artist: t.artist,
+              title: t.title,
+              preferredMoment: moments[tIdx % moments.length],
+              estimatedEnergy: 0.30 + (tIdx * 0.15),
+              bpmEstimate: 75 + (tIdx * 12),
+              provenance: "inferred",
+              provenanceSourceDetail: `Inferred from spatial genre "${genre}" (verified via Apple iTunes)`,
+            };
+            verifiedRecords.push({ candidate: cand, resolved: t });
+          });
+          if (verifiedRecords.length >= 4) break;
+        }
+      } catch {}
+    }
+  }
+
+  // 5c. Supplement with catalog search on specific candidate pairs if needed
+  if (verifiedRecords.length < 4) {
+    for (let i = 0; i < uniqueCandidates.length; i += BATCH_SIZE) {
+      const slice = uniqueCandidates.slice(i, i + BATCH_SIZE);
+      const batchResults = await Promise.all(
+        slice.map(async (candidate) => {
+          try {
+            const resolved = await compositeProvider.search(
+              candidate.artist,
+              candidate.title
+            );
+            return { candidate, resolved };
+          } catch {
+            return { candidate, resolved: null };
+          }
+        })
+      );
+
+      for (const item of batchResults) {
+        if (item.resolved) {
+          verifiedRecords.push({
+            candidate: item.candidate,
+            resolved: item.resolved,
+          });
+        } else {
+          candidatesDroppedUnresolved++;
+        }
       }
+      if (verifiedRecords.length >= 8) break;
     }
   }
 

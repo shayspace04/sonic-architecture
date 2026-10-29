@@ -567,6 +567,7 @@ export interface ValidationReport {
 export type SoundtrackProvenanceLabel =
   | "qloo-evidence"
   | "inferred"
+  | "rule-based"
   | "fallback"
   | "sample-fixture";
 
@@ -816,6 +817,7 @@ export interface SceneSpec {
 export type Provenance =
   | "qloo-evidence"
   | "inferred"
+  | "rule-based"
   | "fallback"
   | "sample-fixture";
 

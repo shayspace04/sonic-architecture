@@ -92,6 +92,15 @@ export const PROVENANCE_BADGE_SPECS: Readonly<
       "bg-[#D48C56]/20 text-[#E5B887] border border-[#D48C56]/55",
     dotColorHex: "#D48C56",
   },
+  "rule-based": {
+    label: "Rule-Based",
+    shortCode: "RULE-BASED",
+    description:
+      "Derived via deterministic architectural or acoustic mapping rules.",
+    badgeClassName:
+      "bg-blue-950/40 text-blue-300 border border-blue-700/60",
+    dotColorHex: "#3B82F6",
+  },
   fallback: {
     label: "Local Fallback",
     shortCode: "FALLBACK",

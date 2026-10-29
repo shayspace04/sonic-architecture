@@ -263,6 +263,8 @@ export function WhatQlooChangedList({
                             ? "bg-emerald-950 text-emerald-400 border-emerald-800"
                             : item.changedBy.provenance === "sample-fixture"
                             ? "bg-amber-950 text-amber-400 border-amber-800"
+                            : item.changedBy.provenance === "rule-based"
+                            ? "bg-blue-950 text-blue-400 border-blue-800"
                             : item.changedBy.provenance === "inferred"
                             ? "bg-yellow-950 text-yellow-400 border-yellow-800"
                             : "bg-neutral-900 text-neutral-400 border-neutral-700"

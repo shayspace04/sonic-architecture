@@ -306,7 +306,7 @@ export function LandingPage() {
           </div>
           <div className="contact-bottom">
             <p>
-              Sonic Architecture is open-source software built for the Qloo Hackathon. Designed for spatial identities, sound installations, and cultural spaces.
+              Sonic Architecture is open-source software designed for spatial identities, acoustic environments, sound installations, and cultural spaces.
             </p>
             <a
               className="contact-link"

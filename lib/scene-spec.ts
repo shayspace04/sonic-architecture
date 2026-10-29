@@ -398,7 +398,7 @@ export function buildLightingForTypology(
   };
 
   const tm = timeMultipliers[timeOfDay] || timeMultipliers.midnight;
-  const effectiveTempK = Math.max(1800, Math.min(6500, baseTempK + tm.tempOffset));
+  const canonicalTempK = Math.max(1800, Math.min(6500, Math.round(baseTempK)));
 
   const tempToHex = (k: number) => {
     if (k <= 2300) return "#FFB46B";
@@ -408,7 +408,7 @@ export function buildLightingForTypology(
     return "#D6ECFF";
   };
 
-  const primaryLightHex = tempToHex(effectiveTempK);
+  const primaryLightHex = tempToHex(canonicalTempK);
   const sources: LightSourceSpec[] = [
     {
       id: "light-ambient-core",
@@ -416,7 +416,7 @@ export function buildLightingForTypology(
       type: "ambient",
       position: [0, dims.height * 0.8, 0],
       colorHex: primaryLightHex,
-      temperatureK: effectiveTempK,
+      temperatureK: canonicalTempK,
       intensity: tm.ambient,
       castShadow: false,
     },
@@ -427,7 +427,7 @@ export function buildLightingForTypology(
       position: [dims.width * 0.6, dims.height * 1.35, dims.depth * 0.5],
       target: [0, 0, 0],
       colorHex: timeOfDay === "sunset" ? "#FF9E5E" : primaryLightHex,
-      temperatureK: effectiveTempK,
+      temperatureK: canonicalTempK,
       intensity: timeOfDay === "midnight" ? 0.55 : 1.35,
       castShadow: true,
     },
@@ -438,7 +438,7 @@ export function buildLightingForTypology(
       position: [0, dims.height - 0.3, -dims.depth * 0.15],
       target: [0, 0.8, -dims.depth * 0.32],
       colorHex: typology === "underground_club" ? "#EF4444" : primaryLightHex,
-      temperatureK: effectiveTempK,
+      temperatureK: canonicalTempK,
       intensity: 2.2,
       angleRad: 0.58,
       penumbra: 0.65,
@@ -449,8 +449,8 @@ export function buildLightingForTypology(
       name: "West Perimeter Grazing Sconce Array",
       type: "point",
       position: [-dims.width * 0.38, dims.height * 0.55, 0],
-      colorHex: "#FFAD60",
-      temperatureK: 2400,
+      colorHex: primaryLightHex,
+      temperatureK: canonicalTempK,
       intensity: 1.15,
       distance: dims.width * 0.9,
       castShadow: false,
@@ -460,8 +460,8 @@ export function buildLightingForTypology(
       name: "East Perimeter Grazing Sconce Array",
       type: "point",
       position: [dims.width * 0.38, dims.height * 0.55, 0],
-      colorHex: "#FFAD60",
-      temperatureK: 2400,
+      colorHex: primaryLightHex,
+      temperatureK: canonicalTempK,
       intensity: 1.15,
       distance: dims.width * 0.9,
       castShadow: false,
@@ -469,7 +469,7 @@ export function buildLightingForTypology(
   ];
 
   return {
-    temperatureK: effectiveTempK,
+    temperatureK: canonicalTempK,
     ambientIntensity: tm.ambient,
     sunAzimuthDeg: tm.sunAzimuth,
     sunElevationDeg: tm.sunElev,
