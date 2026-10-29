@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type {
   ExposureGuardTelemetry,
@@ -65,6 +66,14 @@ export interface Venue3DProps {
   audioBandsRef?: React.MutableRefObject<AudioReactiveBands>;
   /** Respects user prefers-reduced-motion setting in 3D audio-reactive modulation */
   prefersReducedMotion?: boolean;
+  /** Optional sync bus for synchronizing camera orbit/pan/zoom in split comparison mode */
+  cameraSyncBus?: React.MutableRefObject<{
+    sourceId: string | null;
+    position: THREE.Vector3;
+    target: THREE.Vector3;
+    updated: boolean;
+  }>;
+  cameraSyncId?: string;
 }
 
 function AudioReactiveSceneRig({
@@ -1273,17 +1282,39 @@ function ProceduralArchObject({
   );
 }
 
-function CameraPresetController({
+function ControlledCameraRig({
   preset = "overview",
   sceneSpec,
+  cameraSyncBus,
+  cameraSyncId,
 }: {
   preset?: "overview" | "interior" | "focal" | "plan";
   sceneSpec: SceneSpec;
+  cameraSyncBus?: React.MutableRefObject<{
+    sourceId: string | null;
+    position: THREE.Vector3;
+    target: THREE.Vector3;
+    updated: boolean;
+  }>;
+  cameraSyncId?: string;
 }) {
   const { camera } = useThree();
+  const controlsRef = useRef<any>(null);
+  const lastPresetRef = useRef<string | null>(null);
+  const lastSceneIdRef = useRef<string | null>(null);
   const { width, depth } = sceneSpec.roomDimensions;
 
+  // Reposition camera and update orbit target ONLY when preset or scene id changes,
+  // preventing user manual dragging/zooming from being overridden.
   useEffect(() => {
+    const isNewPreset = lastPresetRef.current !== preset;
+    const isNewScene = lastSceneIdRef.current !== sceneSpec.id;
+
+    if (!isNewPreset && !isNewScene) return;
+
+    lastPresetRef.current = preset;
+    lastSceneIdRef.current = sceneSpec.id;
+
     let pos: [number, number, number];
     let target: [number, number, number];
 
@@ -1308,11 +1339,57 @@ function CameraPresetController({
     }
 
     camera.position.set(pos[0], pos[1], pos[2]);
-    camera.lookAt(target[0], target[1], target[2]);
+    if (controlsRef.current) {
+      controlsRef.current.target.set(target[0], target[1], target[2]);
+      controlsRef.current.update();
+    } else {
+      camera.lookAt(target[0], target[1], target[2]);
+    }
     camera.updateProjectionMatrix();
-  }, [preset, sceneSpec, camera, width, depth]);
 
-  return null;
+    if (cameraSyncBus) {
+      cameraSyncBus.current.sourceId = cameraSyncId ?? null;
+      cameraSyncBus.current.position.set(pos[0], pos[1], pos[2]);
+      cameraSyncBus.current.target.set(target[0], target[1], target[2]);
+      cameraSyncBus.current.updated = true;
+    }
+  }, [preset, sceneSpec.id, sceneSpec.cameraDefaults, camera, width, depth, cameraSyncBus, cameraSyncId]);
+
+  // Synchronize on frame when driven by the paired viewport in split mode
+  useFrame(() => {
+    if (
+      cameraSyncBus &&
+      cameraSyncBus.current.updated &&
+      cameraSyncBus.current.sourceId !== cameraSyncId &&
+      controlsRef.current
+    ) {
+      camera.position.copy(cameraSyncBus.current.position);
+      controlsRef.current.target.copy(cameraSyncBus.current.target);
+      controlsRef.current.update();
+    }
+  });
+
+  const handleControlsChange = useCallback(() => {
+    if (cameraSyncBus && cameraSyncId && controlsRef.current) {
+      cameraSyncBus.current.sourceId = cameraSyncId;
+      cameraSyncBus.current.position.copy(camera.position);
+      cameraSyncBus.current.target.copy(controlsRef.current.target);
+      cameraSyncBus.current.updated = true;
+    }
+  }, [camera, cameraSyncBus, cameraSyncId]);
+
+  return (
+    <OrbitControls
+      ref={controlsRef}
+      makeDefault
+      enableDamping
+      dampingFactor={0.08}
+      minDistance={1.2}
+      maxDistance={Math.max(width, depth) * 4}
+      maxPolarAngle={Math.PI / 2 + 0.05}
+      onChange={handleControlsChange}
+    />
+  );
 }
 
 export function Venue3D({
@@ -1329,6 +1406,8 @@ export function Venue3D({
   pulsingObjectIds = [],
   audioBandsRef,
   prefersReducedMotion = false,
+  cameraSyncBus,
+  cameraSyncId,
 }: Venue3DProps) {
   const { width, height, depth } = sceneSpec.roomDimensions;
   const safeTier: "low" | "medium" | "high" = qualityTier === "ultra" ? "high" : qualityTier;
@@ -1399,8 +1478,13 @@ export function Venue3D({
         }}
         onPointerMissed={() => onSelectObject(null)}
       >
-        {/* Camera Preset Orchestrator */}
-        <CameraPresetController preset={cameraPreset} sceneSpec={sceneSpec} />
+        {/* Working OrbitControls & Camera Preset Orchestrator */}
+        <ControlledCameraRig
+          preset={cameraPreset}
+          sceneSpec={sceneSpec}
+          cameraSyncBus={cameraSyncBus}
+          cameraSyncId={cameraSyncId}
+        />
 
         {/* Step 1: Time-of-Day HDRI/Sky Lighting */}
         <LightRecipeAndSky
