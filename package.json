@@ -8,6 +8,11 @@
     "start": "next start",
     "lint": "next lint",
     "test": "node --test tests/acceptance.test.mjs",
+    "test:qloo": "node --test --test-force-exit tests/qloo-proof.test.mjs",
+    "proof:cold": "node scripts/qloo-telemetry-proof.mjs --clear-cache",
+    "proof:matrix": "node scripts/qloo-telemetry-proof.mjs",
+    "verify:deployed": "node scripts/verify-deployed.mjs",
+    "shoot:contrast": "node scripts/shoot-contrast.mjs",
     "encode:hero-media": "bash scripts/encode-hero-media.sh"
   },
   "dependencies": {

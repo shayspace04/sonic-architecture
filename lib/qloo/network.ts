@@ -25,17 +25,46 @@ export function resilientQlooLookup(
     options = {};
   }
 
-  // Attempt public DNS IPv4 resolve first
-  resolver.resolve4(hostname, (err, addresses) => {
-    if (!err && addresses && addresses.length > 0) {
-      if (options && options.all) {
-        return callback(null, addresses.map((a) => ({ address: a, family: 4 })));
+  let completed = false;
+  const done = (err: NodeJS.ErrnoException | null, address: any, family?: number) => {
+    if (completed) return;
+    completed = true;
+    callback(err, address, family);
+  };
+
+  // Fallback resolver using public DNS
+  const tryCustomResolverFallback = () => {
+    resolver.resolve4(hostname, (rErr, addresses) => {
+      if (!rErr && addresses && addresses.length > 0) {
+        if (options && options.all) {
+          return done(null, addresses.map((a) => ({ address: a, family: 4 })));
+        }
+        return done(null, addresses[0], 4);
       }
-      return callback(null, addresses[0], 4);
+      done(rErr, null);
+    });
+  };
+
+  // 1. Try normal OS dns.lookup first
+  try {
+    dns.lookup(hostname, options, (err, address, family) => {
+      if (!err && address) {
+        return done(null, address, family);
+      }
+      // Fallback on error (ENOTFOUND, etc.)
+      tryCustomResolverFallback();
+    });
+  } catch {
+    tryCustomResolverFallback();
+  }
+
+  // 2. Timeout fallback: If normal lookup hangs/times out, fall back after 1200ms
+  const timer = setTimeout(() => {
+    if (!completed) {
+      tryCustomResolverFallback();
     }
-    // Fall back to OS dns.lookup
-    dns.lookup(hostname, options, callback);
-  });
+  }, 1200);
+  if (timer.unref) timer.unref();
 }
 
 let configured = false;

@@ -798,6 +798,13 @@ export interface SceneSpec {
   agentTrace?: TraceStep[];
   /** Summary of agent tool calls, cache hits, and domains */
   agentSummary?: AgentTraceSummary;
+  /** Plain "because" design rationales constructed strictly from real Qloo data */
+  becauseSentences?: Array<{
+    decision: "typology" | "lighting" | "materiality";
+    headline: string;
+    sentence: string;
+    citedEntities: string[];
+  }>;
 }
 
 // ============================================================================

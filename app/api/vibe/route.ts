@@ -4,9 +4,13 @@ import { buildSceneSpecFromPayload } from "@/lib/scene-spec";
 import { applyTargetedRevision } from "@/lib/revisions";
 import { generateSceneComparison } from "@/lib/compare/sceneGenerator";
 import { getCrossDomainEvidenceForPrompt } from "@/lib/qloo/pipeline";
+import { triggerServerPrewarm } from "@/lib/qloo/prewarmer";
 import type { ResolvedEntity, SceneSpec, QuotaInfo, QlooContext, QlooContextEntity } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
+
+// Initialize background pre-warm on module load
+triggerServerPrewarm();
 
 export async function POST(req: Request) {
   try {

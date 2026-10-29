@@ -200,4 +200,5 @@ export interface RealQlooEvidenceBundle {
   surfaceExplainability: Record<string, SurfaceExplainability>; // entity_id -> top driver
   latencyMs: number;
   timestamp: number;
+  traceMetrics?: Array<{ endpoint: string; count: number; latencyMs: number; status: number }>;
 }

@@ -45,18 +45,16 @@ Copy `.env.example` to `.env.local`:
   ```
 
 > **Zero-Key Local Mode:** The application runs out of the box **without** requiring external API keys.
-> - If `QLOO_API_KEY` is not set in `.env.local`, `POST /api/vibe` automatically uses the built-in Layer-4 Cultural Knowledge & Spatial Synthesis Engine (`lib/enrichment.ts`, `lib/scene-spec.ts`, `lib/fallback.ts`).
-> - `POST /api/soundtrack` uses the free, zero-key **iTunes Search API** for real track verification and 30-second CORS AAC audio previews, falling back to the built-in procedural Web Audio venue synthesizer (`lib/soundtrack-audio-engine.ts`) when offline.
-> - To enable live Qloo Taste API queries, edit `.env.local` and replace `your_qloo_api_key_here` with your Qloo API key.
+> - If `QLOO_API_KEY` is not set in `.env.local`, the app operates with truthful fallback labels and typed sample fixtures.
+> - To enable live Qloo Taste API queries, edit `.env.local` and add your personal hackathon key:
+>   `QLOO_API_KEY=your_qloo_key_here`
 
 ### Step 4: Install Dependencies
-Install all required Node.js packages (`next`, `react`, `react-dom`, `three`, `@react-three/fiber`, `@react-three/drei`, `framer-motion`, `lucide-react`, `tailwindcss`, `typescript`):
+Install all required Node.js packages:
 
 ```powershell
 npm install
 ```
-
-*(Note: If you encounter peer-dependency warnings on newer npm versions with `@react-three/fiber`, run `npm install --legacy-peer-deps`.)*
 
 ### Step 5: Start the Local Development Server
 Start the Next.js development server:
@@ -65,18 +63,58 @@ Start the Next.js development server:
 npm run dev
 ```
 
-Once Next.js reports `Ready`, open your browser to:
-- **Home / The Experience:** [http://localhost:3000](http://localhost:3000)
-- **Spatial Archive:** [http://localhost:3000/archive](http://localhost:3000/archive)
-- **Design Studio:** [http://localhost:3000/studio](http://localhost:3000/studio)
-- **About the Practice:** [http://localhost:3000/about](http://localhost:3000/about)
+Once Next.js reports `Ready`, open your browser to [http://localhost:3000](http://localhost:3000).
 
-### Step 6: Production Build & Verification (Optional)
-To run the automated acceptance test suite or build for production on Windows:
+### Step 6: Test Suite & Production Build Verification
+To run all test suites and verify production builds:
 
 ```powershell
-# Run the Node.js acceptance test suite (music profile, soundtrack pipeline, brief export)
+# Run acceptance test suite
 npm test
+
+# Run automated Qloo grounding and contrast proof suite
+node --test tests/qloo-proof.test.mjs
+
+# Build optimized production bundle
+npm run build
+```
+
+---
+
+## 3. How Qloo is Used in Sonic Architecture
+
+Sonic Architecture uses Qloo's Cultural AI as a **direct architectural driver**, proving that cross-domain taste graphs can generate physical 3D spatial geometry, material palettes, acoustic physics, and lighting atmospheres rather than just recommending media.
+
+### Endpoints Called & Architectural Purpose
+
+| Endpoint | Method | Parameters Sent | Architectural Purpose & 3D Impact |
+|---|---|---|---|
+| `/search` | `GET` | `query=<name>&types=<type>&take=3` | **Entity Resolution:** Resolves cultural names (artists, places, brands, movies) from free-form user prompts into verified Qloo entity IDs. Matches are strictly vetted against whole-word boundaries and token overlap $\ge 0.8$. |
+| `/v2/tags` | `GET` | `filter.query=<term>&take=5` (with `feature.semantic_search=true` fallback) | **Concept Mapping:** Translates abstract descriptive concepts (e.g., "brutalist", "ambient", "indie") into canonical Qloo tag URNs (e.g. `urn:tag:decor:qloo:brutalism`, `urn:tag:genre:music:ambient`). |
+| `/v2/insights` (Place) | `GET` | `signal.interests.entities=<id>`, `signal.interests.tags=<tags>`, `filter.type=urn:entity:place&take=4&feature.explainability=true` | **Spatial Typology & Venues:** Discovers physical venues (museums, listening lounges, warehouses, galleries) where audiences congregate. Shapes 3D room dimensions, clear-span height, and focal elements. |
+| `/v2/insights` (Artist) | `GET` | `filter.type=urn:entity:artist&take=4&feature.explainability=true` | **Sonic & Acoustic Alignment:** Gathers musical genre, instrumentation, and sonic signatures to calibrate Sabine RT60 reverberation decay targets and soundtrack curation. |
+| `/v2/insights` (Movie) | `GET` | `filter.type=urn:entity:movie&take=4&feature.explainability=true` | **Cinematic Atmosphere & Lighting:** Extracts visual color temperature (Kelvin), exposure, fog density, and practical lighting fixtures (sconces, chandeliers, industrial neon). |
+| `/v2/insights` (Brand) | `GET` | `filter.type=urn:entity:brand&take=4&feature.explainability=true` | **Materiality & Hardware Standards:** Informs physical surface materials (acoustic slotted oak, obsidian terrazzo, raw board concrete, limewash plaster) and procurement specifications. |
+| `/v2/insights` (Taste Tags) | `GET` | `signal.interests.entities=<id>&filter.type=urn:tag&take=8` | **Palette Derivation:** Drives the primary, secondary, wall, floor, and accent color hex codes via `lib/design/qlooMapping.ts`. |
+| `/api/qloo-health` | `GET` | *(bypasses cache)* | **Live Connectivity & Telemetry:** Executes an uncached live ping to verify Qloo status, measuring real round-trip latency without exposing keys. |
+
+### Architectural Interpretation Layer (`lib/design/qlooMapping.ts`)
+Rather than relying on generic default greys, Sonic Architecture translates Qloo's cultural vectors into tactile 3D spatial properties:
+- **Miles Davis / Modal Jazz:** Deep nocturnal velvet indigo (`#141724`), warm smoked mahogany floors (`#36281D`), burnished architectural brass accents (`#D4AF37`), 2400K incandescent warmth, and RT60 0.42s.
+- **Aphex Twin / Warehouse IDM:** Void obsidian slate (`#0B0D12`), raw cold anthracite concrete (`#1F2328`), electric acid cyan accents (`#00F0FF`), 6500K high-intensity strobe lighting, and RT60 1.15s.
+
+### Code-Built "Because" Sentences
+The UI displays 3 deterministic design rationales generated strictly in code from returned Qloo venues, movies, brands, and tags:
+> *"Fans of Aphex Twin gather at New Museum, Whitechapel Gallery and MoMA PS1, so this venue is designed as a gallery warehouse."*
+
+---
+
+## 4. Deploy Readiness & Pluggable Cache Architecture
+
+- **Serverless-Ready Cache Adapter (`lib/qloo/cache.ts`):** Uses an in-memory cache adapter by default (zero filesystem dependency for Vercel/AWS Lambda), automatically connecting to Upstash/Vercel KV or Redis when `KV_REST_API_URL` / `KV_REST_API_TOKEN` or `REDIS_URL` are present.
+- **Resilient Dual-Tier DNS (`lib/qloo/network.ts`):** Tries standard OS DNS lookup first, falling back to public DNS resolvers (8.8.8.8 / 1.1.1.1) only if the host encounters `ENOTFOUND` or times out.
+- **Clean Hygiene:** `.qloo-cache/`, `.qloo-samples/`, and proof artifacts are strictly `.gitignore`d. API keys are strictly masked and never logged.
+- **Licence:** Licensed under the [MIT License](LICENSE).
 
 # Type-check and build optimized production bundle
 npm run build

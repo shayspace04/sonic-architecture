@@ -42,6 +42,7 @@ import { getQlooFixture } from "@/lib/fixtures/qlooSamples";
 import { generateQlooEvidence } from "@/lib/qloo-provenance";
 import { validateProvenanceMap } from "@/lib/agent/tools";
 import { diffScenes } from "./diff";
+import { deriveArchitecturalDesignFromQloo, generateBecauseSentences } from "@/lib/design/qlooMapping";
 
 export interface GenerateSceneOptions {
   prompt: string;
@@ -55,8 +56,11 @@ const DESIGN_SCENE_CACHE = new Map<string, SceneSpec>();
 function computeSceneContextHash(prompt: string, seed: number, qlooContext?: QlooContext): string {
   const p = prompt.trim().toLowerCase();
   const entStr = qlooContext?.entities ? qlooContext.entities.map((e) => `${e.id}:${e.name}`).join("|") : "none";
+  const tagStr = qlooContext?.crossDomainBundle?.resolvedTags
+    ? qlooContext.crossDomainBundle.resolvedTags.map((t: any) => t.id).join(",")
+    : "";
   const src = qlooContext?.source || "none";
-  return `${p}::${seed}::${src}::${entStr}`;
+  return `${p}::${seed}::${src}::${entStr}::${tagStr}`;
 }
 
 /**
@@ -245,189 +249,27 @@ export function designScene({
   }
 
   // ==========================================================================
-  // MODULATION 2: SURFACE MATERIALITY & ARCHITECTURAL FINISHES
+  // ARCHITECTURAL INTERPRETATION LAYER: CULTURALLY GROUNDED PALETTE & MATERIALS
   // ==========================================================================
-  if (isPinkGrunge) {
-    payload.wallMaterial = "stacked_brick" as WallFinish;
-    payload.flooringMaterial = "polished_concrete" as FloorFinish;
-    payload.ceilingStructure = "exposed_timber_beams" as CeilingStructure;
-    payload.seatingFabric = "boucle_wool" as MaterialFamily;
-    provenanceMap["materials"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "raw_industrial_brick",
-      provenance: defaultProv,
-      rationale: "Weathered Brooklyn loft brick and exposed timber roof framing.",
-    };
-  } else if (isBrutalist) {
-    payload.wallMaterial = "board_concrete" as WallFinish;
-    payload.flooringMaterial = "polished_concrete" as FloorFinish;
-    payload.ceilingStructure = "monolithic_cantilever" as CeilingStructure;
-    provenanceMap["materials"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "raw_board_concrete",
-      provenance: defaultProv,
-      rationale: "Unfinished architectural monolithic concrete walls and floor.",
-    };
-  } else if (isA24Ambient) {
-    payload.wallMaterial = "limewash_plaster" as WallFinish;
-    payload.flooringMaterial = "honed_limestone" as FloorFinish;
-    payload.seatingFabric = "raw_linen" as MaterialFamily;
-    payload.ceilingStructure = "coffered_timber" as CeilingStructure;
-    provenanceMap["materials"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "subdued_naturalism",
-      provenance: defaultProv,
-      rationale: "Organic lime-wash mineral plaster and honed limestone pavers.",
-    };
-  } else if (isGardenAmbient) {
-    payload.flooringMaterial = "warm_sandstone" as FloorFinish;
-    payload.wallMaterial = "open_landscape" as WallFinish;
-    payload.ceilingStructure = "open_sky_pergola" as CeilingStructure;
-    provenanceMap["materials"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "stepping_stones_tobiishi",
-      provenance: defaultProv,
-      rationale: "Hand-dressed sandstone plinth with open sky pergola canopy.",
-    };
-  } else if (isTechnoBunker) {
-    payload.flooringMaterial = "obsidian_terrazzo" as FloorFinish;
-    payload.wallMaterial = "board_concrete" as WallFinish;
-    payload.ceilingStructure = "space_frame_truss" as CeilingStructure;
-    provenanceMap["materials"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "high_gloss_mirror_chrome",
-      provenance: defaultProv,
-      rationale: "Obsidian aggregate terrazzo and heavy industrial space-frame ceiling.",
-    };
-  }
+  const derivedDesign = deriveArchitecturalDesignFromQloo(cleanPrompt, bundle, qlooContext.entities);
 
-  // ==========================================================================
-  // MODULATION 3: PALETTE (Ensures "pink grunge" produces pink-leaning surfaces)
-  // ==========================================================================
-  if (isPinkGrunge) {
-    payload.primaryColorHex = "#C94A75"; // Punk Rose Pink
-    payload.secondaryColorHex = "#36242B"; // Dark Charcoal Plum
-    payload.accentColorHex = "#F472B6"; // Neon Flash Magenta
-    provenanceMap["palette"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "pink_grunge_aesthetic",
-      provenance: defaultProv,
-      rationale: "Saturated punk pink accent with blush-tinted structural surfaces.",
-    };
-  } else if (isBrutalist) {
-    payload.primaryColorHex = "#1E2022";
-    payload.secondaryColorHex = "#3F4347";
-    payload.accentColorHex = "#C9A961"; // Warm Brass
-    provenanceMap["palette"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "chiaroscuro_aesthetic",
-      provenance: defaultProv,
-      rationale: "Monochrome brutalist slate with warm architectural brass reveal.",
-    };
-  } else if (isA24Ambient) {
-    payload.primaryColorHex = "#2E2A24";
-    payload.secondaryColorHex = "#4A443B";
-    payload.accentColorHex = "#E5D9C5"; // Warm Sand
-    provenanceMap["palette"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "golden_hour_naturalism",
-      provenance: defaultProv,
-      rationale: "35mm cinematic film palette with muted earth tones.",
-    };
-  } else if (isGardenAmbient) {
-    payload.primaryColorHex = "#1E261D";
-    payload.secondaryColorHex = "#3B4A39";
-    payload.accentColorHex = "#38BDF8"; // Water Reflection Blue
-    provenanceMap["palette"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "water_drop_resonance",
-      provenance: defaultProv,
-      rationale: "Organic moss green with crystalline reflection blue highlights.",
-    };
-  } else if (isTechnoBunker) {
-    payload.primaryColorHex = "#0E1117";
-    payload.secondaryColorHex = "#1F2937";
-    payload.accentColorHex = "#00F0FF"; // Electric Cyan
-    provenanceMap["palette"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "industrial_neon",
-      provenance: defaultProv,
-      rationale: "High-contrast darkroom black with cold strobe blue accents.",
-    };
-  }
+  payload.wallMaterial = derivedDesign.materials.wallMaterial;
+  payload.flooringMaterial = derivedDesign.materials.flooringMaterial;
+  payload.ceilingStructure = derivedDesign.materials.ceilingStructure;
+  payload.seatingFabric = derivedDesign.materials.seatingFabric;
+  payload.lightingTemperatureK = derivedDesign.materials.lightingTemperatureK;
+  payload.primaryColorHex = derivedDesign.palette.primaryHex;
+  payload.secondaryColorHex = derivedDesign.palette.secondaryHex;
+  payload.accentColorHex = derivedDesign.palette.accentHex;
 
-  // ==========================================================================
-  // MODULATION 4: LIGHTING KELVIN & ATMOSPHERE
-  // ==========================================================================
-  if (isPinkGrunge || allSignals.includes("flash_photography")) {
-    payload.lightingTemperatureK = 5600; // Photographic Strobe Daylight
-    provenanceMap["lighting"] = {
-      toolCallId: "call_qloo_signals",
+  for (const choice of derivedDesign.appliedChoices) {
+    provenanceMap[choice.element] = {
+      toolCallId: "call_qloo_mapping",
       entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "5600k_hard_strobe_flash",
+      entityName: choice.triggeredBy,
+      signal: choice.tagType,
       provenance: defaultProv,
-      rationale: "5600K daylight photographic strobe key lighting with sharp falloff.",
-    };
-  } else if (isTechnoBunker || allSignals.includes("strobe")) {
-    payload.lightingTemperatureK = 6500; // Cold Industrial Strobe
-    provenanceMap["lighting"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "kinetic_strobe",
-      provenance: defaultProv,
-      rationale: "6500K high-intensity cold strobe lighting with sharp chiaroscuro.",
-    };
-  } else if (allSignals.includes("harmonic_warmth") || allSignals.includes("warm_amber") || allEntities.includes("miles davis") || isBrutalist) {
-    payload.lightingTemperatureK = 2700;
-    provenanceMap["lighting"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "harmonic_warmth",
-      provenance: defaultProv,
-      rationale: "2700K warm incandescent amber accent lighting.",
-    };
-  } else if (isGardenAmbient || allSignals.includes("komorebi") || allSignals.includes("water_reflection")) {
-    payload.lightingTemperatureK = 4500; // Dappled Natural Daylight
-    provenanceMap["lighting"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "dappled_garden_sunlight",
-      provenance: defaultProv,
-      rationale: "4500K dappled natural sunlight with diffuse ambient fill.",
-    };
-  } else if (allSignals.includes("magic_hour") || allSignals.includes("35mm") || isA24Ambient) {
-    payload.lightingTemperatureK = 3200;
-    provenanceMap["lighting"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "golden_hour_tungsten",
-      provenance: defaultProv,
-      rationale: "3200K cinematic tungsten lighting.",
+      rationale: choice.rationale,
     };
   }
 
@@ -435,39 +277,17 @@ export function designScene({
   const groundedSpec = buildSceneSpecFromPayload(payload, cleanPrompt);
   groundedSpec.qlooSource = source;
 
-  // Apply explicit surface palette color tints
-  if (isPinkGrunge) {
-    groundedSpec.palette.floorHex = "#4A353F"; // Mauve-tinted concrete
-    groundedSpec.palette.wallHex = "#8C5167"; // Dusty rose brick
-    groundedSpec.palette.accentHex = "#F472B6";
-    groundedSpec.palette.primaryHex = "#C94A75";
-    groundedSpec.palette.secondaryHex = "#36242B";
-    groundedSpec.palette.ambientHex = "#FFD1DC";
-  } else if (isBrutalist) {
-    groundedSpec.palette.floorHex = "#2B2E33";
-    groundedSpec.palette.wallHex = "#45494F";
-    groundedSpec.palette.accentHex = "#C9A961";
-    groundedSpec.palette.primaryHex = "#1E2022";
-    groundedSpec.palette.secondaryHex = "#3F4347";
-  } else if (isA24Ambient) {
-    groundedSpec.palette.floorHex = "#C8B9A6";
-    groundedSpec.palette.wallHex = "#DFD5C6";
-    groundedSpec.palette.accentHex = "#E5D9C5";
-    groundedSpec.palette.primaryHex = "#2E2A24";
-    groundedSpec.palette.secondaryHex = "#4A443B";
-  } else if (isGardenAmbient) {
-    groundedSpec.palette.floorHex = "#9E978E";
-    groundedSpec.palette.wallHex = "#2E3A2C";
-    groundedSpec.palette.accentHex = "#38BDF8";
-    groundedSpec.palette.primaryHex = "#1E261D";
-    groundedSpec.palette.secondaryHex = "#3B4A39";
-  } else if (isTechnoBunker) {
-    groundedSpec.palette.floorHex = "#11141A";
-    groundedSpec.palette.wallHex = "#1E2430";
-    groundedSpec.palette.accentHex = "#00F0FF";
-    groundedSpec.palette.primaryHex = "#0E1117";
-    groundedSpec.palette.secondaryHex = "#1F2937";
-  }
+  // Apply culturally grounded palette directly to surface materials
+  groundedSpec.palette.primaryHex = derivedDesign.palette.primaryHex;
+  groundedSpec.palette.secondaryHex = derivedDesign.palette.secondaryHex;
+  groundedSpec.palette.accentHex = derivedDesign.palette.accentHex;
+  groundedSpec.palette.floorHex = derivedDesign.palette.floorHex;
+  groundedSpec.palette.wallHex = derivedDesign.palette.wallHex;
+  groundedSpec.palette.ambientHex = derivedDesign.palette.ambientHex;
+
+  // Generate plain "because" design rationales constructed strictly from real Qloo data
+  const becauseSentences = generateBecauseSentences(cleanPrompt, bundle, qlooContext.entities, derivedDesign);
+  groundedSpec.becauseSentences = becauseSentences;
 
   // ==========================================================================
   // MODULATION 5: MASSING GEOMETRY & ACOUSTIC TUNING

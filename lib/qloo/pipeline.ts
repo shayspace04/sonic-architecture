@@ -32,46 +32,9 @@ import {
   type ComprehensiveResolutionResult,
 } from "./entityExtractor";
 import { getQlooFixture } from "@/lib/fixtures/qlooSamples";
+import { getQlooCacheAdapter } from "./cache";
 
 const QLOO_BASE_URL = "https://hackathon.api.qloo.com";
-const CACHE_DIR = path.resolve(process.cwd(), ".qloo-cache");
-
-// Ensure .qloo-cache directory exists safely
-try {
-  if (!fs.existsSync(CACHE_DIR)) {
-    fs.mkdirSync(CACHE_DIR, { recursive: true });
-  }
-} catch {
-  // Ignore in read-only environments
-}
-
-const IN_MEMORY_CACHE = new Map<string, { timestamp: number; data: RealQlooEvidenceBundle }>();
-const CACHE_TTL_MS = 1000 * 60 * 60 * 24; // 24-hour cache for stable cultural entities
-
-function readDiskCache(cacheKey: string): RealQlooEvidenceBundle | null {
-  try {
-    const filePath = path.join(CACHE_DIR, `${cacheKey}.json`);
-    if (fs.existsSync(filePath)) {
-      const raw = fs.readFileSync(filePath, "utf-8");
-      const parsed = JSON.parse(raw);
-      if (parsed && Date.now() - parsed.timestamp < CACHE_TTL_MS) {
-        return parsed as RealQlooEvidenceBundle;
-      }
-    }
-  } catch {
-    // Disk cache read failed or not supported
-  }
-  return null;
-}
-
-function writeDiskCache(cacheKey: string, data: RealQlooEvidenceBundle): void {
-  try {
-    const filePath = path.join(CACHE_DIR, `${cacheKey}.json`);
-    fs.writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
-  } catch {
-    // Disk write failure silently ignored
-  }
-}
 
 /**
  * Executes a resilient GET call to /v2/insights with 1 retry and 20s timeout
@@ -210,19 +173,12 @@ export async function executeCrossDomainPipeline(
   ].filter(Boolean);
   const cacheKey = `bundle_${cacheKeyParts.join("__").replace(/[^a-zA-Z0-9_-]/g, "_").slice(0, 80) || "empty"}`;
 
-  // 1. Check RAM cache
-  const memCached = IN_MEMORY_CACHE.get(cacheKey);
-  if (memCached && Date.now() - memCached.timestamp < CACHE_TTL_MS) {
-    console.log(`[Qloo Outbound] /v2/insights cache=hit (RAM) key=${cacheKey}`);
-    return { ...memCached.data, source: "cache", latencyMs: 2 };
-  }
-
-  // 2. Check Disk cache
-  const diskCached = readDiskCache(cacheKey);
-  if (diskCached) {
-    IN_MEMORY_CACHE.set(cacheKey, { timestamp: diskCached.timestamp, data: diskCached });
-    console.log(`[Qloo Outbound] /v2/insights cache=hit (Disk) key=${cacheKey}`);
-    return { ...diskCached, source: "cache", latencyMs: 4 };
+  // 1. Check pluggable cache adapter (InMemory, KV/Redis, or FileSystem)
+  const cacheAdapter = getQlooCacheAdapter();
+  const cachedBundle = await cacheAdapter.get(cacheKey);
+  if (cachedBundle) {
+    console.log(`[Qloo Outbound] /v2/insights cache=hit (${cacheAdapter.constructor.name}) key=${cacheKey}`);
+    return { ...cachedBundle, source: "cache", latencyMs: 2 };
   }
 
   const apiKey = process.env.QLOO_API_KEY?.trim();
@@ -242,28 +198,28 @@ export async function executeCrossDomainPipeline(
   }
   const signalsQuery = signalParts.join("&");
 
-  // 4. Parallel fetch all cross-domain endpoints with take=8 and feature.explainability=true
+  // 4. Parallel fetch all cross-domain endpoints with take=4 (capped to UI needs) and feature.explainability=true
   const [placesRes, artistsRes, moviesRes, brandsRes, tagsRes, demoRes] = await Promise.all([
     fetchInsightsEndpoint<QlooInsightsResponse>(
-      `/v2/insights?${signalsQuery}&filter.type=urn:entity:place&take=8&feature.explainability=true`,
+      `/v2/insights?${signalsQuery}&filter.type=urn:entity:place&take=4&feature.explainability=true`,
       apiKey
     ),
     fetchInsightsEndpoint<QlooInsightsResponse>(
-      `/v2/insights?${signalsQuery}&filter.type=urn:entity:artist&take=8&feature.explainability=true`,
+      `/v2/insights?${signalsQuery}&filter.type=urn:entity:artist&take=4&feature.explainability=true`,
       apiKey
     ),
     fetchInsightsEndpoint<QlooInsightsResponse>(
-      `/v2/insights?${signalsQuery}&filter.type=urn:entity:movie&take=8&feature.explainability=true`,
+      `/v2/insights?${signalsQuery}&filter.type=urn:entity:movie&take=4&feature.explainability=true`,
       apiKey
     ),
     fetchInsightsEndpoint<QlooInsightsResponse>(
-      `/v2/insights?${signalsQuery}&filter.type=urn:entity:brand&take=8&feature.explainability=true`,
+      `/v2/insights?${signalsQuery}&filter.type=urn:entity:brand&take=4&feature.explainability=true`,
       apiKey
     ),
     // Taste tags query (if entity available)
     primaryEntity
       ? fetchInsightsEndpoint<QlooTasteTagsResponse>(
-          `/v2/insights?signal.interests.entities=${encodeURIComponent(primaryEntity.entity_id)}&filter.type=urn:tag&take=10`,
+          `/v2/insights?signal.interests.entities=${encodeURIComponent(primaryEntity.entity_id)}&filter.type=urn:tag&take=8`,
           apiKey
         )
       : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 }),
@@ -276,9 +232,60 @@ export async function executeCrossDomainPipeline(
       : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 }),
   ]);
 
+  let places = placesRes.data?.results?.entities || [];
+
+  // Requirement 3: Check tag-based place calls against Entity Type Parameter Guide
+  // Multi-tag joint intersection in signal.interests.tags can yield 0 results for physical venues.
+  // When places is 0 but tags exist, query using each tag individually or place search.
+  if (places.length === 0 && tagIds.length > 0) {
+    for (const tagId of tagIds) {
+      const fallbackRes = await fetchInsightsEndpoint<QlooInsightsResponse>(
+        `/v2/insights?signal.interests.tags=${encodeURIComponent(tagId)}&filter.type=urn:entity:place&take=4&feature.explainability=true`,
+        apiKey
+      );
+      if (fallbackRes.data?.results?.entities && fallbackRes.data.results.entities.length > 0) {
+        places = fallbackRes.data.results.entities;
+        console.log(`[Qloo Insights] filter.type=place fallback with tag ${tagId}: count=${places.length}`);
+        break;
+      }
+    }
+  }
+
+  // If places still 0, recover via official Qloo place search endpoint checking each candidate concept
+  if (places.length === 0) {
+    const candidateTerms = [
+      ...resolution.matchedTags.map((t) => t.conceptTerm),
+      ...inputParsed.split("+").map((s) => s.trim()),
+    ].filter(Boolean);
+
+    for (const searchTerm of candidateTerms) {
+      try {
+        const searchPlaceUrl = `${QLOO_BASE_URL}/search?query=${encodeURIComponent(searchTerm)}&types=urn:entity:place&take=4`;
+        const sRes = await fetch(searchPlaceUrl, {
+          headers: { "X-Api-Key": apiKey, Accept: "application/json" },
+          signal: AbortSignal.timeout(10_000),
+        });
+        if (sRes.ok) {
+          const sJson = await sRes.json();
+          if (sJson.results && sJson.results.length > 0) {
+            places = sJson.results.map((r: any) => ({
+              entity_id: r.entity_id,
+              name: r.name,
+              type: "urn:entity:place",
+              tags: r.tags || [],
+            }));
+            console.log(`[Qloo Search Place] Recovered ${places.length} places for "${searchTerm}"`);
+            break;
+          }
+        }
+      } catch {
+        // Ignore
+      }
+    }
+  }
+
   const totalLatencyMs = Date.now() - start;
 
-  const places = placesRes.data?.results?.entities || [];
   const relatedArtists = artistsRes.data?.results?.entities || [];
   const movies = moviesRes.data?.results?.entities || [];
   const brands = brandsRes.data?.results?.entities || [];
@@ -290,6 +297,26 @@ export async function executeCrossDomainPipeline(
   console.log(`[Qloo Insights] filter.type=artist status=${artistsRes.status} count=${relatedArtists.length} (${relatedArtists.length === 0 ? "no data" : "ok"})`);
   console.log(`[Qloo Insights] filter.type=movie status=${moviesRes.status} count=${movies.length} (${movies.length === 0 ? "no data" : "ok"})`);
   console.log(`[Qloo Insights] filter.type=brand status=${brandsRes.status} count=${brands.length} (${brands.length === 0 ? "no data" : "ok"})`);
+
+  // Build granular trace metrics for UI streaming (Requirement 4)
+  const traceMetrics: Array<{ endpoint: string; count: number; latencyMs: number; status: number }> = [
+    ...resolution.resolved.map((r) => ({
+      endpoint: `/search?query=${encodeURIComponent(r.name)}`,
+      count: 1,
+      latencyMs: resolution.latencyMs,
+      status: 200,
+    })),
+    ...resolution.matchedTags.map((t) => ({
+      endpoint: `/v2/tags?filter.query=${encodeURIComponent(t.conceptTerm)}`,
+      count: 1,
+      latencyMs: resolution.latencyMs,
+      status: 200,
+    })),
+    { endpoint: "/v2/insights (place)", count: places.length, latencyMs: placesRes.latencyMs, status: placesRes.status },
+    { endpoint: "/v2/insights (artist)", count: relatedArtists.length, latencyMs: artistsRes.latencyMs, status: artistsRes.status },
+    { endpoint: "/v2/insights (movie)", count: movies.length, latencyMs: moviesRes.latencyMs, status: moviesRes.status },
+    { endpoint: "/v2/insights (brand)", count: brands.length, latencyMs: brandsRes.latencyMs, status: brandsRes.status },
+  ];
 
   // Compute explainability scores and surface top contributors (Requirement 5)
   const explainabilityScores: Record<string, number> = {};
@@ -333,11 +360,11 @@ export async function executeCrossDomainPipeline(
     surfaceExplainability,
     latencyMs: totalLatencyMs,
     timestamp: Date.now(),
+    traceMetrics,
   };
 
-  // Cache in RAM and Disk
-  IN_MEMORY_CACHE.set(cacheKey, { timestamp: bundle.timestamp, data: bundle });
-  writeDiskCache(cacheKey, bundle);
+  // Cache via pluggable adapter
+  await cacheAdapter.set(cacheKey, bundle);
 
   return bundle;
 }

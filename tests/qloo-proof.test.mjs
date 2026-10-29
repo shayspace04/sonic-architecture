@@ -253,6 +253,53 @@ test("Proof Test 6c — Live: 'Miles Davis + Brutalist concrete' vs 'Aphex Twin 
     console.log(`| ${cat} | ${v1} | ${v2} | ${mag} |`);
   }
   console.log("=========================================================================================\n");
+
+  // Requirement 7a: Palette differs above threshold (well above 0.14 target)
+  const paletteDiff = diff.find((d) => d.category === "palette");
+  assert.ok(paletteDiff, "Contrast between Miles Davis and Aphex Twin must produce a palette diff");
+  console.log(`[Requirement 7a Verification] Palette Magnitude: ${paletteDiff.magnitude} (Target: well above 0.14, threshold >= 0.40)`);
+  assert.ok(
+    paletteDiff.magnitude >= 0.40,
+    `Palette magnitude between Miles Davis and Aphex Twin must be >= 0.40 (well above 0.14), got ${paletteDiff.magnitude}`
+  );
+
+  // Requirement 7b: Every "because" sentence references only real Qloo entities/tags
+  assert.ok(sceneAphex.becauseSentences && sceneAphex.becauseSentences.length === 3, "Scene must contain 3 because sentences");
+  for (const b of sceneAphex.becauseSentences) {
+    assert.ok(b.sentence.length > 10, "Because sentence must be non-empty");
+    assert.ok(b.citedEntities.length > 0, "Because sentence must cite entities/tags");
+    console.log(`[Requirement 7b Verification] "${b.headline}": "${b.sentence}"`);
+  }
+});
+
+// ============================================================================
+// TEST 7c: Concept-only prompts return at least one non-empty domain
+// ============================================================================
+test("Proof Test 7c — Concept-only prompts return at least one non-empty domain", async () => {
+  const { getCrossDomainEvidenceForPrompt } = loadTsModule("lib/qloo/pipeline.ts");
+
+  const conceptPrompt = "Jazz + Brutalist Architecture";
+  const { resolution, bundle } = await getCrossDomainEvidenceForPrompt(conceptPrompt);
+
+  assert.ok(bundle, "Concept-only prompt must produce an evidence bundle");
+  assert.strictEqual(resolution.resolved.length, 0, "Concept-only prompt must have 0 resolved named entities");
+  assert.ok(resolution.matchedTags.length > 0, "Concept-only prompt must have resolved tags");
+
+  const nonZeroDomains = [
+    bundle.places.length > 0,
+    bundle.relatedArtists.length > 0,
+    bundle.movies.length > 0,
+    bundle.brands.length > 0,
+  ].filter(Boolean).length;
+
+  console.log(
+    `[Requirement 7c Verification] Non-empty domains: ${nonZeroDomains} / 4 (places=${bundle.places.length}, artists=${bundle.relatedArtists.length}, movies=${bundle.movies.length}, brands=${bundle.brands.length})`
+  );
+
+  assert.ok(
+    nonZeroDomains >= 1,
+    `Concept-only prompt must return at least one non-empty domain, got: ${nonZeroDomains}`
+  );
 });
 
 // ============================================================================
