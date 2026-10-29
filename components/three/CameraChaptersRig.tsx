@@ -252,6 +252,21 @@ export const CameraChaptersRig: React.FC<CameraChaptersRigProps> = ({
     }
   }, [scrollProgress]);
 
+  // Release camera flight immediately upon user pointer down/drag
+  useEffect(() => {
+    const dom = gl.domElement;
+    const handlePointerDown = () => {
+      if (flightRef.current && flightRef.current.active) {
+        flightRef.current.active = false;
+        flightRef.current = null;
+      }
+    };
+    dom.addEventListener("pointerdown", handlePointerDown);
+    return () => {
+      dom.removeEventListener("pointerdown", handlePointerDown);
+    };
+  }, [gl.domElement]);
+
   // Attach wheel listener on canvas when scrollDriveEnabled is active
   useEffect(() => {
     if (!scrollDriveEnabled) return;

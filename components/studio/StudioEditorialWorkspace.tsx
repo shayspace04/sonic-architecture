@@ -6,6 +6,8 @@ import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import type {
   DiffCategory,
+  ProcurementLineItem,
+  ProjectBudgetConfig,
   SceneComparison,
   SceneSpec,
   SoundtrackPlaylist,
@@ -14,13 +16,23 @@ import type {
 } from '@/lib/types';
 
 export type CameraPresetKey = 'overview' | 'interior' | 'focal' | 'plan';
+export type StudioTabKey = 'scene' | 'why-qloo' | 'playlist' | 'brief' | 'sourcing';
+export type SceneViewMode = 'grounded' | 'baseline' | 'split';
+
 import { generateSceneFromPrompt } from '@/lib/scene-spec';
 import { deriveMusicProfile } from '@/lib/music-profile';
 import { buildLabeledFallbackPlaylist } from '@/lib/soundtrack-pipeline';
-import { generateMarkdownDesignBrief } from '@/lib/brief';
+import { buildHonestTrackSearchLinks, generateMarkdownDesignBrief } from '@/lib/brief';
 import { generateSceneComparison } from '@/lib/compare/sceneGenerator';
 import { WhatQlooChangedList } from '@/components/compare/WhatQlooChangedList';
 import { CompareSplitViewer } from '@/components/compare/CompareSplitViewer';
+import ProcurementWorkspacePanel from '@/components/ui/ProcurementWorkspacePanel';
+import {
+  calculateProcurementSummary,
+  createDefaultBudgetConfig,
+  exportProcurementBriefMarkdown,
+  formatCurrency,
+} from '@/lib/procurement';
 import type { Venue3DProps } from '@/components/three/Venue3D';
 import { STARTER_PROMPTS } from '@/components/landing/PromptComposer';
 
@@ -56,15 +68,60 @@ function StudioEditorialWorkspaceInner() {
   const [comparison, setComparison] = useState<SceneComparison | null>(null);
   const [sceneSource, setSceneSource] = useState<'live' | 'cache' | 'partly_sample' | 'sample' | 'fixture' | 'fallback'>('sample');
   const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'scene' | 'why-qloo' | 'playlist' | 'brief'>('scene');
+  const [activeTab, setActiveTab] = useState<StudioTabKey>('scene');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [cameraPreset, setCameraPreset] = useState<CameraPresetKey>('overview');
   const [daylightMode, setDaylightMode] = useState<TimeOfDay>('afternoon');
-  const [showSplitCompare, setShowSplitCompare] = useState(false);
+  const [sceneViewMode, setSceneViewMode] = useState<SceneViewMode>('grounded');
+  const [stageViewMode, setStageViewMode] = useState<'viewport' | 'procurement'>('viewport');
   const [health, setHealth] = useState<QlooHealthState | null>(null);
   const [isPlayingSoundtrack, setIsPlayingSoundtrack] = useState(false);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [traceSteps, setTraceSteps] = useState<Array<{ endpoint: string; count: number; latencyMs: number; status: number }>>([]);
+
+  // Procurement & Sourcing State
+  const [budgetConfig, setBudgetConfig] = useState<ProjectBudgetConfig>(() => createDefaultBudgetConfig());
+  const [procurementList, setProcurementList] = useState<ProcurementLineItem[]>([]);
+
+  // Track Audio Preview Player State
+  const previewAudioRef = useRef<HTMLAudioElement | null>(null);
+  const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
+
+  const handleToggleTrackPreview = useCallback((previewUrl: string) => {
+    if (activePreviewUrl === previewUrl) {
+      previewAudioRef.current?.pause();
+      setActivePreviewUrl(null);
+      return;
+    }
+    if (!previewAudioRef.current) {
+      previewAudioRef.current = new Audio();
+      previewAudioRef.current.onended = () => setActivePreviewUrl(null);
+    }
+    previewAudioRef.current.src = previewUrl;
+    previewAudioRef.current.play().catch(() => setActivePreviewUrl(null));
+    setActivePreviewUrl(previewUrl);
+  }, [activePreviewUrl]);
+
+  useEffect(() => {
+    return () => {
+      previewAudioRef.current?.pause();
+    };
+  }, []);
+
+  const handleDownloadBOQ = useCallback(() => {
+    if (!scene) return;
+    const summary = calculateProcurementSummary(procurementList, budgetConfig);
+    const md = exportProcurementBriefMarkdown(summary, scene);
+    const blob = new Blob([md], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `sonic-architecture-boq-${scene.id ?? 'project'}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [scene, procurementList, budgetConfig]);
 
   // Sync state if URL prompt changes
   useEffect(() => {
@@ -384,9 +441,9 @@ function StudioEditorialWorkspaceInner() {
           )}
         </div>
 
-        {/* Workbench 4 Tabs */}
+        {/* Workbench 5 Tabs */}
         <div className="studio-sidebar__nav" role="tablist" aria-label="Studio tools">
-          <span className="eyebrow">Studio Tools / 01—04</span>
+          <span className="eyebrow">Studio Tools / 01—05</span>
           <button
             suppressHydrationWarning
             type="button"
@@ -437,6 +494,22 @@ function StudioEditorialWorkspaceInner() {
             <span>04</span>
             <strong>Export brief</strong>
             <small>Architectural documentation</small>
+          </button>
+
+          <button
+            suppressHydrationWarning
+            type="button"
+            role="tab"
+            aria-selected={activeTab === 'sourcing'}
+            className={activeTab === 'sourcing' ? 'active' : ''}
+            onClick={() => {
+              setActiveTab('sourcing');
+              setStageViewMode('procurement');
+            }}
+          >
+            <span>05</span>
+            <strong>Pricing & Sourcing</strong>
+            <small>Procurement & shopping list</small>
           </button>
         </div>
 
@@ -553,24 +626,29 @@ function StudioEditorialWorkspaceInner() {
               </div>
 
               {comparison && (
-                <div style={{ marginTop: '14px' }}>
+                <div style={{ marginTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <button
                     suppressHydrationWarning
                     type="button"
-                    onClick={() => setShowSplitCompare(!showSplitCompare)}
+                    onClick={() => setSceneViewMode(sceneViewMode === 'split' ? 'grounded' : 'split')}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
                       border: '1px solid var(--line)',
-                      background: showSplitCompare ? 'var(--blue)' : 'var(--paper)',
-                      color: showSplitCompare ? '#fff' : 'inherit',
+                      background: sceneViewMode === 'split' ? 'var(--blue)' : 'var(--paper)',
+                      color: sceneViewMode === 'split' ? '#fff' : 'inherit',
                       fontSize: '11px',
                       fontFamily: 'var(--mono)',
                       textTransform: 'uppercase',
+                      cursor: 'pointer',
                     }}
                   >
-                    {showSplitCompare ? 'Close Split Comparison' : 'Inspect Baseline vs Grounded'}
+                    {sceneViewMode === 'split' ? 'Close Split Comparison' : 'Inspect Baseline vs Grounded'}
                   </button>
+
+                  <div style={{ marginTop: '10px' }}>
+                    <WhatQlooChangedList comparison={comparison} />
+                  </div>
                 </div>
               )}
             </div>
@@ -578,23 +656,136 @@ function StudioEditorialWorkspaceInner() {
 
           {activeTab === 'playlist' && (
             <div>
-              <span className="eyebrow">Spatial Soundtrack</span>
-              <div style={{ margin: '12px 0 0', maxHeight: '180px', overflowY: 'auto' }}>
-                {playlist.tracks.slice(0, 4).map((track, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      padding: '8px 0',
-                      borderBottom: '1px solid var(--line-subtle)',
-                      fontSize: '12px',
-                    }}
-                  >
-                    <div style={{ fontWeight: 600 }}>{track.title}</div>
-                    <div style={{ color: 'var(--quiet)', fontSize: '11px' }}>
-                      {track.artist} · {track.bpmEstimate ? `${track.bpmEstimate} BPM · ` : ''}{track.moment}
+              <span className="eyebrow">Spatial Soundtrack & Listening Links</span>
+              <div style={{ margin: '12px 0 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                {playlist.tracks.map((track, idx) => {
+                  const links = buildHonestTrackSearchLinks(
+                    track.artist,
+                    track.title,
+                    track.externalSearchUrl,
+                    track.storeUrl
+                  );
+                  const isTrackActive = activePreviewUrl === track.previewUrl;
+
+                  return (
+                    <div
+                      key={track.id || idx}
+                      style={{
+                        padding: '10px',
+                        border: '1px solid var(--line-subtle)',
+                        background: 'var(--paper)',
+                        borderRadius: '2px',
+                        fontSize: '12px',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{track.title}</div>
+                        {track.previewUrl && (
+                          <button
+                            suppressHydrationWarning
+                            type="button"
+                            onClick={() => handleToggleTrackPreview(track.previewUrl!)}
+                            style={{
+                              padding: '2px 8px',
+                              fontSize: '10px',
+                              fontFamily: 'var(--mono)',
+                              background: isTrackActive ? 'var(--blue)' : 'var(--paper-deep)',
+                              color: isTrackActive ? '#fff' : 'var(--ink)',
+                              border: '1px solid var(--line)',
+                              borderRadius: '2px',
+                              cursor: 'pointer',
+                            }}
+                            title="Play 30-second audio preview"
+                          >
+                            {isTrackActive ? '⏸ Pause' : '▶ Preview'}
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ color: 'var(--quiet)', fontSize: '11px', marginTop: '3px' }}>
+                        {track.artist} {track.bpmEstimate ? `· ${track.bpmEstimate} BPM` : ''} · {track.moment}
+                      </div>
+
+                      {/* External Listening Links */}
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', marginTop: '8px' }}>
+                        {links.verifiedCatalogUrl && (
+                          <a
+                            href={links.verifiedCatalogUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                              fontSize: '10px',
+                              fontFamily: 'var(--mono)',
+                              padding: '2px 6px',
+                              background: 'rgba(21, 87, 232, 0.08)',
+                              color: 'var(--blue)',
+                              border: '1px solid rgba(21, 87, 232, 0.25)',
+                              borderRadius: '2px',
+                              textDecoration: 'none',
+                            }}
+                            title="Open verified store record"
+                          >
+                            Catalog ↗
+                          </a>
+                        )}
+                        <a
+                          href={links.primarySearchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '10px',
+                            fontFamily: 'var(--mono)',
+                            padding: '2px 6px',
+                            background: 'var(--paper-deep)',
+                            color: 'var(--ink)',
+                            border: '1px solid var(--line)',
+                            borderRadius: '2px',
+                            textDecoration: 'none',
+                          }}
+                          title={`Search "${track.artist} ${track.title}" on Spotify`}
+                        >
+                          Spotify ↗
+                        </a>
+                        <a
+                          href={links.appleMusicSearchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '10px',
+                            fontFamily: 'var(--mono)',
+                            padding: '2px 6px',
+                            background: 'var(--paper-deep)',
+                            color: 'var(--ink)',
+                            border: '1px solid var(--line)',
+                            borderRadius: '2px',
+                            textDecoration: 'none',
+                          }}
+                          title={`Search "${track.artist} ${track.title}" on Apple Music`}
+                        >
+                          Apple ↗
+                        </a>
+                        <a
+                          href={links.youtubeMusicSearchUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            fontSize: '10px',
+                            fontFamily: 'var(--mono)',
+                            padding: '2px 6px',
+                            background: 'var(--paper-deep)',
+                            color: 'var(--ink)',
+                            border: '1px solid var(--line)',
+                            borderRadius: '2px',
+                            textDecoration: 'none',
+                          }}
+                          title={`Search "${track.artist} ${track.title}" on YouTube Music`}
+                        >
+                          YouTube ↗
+                        </a>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -623,6 +814,104 @@ function StudioEditorialWorkspaceInner() {
               >
                 Download Design Brief (.md) ↗
               </button>
+            </div>
+          )}
+
+          {activeTab === 'sourcing' && (
+            <div>
+              <span className="eyebrow">Pricing & Sourcing (BOQ)</span>
+              <p style={{ fontSize: '12px', lineHeight: '1.6', margin: '8px 0' }}>
+                Object-level purchase, rental, and custom-fabrication options with vendor catalog matching and bill-of-quantities budget rollup.
+              </p>
+
+              {/* Currency & Location selectors */}
+              <div style={{ display: 'flex', gap: '6px', margin: '10px 0' }}>
+                <select
+                  value={budgetConfig.currency}
+                  onChange={(e) => setBudgetConfig({ ...budgetConfig, currency: e.target.value as any })}
+                  style={{
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    fontFamily: 'var(--mono)',
+                    border: '1px solid var(--line)',
+                    background: 'var(--paper)',
+                  }}
+                >
+                  <option value="USD">USD ($)</option>
+                  <option value="EUR">EUR (€)</option>
+                  <option value="GBP">GBP (£)</option>
+                  <option value="INR">INR (₹)</option>
+                  <option value="JPY">JPY (¥)</option>
+                </select>
+                <input
+                  type="text"
+                  value={budgetConfig.location}
+                  onChange={(e) => setBudgetConfig({ ...budgetConfig, location: e.target.value })}
+                  placeholder="Location..."
+                  style={{
+                    flex: 1,
+                    padding: '4px 8px',
+                    fontSize: '11px',
+                    fontFamily: 'var(--mono)',
+                    border: '1px solid var(--line)',
+                    background: 'var(--paper)',
+                  }}
+                />
+              </div>
+
+              {/* Summary Stats */}
+              <div style={{ padding: '10px', background: 'var(--paper)', border: '1px solid var(--line)', fontSize: '11px', fontFamily: 'var(--mono)', margin: '10px 0' }}>
+                <div>BOQ Items: {procurementList.length}</div>
+                <div style={{ marginTop: '4px', fontWeight: 600 }}>
+                  Est. Total: {formatCurrency(
+                    procurementList.reduce((acc, item) => acc + (item.lineTotalInCurrency || 0), 0),
+                    budgetConfig.currency
+                  )}
+                </div>
+                <div style={{ fontSize: '10px', color: 'var(--quiet)', marginTop: '4px' }}>
+                  Target Budget: {formatCurrency(budgetConfig.totalBudget, budgetConfig.currency)}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
+                <button
+                  suppressHydrationWarning
+                  type="button"
+                  onClick={() => setStageViewMode(stageViewMode === 'procurement' ? 'viewport' : 'procurement')}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid var(--line)',
+                    background: stageViewMode === 'procurement' ? 'var(--blue)' : 'var(--paper)',
+                    color: stageViewMode === 'procurement' ? '#fff' : 'inherit',
+                    fontSize: '11px',
+                    fontFamily: 'var(--mono)',
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                  }}
+                >
+                  {stageViewMode === 'procurement' ? 'View in 3D Space' : 'Open Full BOQ Sheet'}
+                </button>
+
+                <button
+                  suppressHydrationWarning
+                  type="button"
+                  onClick={handleDownloadBOQ}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    border: '1px solid var(--ink)',
+                    background: 'var(--ink)',
+                    color: 'var(--paper)',
+                    fontSize: '11px',
+                    fontFamily: 'var(--mono)',
+                    textTransform: 'uppercase',
+                    cursor: 'pointer',
+                  }}
+                >
+                  Download BOQ (.md) ↗
+                </button>
+              </div>
             </div>
           )}
 
@@ -679,14 +968,100 @@ function StudioEditorialWorkspaceInner() {
                 Show Tools
               </button>
             )}
-            {comparison && (
+            {activeTab === 'sourcing' && (
               <button
                 suppressHydrationWarning
                 type="button"
-                onClick={() => setShowSplitCompare(!showSplitCompare)}
+                onClick={() => setStageViewMode(stageViewMode === 'procurement' ? 'viewport' : 'procurement')}
+                style={{
+                  padding: '4px 10px',
+                  border: '1px solid var(--ink)',
+                  background: stageViewMode === 'procurement' ? 'var(--ink)' : 'transparent',
+                  color: stageViewMode === 'procurement' ? 'var(--paper)' : 'inherit',
+                  fontSize: '11px',
+                  fontFamily: 'var(--mono)',
+                  textTransform: 'uppercase',
+                }}
               >
-                {showSplitCompare ? 'Single View' : 'Split Compare'}
+                {stageViewMode === 'procurement' ? '3D View' : 'BOQ Sheet'}
               </button>
+            )}
+            {comparison && (
+              <div
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '2px',
+                  border: '1px solid var(--line)',
+                  padding: '2px',
+                  background: 'var(--paper)',
+                  borderRadius: '2px',
+                }}
+              >
+                <button
+                  suppressHydrationWarning
+                  type="button"
+                  onClick={() => {
+                    setSceneViewMode('grounded');
+                    setStageViewMode('viewport');
+                  }}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '10px',
+                    fontFamily: 'var(--mono)',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: sceneViewMode === 'grounded' && stageViewMode === 'viewport' ? 'var(--blue)' : 'transparent',
+                    color: sceneViewMode === 'grounded' && stageViewMode === 'viewport' ? '#fff' : 'inherit',
+                  }}
+                  title="View full-screen scene with Qloo taste grounding"
+                >
+                  With Qloo
+                </button>
+                <button
+                  suppressHydrationWarning
+                  type="button"
+                  onClick={() => {
+                    setSceneViewMode('baseline');
+                    setStageViewMode('viewport');
+                  }}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '10px',
+                    fontFamily: 'var(--mono)',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: sceneViewMode === 'baseline' && stageViewMode === 'viewport' ? 'var(--ink)' : 'transparent',
+                    color: sceneViewMode === 'baseline' && stageViewMode === 'viewport' ? 'var(--paper)' : 'inherit',
+                  }}
+                  title="View full-screen baseline LLM scene without Qloo grounding"
+                >
+                  Without Qloo
+                </button>
+                <button
+                  suppressHydrationWarning
+                  type="button"
+                  onClick={() => {
+                    setSceneViewMode('split');
+                    setStageViewMode('viewport');
+                  }}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '10px',
+                    fontFamily: 'var(--mono)',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    cursor: 'pointer',
+                    background: sceneViewMode === 'split' && stageViewMode === 'viewport' ? 'var(--blue)' : 'transparent',
+                    color: sceneViewMode === 'split' && stageViewMode === 'viewport' ? '#fff' : 'inherit',
+                  }}
+                  title="Open interactive side-by-side split wipe comparison"
+                >
+                  Split Compare
+                </button>
+              </div>
             )}
             <Link href="/">Exit Studio ↗</Link>
           </div>
@@ -694,12 +1069,24 @@ function StudioEditorialWorkspaceInner() {
 
         {/* Viewport Frame with hairline border */}
         <div className="studio-stage__viewport-frame">
-          {isGenerating ? (
+          {stageViewMode === 'procurement' && scene ? (
+            <div className="w-full h-full overflow-y-auto bg-[#EEE8DC]">
+              <ProcurementWorkspacePanel
+                sceneSpec={scene}
+                selectedObjectId={selectedObjectId}
+                onSelectObject={setSelectedObjectId}
+                budgetConfig={budgetConfig}
+                onUpdateBudgetConfig={setBudgetConfig}
+                procurementList={procurementList}
+                onUpdateProcurementList={setProcurementList}
+              />
+            </div>
+          ) : isGenerating ? (
             <div className="w-full h-full flex flex-col items-center justify-center bg-[#0b0b0e] text-[#aaa9a2] font-mono text-xs uppercase tracking-widest gap-3">
               <div className="w-8 h-8 rounded-full border border-[var(--blue)] border-t-transparent animate-spin" />
               <span>Grounding taste signals & rendering space…</span>
             </div>
-          ) : showSplitCompare && comparison ? (
+          ) : sceneViewMode === 'split' && comparison ? (
             <CompareSplitViewer
               baselineSpec={comparison.baseline}
               groundedSpec={comparison.grounded}
@@ -707,16 +1094,36 @@ function StudioEditorialWorkspaceInner() {
               onSelectObject={setSelectedObjectId}
               showCeiling={true}
               cameraPreset={cameraPreset}
-              onCloseCompare={() => setShowSplitCompare(false)}
+              onCloseCompare={() => setSceneViewMode('grounded')}
             />
           ) : scene ? (
-            <DynamicVenue3D
-              sceneSpec={{ ...scene, timeOfDay: daylightMode }}
-              selectedObjectId={selectedObjectId}
-              onSelectObject={setSelectedObjectId}
-              showCeiling={true}
-              cameraPreset={cameraPreset}
-            />
+            <div className="relative w-full h-full">
+              <DynamicVenue3D
+                sceneSpec={{
+                  ...(sceneViewMode === 'baseline' && comparison ? comparison.baseline : scene),
+                  timeOfDay: daylightMode,
+                }}
+                selectedObjectId={selectedObjectId}
+                onSelectObject={setSelectedObjectId}
+                showCeiling={true}
+                cameraPreset={cameraPreset}
+              />
+              {/* Scene View Mode Badge Indicator */}
+              <div className="absolute top-3 left-3 pointer-events-none z-10">
+                <div className="bg-black/85 border border-neutral-700 text-neutral-300 font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded shadow-md backdrop-blur-sm flex items-center gap-1.5">
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${
+                      sceneViewMode === 'grounded' ? 'bg-emerald-400 animate-pulse' : 'bg-neutral-500'
+                    }`}
+                  />
+                  <span>
+                    {sceneViewMode === 'grounded'
+                      ? 'With Qloo Grounding'
+                      : 'Without Qloo (Baseline LLM)'}
+                  </span>
+                </div>
+              </div>
+            </div>
           ) : null}
         </div>
 

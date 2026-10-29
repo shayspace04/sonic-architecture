@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import * as THREE from "three";
 import type { QualityTier, SceneSpec } from "@/lib/types";
 import type { AudioReactiveBands } from "@/lib/soundtrack-audio-engine";
 import { Venue3D } from "@/components/three/Venue3D";
@@ -44,6 +45,20 @@ export function CompareSplitViewer({
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
 
+  // Shared 60fps camera synchronization bus so rotating/panning/zooming
+  // either the baseline or grounded side moves both viewports in mathematical lockstep.
+  const cameraSyncBus = useRef<{
+    sourceId: string | null;
+    position: THREE.Vector3;
+    target: THREE.Vector3;
+    updated: boolean;
+  }>({
+    sourceId: null,
+    position: new THREE.Vector3(),
+    target: new THREE.Vector3(),
+    updated: false,
+  });
+
   // Keyboard navigation: Left/Right arrows move wipe, Escape exits, C toggles
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -69,33 +84,38 @@ export function CompareSplitViewer({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onCloseCompare, prefersReducedMotion]);
 
-  // Pointer drag handling for wipe slider
+  // Pointer drag handling for wipe slider with window listeners to prevent drag dropouts
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
-    (e.target as HTMLElement).setPointerCapture(e.pointerId);
   }, []);
 
-  const handlePointerMove = useCallback(
-    (e: React.PointerEvent) => {
-      if (!isDragging || !containerRef.current) return;
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!containerRef.current) return;
       const rect = containerRef.current.getBoundingClientRect();
-      const clientX = e.clientX;
-      const relativeX = clientX - rect.left;
+      const relativeX = e.clientX - rect.left;
       const pct = Math.max(0, Math.min(100, (relativeX / rect.width) * 100));
       setSliderPos(Number(pct.toFixed(1)));
-    },
-    [isDragging]
-  );
+    };
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    setIsDragging(false);
-    try {
-      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
-    } catch {
-      // ignore
-    }
-  }, []);
+    const handlePointerUp = () => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerUp);
+    window.addEventListener("pointercancel", handlePointerUp);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerUp);
+      window.removeEventListener("pointercancel", handlePointerUp);
+    };
+  }, [isDragging]);
 
   // Preset positioning for mobile / quick navigation
   const setExactSplit = (pct: number) => {
@@ -105,8 +125,6 @@ export function CompareSplitViewer({
   return (
     <div
       ref={containerRef}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
       className="relative w-full h-full overflow-hidden select-none bg-[#0B0E14]"
       style={{ touchAction: "none" }}
       role="region"
@@ -130,6 +148,8 @@ export function CompareSplitViewer({
           pulsingObjectIds={pulsingObjectIds}
           audioBandsRef={audioBandsRef}
           prefersReducedMotion={prefersReducedMotion}
+          cameraSyncBus={cameraSyncBus}
+          cameraSyncId="baseline"
         />
 
         {/* Corner Badge: Without Qloo */}
@@ -145,13 +165,13 @@ export function CompareSplitViewer({
       {/* LAYER 2: GROUNDED SCENE (WITH QLOO GROUNDING) - CLIPPED VIA SLIDER */}
       {/* =================================================================== */}
       <div
-        className="absolute inset-0 z-10 pointer-events-none"
+        className="absolute inset-0 z-10"
         style={{
           clipPath: `polygon(${sliderPos}% 0, 100% 0, 100% 100%, ${sliderPos}% 100%)`,
           transition: isDragging ? "none" : prefersReducedMotion ? "none" : "clip-path 120ms ease-out",
         }}
       >
-        <div className="w-full h-full pointer-events-auto">
+        <div className="w-full h-full">
           <Venue3D
             sceneSpec={groundedSpec}
             selectedObjectId={selectedObjectId}
@@ -166,12 +186,14 @@ export function CompareSplitViewer({
             pulsingObjectIds={pulsingObjectIds}
             audioBandsRef={audioBandsRef}
             prefersReducedMotion={prefersReducedMotion}
+            cameraSyncBus={cameraSyncBus}
+            cameraSyncId="grounded"
           />
         </div>
 
         {/* Corner Badge: With Qloo */}
         <div className="absolute top-12 right-3 z-10 pointer-events-none">
-          <div className="bg-[var(--red)]/90 border border-red-400 text-white font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded shadow-lg backdrop-blur-sm font-semibold flex items-center gap-1.5">
+          <div className="bg-[var(--red,#d9532b)]/90 border border-red-400 text-white font-mono text-[10px] uppercase tracking-wider px-2.5 py-1 rounded shadow-lg backdrop-blur-sm font-semibold flex items-center gap-1.5">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
             <span>With Qloo Grounding</span>
           </div>
