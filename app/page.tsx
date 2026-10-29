@@ -1,12 +1,11 @@
-import type { Metadata } from "next";
-import { EDITORIAL_ROUTES } from "@/lib/editorial-routes";
-import { EditorialWorldExperience } from "@/components/editorial/EditorialWorldExperience";
+import type { Metadata } from 'next';
+import { LandingPage } from '@/components/landing/LandingPage';
 
 export const metadata: Metadata = {
-  title: EDITORIAL_ROUTES.home.metaTitle,
-  description: EDITORIAL_ROUTES.home.metaDescription,
+  title: 'Sonic Architecture — Your taste has a world of its own',
+  description: 'Turn cultural taste into explorable architectural worlds grounded in Qloo taste intelligence.',
 };
 
 export default function HomePage() {
-  return <EditorialWorldExperience routeKey="home" />;
+  return <LandingPage />;
 }

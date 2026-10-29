@@ -1,13 +1,24 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Manrope, DM_Mono } from "next/font/google";
+import { Fraunces, Manrope, DM_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
+import "./sonic-theme.css";
+
+/**
+ * Editorial Serif Accent: Playfair Display
+ * Loaded with italic styles for editorial italic accent headings and em tags.
+ */
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  variable: "--font-playfair",
+  display: "swap",
+  preload: true,
+  adjustFontFallback: true,
+});
 
 /**
  * Brutalist-Editorial Display Serif: Fraunces
- * Loaded as a variable font with the optical-size (`opsz`) axis (weights 100–900 supported natively),
- * and BOTH `normal` and `italic` styles so the red second-word H1 italic is a true
- * calligraphic italic glyph rather than browser-synthesized oblique.
- * Preloaded with `display: "swap"`, `adjustFontFallback: true` (zero CLS on swap).
+ * Preserved for backward compatibility with existing scenes and badges.
  */
 const fraunces = Fraunces({
   subsets: ["latin"],
@@ -56,8 +67,8 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#111312",
-  colorScheme: "dark",
+  themeColor: "#f6f6f1",
+  colorScheme: "light",
   width: "device-width",
   initialScale: 1,
 };
@@ -70,18 +81,12 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`dark ${fraunces.variable} ${manrope.variable} ${dmMono.variable}`}
+      className={`${playfair.variable} ${manrope.variable} ${dmMono.variable} ${fraunces.variable}`}
       suppressHydrationWarning
     >
-      <body className="sa-body bg-[var(--dark)] text-[var(--ink)] antialiased selection:bg-[var(--red)] selection:text-[var(--ink)] min-h-[100svh]">
-        <a href="#main-content" className="sa-skip-link">
+      <body className="sonic-theme font-sans bg-[var(--paper)] text-[var(--ink)] antialiased selection:bg-[var(--blue)] selection:text-[var(--paper)] min-h-[100svh]">
+        <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-[var(--ink)] focus:text-[var(--paper)] focus:font-mono focus:text-xs">
           Skip to main content
-        </a>
-        <a
-          href="#sonic-3d-studio-stage"
-          className="sa-skip-link sa-skip-link--secondary"
-        >
-          Skip to 3D studio workbench
         </a>
         {children}
       </body>

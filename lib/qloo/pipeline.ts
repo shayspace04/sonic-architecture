@@ -2,14 +2,13 @@
  * Sonic Architecture — Qloo Cross-Domain Insights Pipeline & Private Server Cache
  * (/lib/qloo/pipeline.ts)
  *
- * Implements Requirements 3, 4, and 5:
- * 3. Concepts to Tags: Integrates resolved tag IDs alongside entity IDs as signal.interests.tags.
- * 4. Insights with Tags: For concept-only prompts, calls /v2/insights using signal.interests.tags
- *    (and entities where available), take=8, feature.explainability=true across place, artist, movie, brand.
- *    Logs the result count for each call and treats 0 as "no data".
- * 5. Surface Explainability: Stores each result's explainability scores and computes the top
- *    contributing input (entity or tag) to display on cards in the UI.
- * 6. Private 24-hr server cache (.qloo-cache/ gitignored), zero key leakage.
+ * Implements Judge Reliability & Latency Budget Requirements:
+ * 1. Hard per-call timeout 6s (AbortSignal.timeout(6000)).
+ * 2. Total cold request budget 10s. Missing domains labeled "timed out".
+ * 3. Fall-through queries (single tag, name search) run in PARALLEL with the first attempt, not after it.
+ * 4. Trace streaming callback so the UI/SSE stream displays progress live.
+ * 5. Records venueSource ("insights" vs "name_search") and venueSearchTerm.
+ * 6. Pluggable cache adapter (KV / InMemory / FileSystem) with zero key leakage.
  */
 
 import fs from "node:fs";
@@ -26,6 +25,7 @@ import type {
   RealQlooEvidenceBundle,
   ResolvedTagEvidence,
   SurfaceExplainability,
+  TraceStep,
 } from "./types";
 import {
   resolveEntitiesAndConceptsFromPrompt,
@@ -35,17 +35,22 @@ import { getQlooFixture } from "@/lib/fixtures/qlooSamples";
 import { getQlooCacheAdapter } from "./cache";
 
 const QLOO_BASE_URL = "https://hackathon.api.qloo.com";
+const HARD_PER_CALL_TIMEOUT_MS = 6_000;
+const TOTAL_BUDGET_MS = 9_800;
 
 /**
- * Executes a resilient GET call to /v2/insights with 1 retry and 20s timeout
+ * Executes a resilient GET call to /v2/insights with 1 retry and 6s hard timeout
  */
 async function fetchInsightsEndpoint<T>(
   endpointPath: string,
-  apiKey: string
-): Promise<{ ok: boolean; status: number; data: T | null; latencyMs: number }> {
+  apiKey: string,
+  domain = "insights",
+  onTraceStep?: (step: TraceStep) => void
+): Promise<{ ok: boolean; status: number; data: T | null; latencyMs: number; error?: string }> {
   const fullUrl = `${QLOO_BASE_URL}${endpointPath}`;
   const start = Date.now();
   let lastStatus = 0;
+  let lastError = "";
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     try {
@@ -54,7 +59,7 @@ async function fetchInsightsEndpoint<T>(
           "X-Api-Key": apiKey,
           Accept: "application/json",
         },
-        signal: AbortSignal.timeout(20_000),
+        signal: AbortSignal.timeout(HARD_PER_CALL_TIMEOUT_MS),
       });
 
       lastStatus = resp.status;
@@ -67,24 +72,61 @@ async function fetchInsightsEndpoint<T>(
 
       if (!resp.ok) {
         if (attempt === 1) {
-          await new Promise((r) => setTimeout(r, 600));
+          await new Promise((r) => setTimeout(r, 400));
           continue;
         }
-        return { ok: false, status: resp.status, data: null, latencyMs };
+        const step: TraceStep = {
+          endpoint: sanitizedLogPath,
+          status: resp.status,
+          count: 0,
+          latencyMs,
+          domain,
+          error: `HTTP ${resp.status}`,
+        };
+        onTraceStep?.(step);
+        return { ok: false, status: resp.status, data: null, latencyMs, error: `HTTP ${resp.status}` };
       }
 
       const json = (await resp.json()) as T;
+      const count =
+        Array.isArray((json as any)?.results?.entities)
+          ? (json as any).results.entities.length
+          : Array.isArray((json as any)?.results?.tags)
+          ? (json as any).results.tags.length
+          : 1;
+
+      const step: TraceStep = {
+        endpoint: sanitizedLogPath,
+        status: resp.status,
+        count,
+        latencyMs,
+        domain,
+      };
+      onTraceStep?.(step);
+
       return { ok: true, status: resp.status, data: json, latencyMs };
-    } catch {
+    } catch (err: unknown) {
+      lastError = err instanceof Error ? err.message : String(err);
       if (attempt === 1) {
-        await new Promise((r) => setTimeout(r, 600));
+        await new Promise((r) => setTimeout(r, 400));
         continue;
       }
     }
   }
 
   const latencyMs = Date.now() - start;
-  return { ok: false, status: lastStatus, data: null, latencyMs };
+  const sanitizedLogPath = endpointPath.split("&")[0] || endpointPath;
+  const step: TraceStep = {
+    endpoint: sanitizedLogPath,
+    status: lastStatus,
+    count: 0,
+    latencyMs,
+    domain,
+    error: lastError,
+  };
+  onTraceStep?.(step);
+
+  return { ok: false, status: lastStatus, data: null, latencyMs, error: lastError };
 }
 
 /**
@@ -155,15 +197,16 @@ function computeTopContributor(
 }
 
 /**
- * Builds and executes the cross-domain insights queries combining entity IDs and tag IDs
+ * Builds and executes cross-domain insights queries combining entity IDs and tag IDs
+ * within the strict 10s total latency budget and 6s per-call timeout.
  */
 export async function executeCrossDomainPipeline(
   resolution: ComprehensiveResolutionResult,
-  inputParsed: string
+  inputParsed: string,
+  onTraceStep?: (step: TraceStep) => void
 ): Promise<RealQlooEvidenceBundle> {
   const entityIds = resolution.resolved.map((e) => e.entity_id);
   const tagIds = resolution.matchedTags.map((t) => t.id);
-
   const primaryEntity = resolution.resolved[0] || null;
 
   // Deterministic cache key based on resolved entities and tags
@@ -178,6 +221,13 @@ export async function executeCrossDomainPipeline(
   const cachedBundle = await cacheAdapter.get(cacheKey);
   if (cachedBundle) {
     console.log(`[Qloo Outbound] /v2/insights cache=hit (${cacheAdapter.constructor.name}) key=${cacheKey}`);
+    onTraceStep?.({
+      endpoint: "/v2/insights (cache)",
+      count: 4,
+      latencyMs: 2,
+      status: 200,
+      domain: "all",
+    });
     return { ...cachedBundle, source: "cache", latencyMs: 2 };
   }
 
@@ -188,7 +238,7 @@ export async function executeCrossDomainPipeline(
 
   const start = Date.now();
 
-  // 3. Build signals query string combining entities and tags
+  // 2. Build signals query string combining entities and tags
   const signalParts: string[] = [];
   if (entityIds.length > 0) {
     signalParts.push(`signal.interests.entities=${encodeURIComponent(entityIds.slice(0, 3).join(","))}`);
@@ -198,107 +248,219 @@ export async function executeCrossDomainPipeline(
   }
   const signalsQuery = signalParts.join("&");
 
-  // 4. Parallel fetch all cross-domain endpoints with take=4 (capped to UI needs) and feature.explainability=true
-  const [placesRes, artistsRes, moviesRes, brandsRes, tagsRes, demoRes] = await Promise.all([
+  // Track domain completion status
+  const domainStatus: Record<string, "ok" | "empty" | "timed out"> = {
+    places: "timed out",
+    artists: "timed out",
+    movies: "timed out",
+    brands: "timed out",
+    tags: "timed out",
+    demographics: "timed out",
+  };
+
+  // 3. RUN ALL QUERIES IN PARALLEL:
+  // - Main multi-signal insights calls
+  // - Fall-through single-tag place queries (run in parallel with the first attempt!)
+  // - Fall-through candidate place search queries (run in parallel with the first attempt!)
+
+  const placesPromise = fetchInsightsEndpoint<QlooInsightsResponse>(
+    `/v2/insights?${signalsQuery}&filter.type=urn:entity:place&take=4&feature.explainability=true`,
+    apiKey,
+    "place",
+    onTraceStep
+  );
+
+  const artistsPromise = fetchInsightsEndpoint<QlooInsightsResponse>(
+    `/v2/insights?${signalsQuery}&filter.type=urn:entity:artist&take=4&feature.explainability=true`,
+    apiKey,
+    "artist",
+    onTraceStep
+  );
+
+  const moviesPromise = fetchInsightsEndpoint<QlooInsightsResponse>(
+    `/v2/insights?${signalsQuery}&filter.type=urn:entity:movie&take=4&feature.explainability=true`,
+    apiKey,
+    "movie",
+    onTraceStep
+  );
+
+  const brandsPromise = fetchInsightsEndpoint<QlooInsightsResponse>(
+    `/v2/insights?${signalsQuery}&filter.type=urn:entity:brand&take=4&feature.explainability=true`,
+    apiKey,
+    "brand",
+    onTraceStep
+  );
+
+  const tagsPromise = primaryEntity
+    ? fetchInsightsEndpoint<QlooTasteTagsResponse>(
+        `/v2/insights?signal.interests.entities=${encodeURIComponent(primaryEntity.entity_id)}&filter.type=urn:tag&take=8`,
+        apiKey,
+        "taste_tags",
+        onTraceStep
+      )
+    : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 });
+
+  const demoPromise = primaryEntity
+    ? fetchInsightsEndpoint<QlooDemographicsResponse>(
+        `/v2/insights?signal.interests.entities=${encodeURIComponent(primaryEntity.entity_id)}&filter.type=urn:demographics`,
+        apiKey,
+        "demographics",
+        onTraceStep
+      )
+    : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 });
+
+  // Speculative fall-through: single-tag queries in parallel
+  const singleTagPromises = tagIds.slice(0, 2).map((tid) =>
     fetchInsightsEndpoint<QlooInsightsResponse>(
-      `/v2/insights?${signalsQuery}&filter.type=urn:entity:place&take=4&feature.explainability=true`,
-      apiKey
-    ),
-    fetchInsightsEndpoint<QlooInsightsResponse>(
-      `/v2/insights?${signalsQuery}&filter.type=urn:entity:artist&take=4&feature.explainability=true`,
-      apiKey
-    ),
-    fetchInsightsEndpoint<QlooInsightsResponse>(
-      `/v2/insights?${signalsQuery}&filter.type=urn:entity:movie&take=4&feature.explainability=true`,
-      apiKey
-    ),
-    fetchInsightsEndpoint<QlooInsightsResponse>(
-      `/v2/insights?${signalsQuery}&filter.type=urn:entity:brand&take=4&feature.explainability=true`,
-      apiKey
-    ),
-    // Taste tags query (if entity available)
-    primaryEntity
-      ? fetchInsightsEndpoint<QlooTasteTagsResponse>(
-          `/v2/insights?signal.interests.entities=${encodeURIComponent(primaryEntity.entity_id)}&filter.type=urn:tag&take=8`,
-          apiKey
-        )
-      : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 }),
-    // Demographics query (if entity available)
-    primaryEntity
-      ? fetchInsightsEndpoint<QlooDemographicsResponse>(
-          `/v2/insights?signal.interests.entities=${encodeURIComponent(primaryEntity.entity_id)}&filter.type=urn:demographics`,
-          apiKey
-        )
-      : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 }),
+      `/v2/insights?signal.interests.tags=${encodeURIComponent(tid)}&filter.type=urn:entity:place&take=4&feature.explainability=true`,
+      apiKey,
+      "place_fallback_tag"
+    )
+  );
+
+  // Speculative fall-through: place name search in parallel
+  const candidateTerms = [
+    ...resolution.matchedTags.map((t) => t.conceptTerm),
+    ...inputParsed.split("+").map((s) => s.trim()),
+  ]
+    .filter(Boolean)
+    .slice(0, 2);
+
+  const placeSearchPromises = candidateTerms.map(async (searchTerm) => {
+    try {
+      const searchUrl = `${QLOO_BASE_URL}/search?query=${encodeURIComponent(searchTerm)}&types=urn:entity:place&take=4`;
+      const res = await fetch(searchUrl, {
+        headers: { "X-Api-Key": apiKey, Accept: "application/json" },
+        signal: AbortSignal.timeout(HARD_PER_CALL_TIMEOUT_MS),
+      });
+      if (res.ok) {
+        const json = await res.json();
+        const results = Array.isArray(json?.results) ? json.results : [];
+        return {
+          searchTerm,
+          places: results.map((r: any) => ({
+            entity_id: r.entity_id,
+            name: r.name,
+            type: "urn:entity:place",
+            tags: r.tags || [],
+          })),
+        };
+      }
+    } catch {
+      // Ignored in speculative fall-through
+    }
+    return { searchTerm, places: [] };
+  });
+
+  // 4. Enforce strict 10s cold budget via Promise.race
+  let isBudgetExpired = false;
+  const budgetDeadline = new Promise<{ timedOut: true }>((resolve) =>
+    setTimeout(() => {
+      isBudgetExpired = true;
+      resolve({ timedOut: true });
+    }, TOTAL_BUDGET_MS)
+  );
+
+  const allQueries = Promise.allSettled([
+    placesPromise,
+    artistsPromise,
+    moviesPromise,
+    brandsPromise,
+    tagsPromise,
+    demoPromise,
+    Promise.allSettled(singleTagPromises),
+    Promise.allSettled(placeSearchPromises),
   ]);
 
-  let places = placesRes.data?.results?.entities || [];
+  await Promise.race([allQueries, budgetDeadline]);
 
-  // Requirement 3: Check tag-based place calls against Entity Type Parameter Guide
-  // Multi-tag joint intersection in signal.interests.tags can yield 0 results for physical venues.
-  // When places is 0 but tags exist, query using each tag individually or place search.
-  if (places.length === 0 && tagIds.length > 0) {
-    for (const tagId of tagIds) {
-      const fallbackRes = await fetchInsightsEndpoint<QlooInsightsResponse>(
-        `/v2/insights?signal.interests.tags=${encodeURIComponent(tagId)}&filter.type=urn:entity:place&take=4&feature.explainability=true`,
-        apiKey
-      );
-      if (fallbackRes.data?.results?.entities && fallbackRes.data.results.entities.length > 0) {
-        places = fallbackRes.data.results.entities;
-        console.log(`[Qloo Insights] filter.type=place fallback with tag ${tagId}: count=${places.length}`);
+  // Extract completed results safely
+  let placesRes: any = null;
+  let artistsRes: any = null;
+  let moviesRes: any = null;
+  let brandsRes: any = null;
+  let tagsRes: any = null;
+  let demoRes: any = null;
+  let singleTagResList: any[] = [];
+  let placeSearchResList: any[] = [];
+
+  try {
+    const settled = await Promise.race([
+      allQueries,
+      Promise.resolve(null),
+    ]);
+
+    if (Array.isArray(settled)) {
+      if (settled[0].status === "fulfilled") placesRes = settled[0].value;
+      if (settled[1].status === "fulfilled") artistsRes = settled[1].value;
+      if (settled[2].status === "fulfilled") moviesRes = settled[2].value;
+      if (settled[3].status === "fulfilled") brandsRes = settled[3].value;
+      if (settled[4].status === "fulfilled") tagsRes = settled[4].value;
+      if (settled[5].status === "fulfilled") demoRes = settled[5].value;
+      if (settled[6].status === "fulfilled") singleTagResList = settled[6].value;
+      if (settled[7].status === "fulfilled") placeSearchResList = settled[7].value;
+    }
+  } catch {
+    // If extraction fails, continue with whatever exists
+  }
+
+  // Update domain status
+  let places: QlooInsightEntity[] = placesRes?.data?.results?.entities || [];
+  let venueSource: "insights" | "name_search" = "insights";
+  let venueSearchTerm: string | undefined = undefined;
+
+  if (places.length > 0) {
+    domainStatus.places = "ok";
+  } else {
+    // Check parallel single-tag queries
+    for (const stItem of singleTagResList) {
+      if (stItem.status === "fulfilled" && stItem.value?.data?.results?.entities?.length > 0) {
+        places = stItem.value.data.results.entities;
+        domainStatus.places = "ok";
+        venueSource = "insights";
         break;
       }
     }
-  }
 
-  // If places still 0, recover via official Qloo place search endpoint checking each candidate concept
-  if (places.length === 0) {
-    const candidateTerms = [
-      ...resolution.matchedTags.map((t) => t.conceptTerm),
-      ...inputParsed.split("+").map((s) => s.trim()),
-    ].filter(Boolean);
-
-    for (const searchTerm of candidateTerms) {
-      try {
-        const searchPlaceUrl = `${QLOO_BASE_URL}/search?query=${encodeURIComponent(searchTerm)}&types=urn:entity:place&take=4`;
-        const sRes = await fetch(searchPlaceUrl, {
-          headers: { "X-Api-Key": apiKey, Accept: "application/json" },
-          signal: AbortSignal.timeout(10_000),
-        });
-        if (sRes.ok) {
-          const sJson = await sRes.json();
-          if (sJson.results && sJson.results.length > 0) {
-            places = sJson.results.map((r: any) => ({
-              entity_id: r.entity_id,
-              name: r.name,
-              type: "urn:entity:place",
-              tags: r.tags || [],
-            }));
-            console.log(`[Qloo Search Place] Recovered ${places.length} places for "${searchTerm}"`);
-            break;
-          }
+    // If still empty, check parallel place search queries
+    if (places.length === 0) {
+      for (const psItem of placeSearchResList) {
+        if (psItem.status === "fulfilled" && psItem.value?.places?.length > 0) {
+          places = psItem.value.places;
+          domainStatus.places = "ok";
+          venueSource = "name_search";
+          venueSearchTerm = psItem.value.searchTerm;
+          break;
         }
-      } catch {
-        // Ignore
       }
+    }
+
+    if (places.length === 0) {
+      domainStatus.places = placesRes ? "empty" : "timed out";
     }
   }
 
+  const relatedArtists: QlooInsightEntity[] = artistsRes?.data?.results?.entities || [];
+  domainStatus.artists = relatedArtists.length > 0 ? "ok" : artistsRes ? "empty" : "timed out";
+
+  const movies: QlooInsightEntity[] = moviesRes?.data?.results?.entities || [];
+  domainStatus.movies = movies.length > 0 ? "ok" : moviesRes ? "empty" : "timed out";
+
+  const brands: QlooInsightEntity[] = brandsRes?.data?.results?.entities || [];
+  domainStatus.brands = brands.length > 0 ? "ok" : brandsRes ? "empty" : "timed out";
+
+  const tasteTags: QlooTasteTag[] = tagsRes?.data?.results?.tags || [];
+  domainStatus.tags = tasteTags.length > 0 ? "ok" : tagsRes ? "empty" : "timed out";
+
+  const demographics: QlooDemographic | null = demoRes?.data?.results?.demographics?.[0] || null;
+  domainStatus.demographics = demographics ? "ok" : demoRes ? "empty" : "timed out";
+
   const totalLatencyMs = Date.now() - start;
 
-  const relatedArtists = artistsRes.data?.results?.entities || [];
-  const movies = moviesRes.data?.results?.entities || [];
-  const brands = brandsRes.data?.results?.entities || [];
-  const tasteTags = tagsRes.data?.results?.tags || [];
-  const demographics = demoRes.data?.results?.demographics?.[0] || null;
+  console.log(`[Qloo Insights] Budget: ${totalLatencyMs}ms (expired=${isBudgetExpired})`);
+  console.log(`[Qloo Insights] Domain status:`, JSON.stringify(domainStatus));
 
-  // Log the result count for each call; treat 0 as "no data" (Requirement 4)
-  console.log(`[Qloo Insights] filter.type=place status=${placesRes.status} count=${places.length} (${places.length === 0 ? "no data" : "ok"})`);
-  console.log(`[Qloo Insights] filter.type=artist status=${artistsRes.status} count=${relatedArtists.length} (${relatedArtists.length === 0 ? "no data" : "ok"})`);
-  console.log(`[Qloo Insights] filter.type=movie status=${moviesRes.status} count=${movies.length} (${movies.length === 0 ? "no data" : "ok"})`);
-  console.log(`[Qloo Insights] filter.type=brand status=${brandsRes.status} count=${brands.length} (${brands.length === 0 ? "no data" : "ok"})`);
-
-  // Build granular trace metrics for UI streaming (Requirement 4)
+  // Build granular trace metrics for UI streaming
   const traceMetrics: Array<{ endpoint: string; count: number; latencyMs: number; status: number }> = [
     ...resolution.resolved.map((r) => ({
       endpoint: `/search?query=${encodeURIComponent(r.name)}`,
@@ -312,13 +474,33 @@ export async function executeCrossDomainPipeline(
       latencyMs: resolution.latencyMs,
       status: 200,
     })),
-    { endpoint: "/v2/insights (place)", count: places.length, latencyMs: placesRes.latencyMs, status: placesRes.status },
-    { endpoint: "/v2/insights (artist)", count: relatedArtists.length, latencyMs: artistsRes.latencyMs, status: artistsRes.status },
-    { endpoint: "/v2/insights (movie)", count: movies.length, latencyMs: moviesRes.latencyMs, status: moviesRes.status },
-    { endpoint: "/v2/insights (brand)", count: brands.length, latencyMs: brandsRes.latencyMs, status: brandsRes.status },
+    {
+      endpoint: "/v2/insights (place)",
+      count: places.length,
+      latencyMs: placesRes?.latencyMs || totalLatencyMs,
+      status: placesRes?.status || (domainStatus.places === "timed out" ? 504 : 200),
+    },
+    {
+      endpoint: "/v2/insights (artist)",
+      count: relatedArtists.length,
+      latencyMs: artistsRes?.latencyMs || totalLatencyMs,
+      status: artistsRes?.status || (domainStatus.artists === "timed out" ? 504 : 200),
+    },
+    {
+      endpoint: "/v2/insights (movie)",
+      count: movies.length,
+      latencyMs: moviesRes?.latencyMs || totalLatencyMs,
+      status: moviesRes?.status || (domainStatus.movies === "timed out" ? 504 : 200),
+    },
+    {
+      endpoint: "/v2/insights (brand)",
+      count: brands.length,
+      latencyMs: brandsRes?.latencyMs || totalLatencyMs,
+      status: brandsRes?.status || (domainStatus.brands === "timed out" ? 504 : 200),
+    },
   ];
 
-  // Compute explainability scores and surface top contributors (Requirement 5)
+  // Compute explainability scores and surface top contributors
   const explainabilityScores: Record<string, number> = {};
   const surfaceExplainability: Record<string, SurfaceExplainability> = {};
 
@@ -337,8 +519,8 @@ export async function executeCrossDomainPipeline(
   processExplainability(movies);
   processExplainability(brands);
 
-  const isLiveSuccess = placesRes.ok || artistsRes.ok || moviesRes.ok || brandsRes.ok;
-  if (!isLiveSuccess && places.length === 0 && relatedArtists.length === 0) {
+  const isLiveSuccess = places.length > 0 || relatedArtists.length > 0 || movies.length > 0 || brands.length > 0;
+  if (!isLiveSuccess) {
     return createSampleFixtureBundle(primaryEntity, resolution, inputParsed, "fallback");
   }
 
@@ -358,19 +540,22 @@ export async function executeCrossDomainPipeline(
     demographics,
     explainabilityScores,
     surfaceExplainability,
+    venueSource,
+    venueSearchTerm,
+    domainStatus,
     latencyMs: totalLatencyMs,
     timestamp: Date.now(),
     traceMetrics,
   };
 
-  // Cache via pluggable adapter
-  await cacheAdapter.set(cacheKey, bundle);
+  // 5. Store in pluggable cache adapter
+  await cacheAdapter.set(cacheKey, bundle, 24 * 60 * 60 * 1000);
 
   return bundle;
 }
 
 /**
- * Fallback fixture builder with explicit synthetic labels
+ * Creates a truthfully labeled fallback sample bundle
  */
 function createSampleFixtureBundle(
   primaryEntity: QlooSearchEntity | null,
@@ -411,6 +596,14 @@ function createSampleFixtureBundle(
     demographics: null,
     explainabilityScores: {},
     surfaceExplainability: {},
+    domainStatus: {
+      places: "empty",
+      artists: "empty",
+      movies: "empty",
+      brands: "empty",
+      tags: "empty",
+      demographics: "empty",
+    },
     latencyMs: 15,
     timestamp: Date.now(),
   };
@@ -420,19 +613,20 @@ function createSampleFixtureBundle(
  * Complete pipeline coordinator: Prompt -> Comprehensive Resolution -> Cross-Domain Evidence Bundle
  */
 export async function getCrossDomainEvidenceForPrompt(
-  prompt: string
+  prompt: string,
+  onTraceStep?: (step: TraceStep) => void
 ): Promise<{
   resolution: ComprehensiveResolutionResult;
   bundle: RealQlooEvidenceBundle | null;
 }> {
-  const resolution = await resolveEntitiesAndConceptsFromPrompt(prompt);
+  const resolution = await resolveEntitiesAndConceptsFromPrompt(prompt, onTraceStep);
 
   // If both entities and tags are empty, return resolution with no bundle
   if (resolution.resolved.length === 0 && resolution.matchedTags.length === 0) {
     return { resolution, bundle: null };
   }
 
-  const bundle = await executeCrossDomainPipeline(resolution, prompt);
+  const bundle = await executeCrossDomainPipeline(resolution, prompt, onTraceStep);
   return { resolution, bundle };
 }
 

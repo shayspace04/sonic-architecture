@@ -14,6 +14,9 @@ import type { QlooMusicEntityInput } from "@/lib/music-profile";
 import { validateMusicProfile } from "@/lib/music-profile";
 import { generateVerifiedSoundtrackPlaylist } from "@/lib/soundtrack-pipeline";
 
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
+
 const VALID_TYPOLOGIES: ReadonlySet<string> = new Set<string>([
   "listening_room",
   "futuristic_launch",

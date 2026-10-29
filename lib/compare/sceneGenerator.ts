@@ -284,9 +284,19 @@ export function designScene({
   groundedSpec.palette.floorHex = derivedDesign.palette.floorHex;
   groundedSpec.palette.wallHex = derivedDesign.palette.wallHex;
   groundedSpec.palette.ambientHex = derivedDesign.palette.ambientHex;
+  if (derivedDesign.palette.isFallback) {
+    groundedSpec.palette.isFallback = true;
+    groundedSpec.palette.fallbackNotice = derivedDesign.palette.fallbackNotice || "No Qloo-derived palette for this reference";
+  }
 
-  // Generate plain "because" design rationales constructed strictly from real Qloo data
-  const becauseSentences = generateBecauseSentences(cleanPrompt, bundle, qlooContext.entities, derivedDesign);
+  // Generate plain "because" design rationales constructed strictly from real Qloo data and final scene typology
+  const becauseSentences = generateBecauseSentences(
+    cleanPrompt,
+    bundle,
+    qlooContext.entities,
+    derivedDesign,
+    groundedSpec.typology
+  );
   groundedSpec.becauseSentences = becauseSentences;
 
   // ==========================================================================

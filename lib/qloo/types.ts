@@ -182,6 +182,15 @@ export interface SurfaceExplainability {
   score: number;
 }
 
+export interface TraceStep {
+  endpoint: string;
+  count: number;
+  latencyMs: number;
+  status: number;
+  domain?: string;
+  error?: string;
+}
+
 export interface RealQlooEvidenceBundle {
   source: "live" | "cache" | "fixture" | "fallback";
   inputParsed: string;
@@ -198,6 +207,9 @@ export interface RealQlooEvidenceBundle {
   demographics: QlooDemographic | null;
   explainabilityScores: Record<string, number>; // entity_id / tag_id -> score (0-1)
   surfaceExplainability: Record<string, SurfaceExplainability>; // entity_id -> top driver
+  venueSource?: "insights" | "name_search";
+  venueSearchTerm?: string;
+  domainStatus?: Record<string, "ok" | "empty" | "timed out">;
   latencyMs: number;
   timestamp: number;
   traceMetrics?: Array<{ endpoint: string; count: number; latencyMs: number; status: number }>;

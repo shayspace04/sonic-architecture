@@ -15,8 +15,8 @@ import { AgentLoop, AGENT_RUN_LOGS } from "@/lib/agent/agentLoop";
 import { getQlooClient, prewarmStarterPromptCache } from "@/lib/agent/qlooClient";
 import type { AgentEvent } from "@/lib/agent/types";
 
-// Prewarm starter prompts on module load
-prewarmStarterPromptCache().catch(() => {});
+export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 // ============================================================================
 // RATE LIMITING & GLOBAL BUDGET GUARD

@@ -27,6 +27,7 @@ import type {
   QlooSearchResponse,
   ResolvedTagEvidence,
   UnmatchedConcept,
+  TraceStep,
 } from "./types";
 import { getQlooFixture } from "@/lib/fixtures/qlooSamples";
 
@@ -276,7 +277,7 @@ async function resolveSingleNamedEntity(
     try {
       const resp = await fetch(url, {
         headers: { "X-Api-Key": apiKey, Accept: "application/json" },
-        signal: AbortSignal.timeout(16_000),
+        signal: AbortSignal.timeout(6_000),
       });
 
       lastStatus = resp.status;
@@ -363,7 +364,7 @@ async function resolveSingleConceptToTag(
     try {
       const resp = await fetch(url, {
         headers: { "X-Api-Key": apiKey, Accept: "application/json" },
-        signal: AbortSignal.timeout(16_000),
+        signal: AbortSignal.timeout(6_000),
       });
       status = resp.status;
       if (resp.ok) {
@@ -404,7 +405,8 @@ async function resolveSingleConceptToTag(
  * enforcing whole-word and token overlap >= 0.8 constraints.
  */
 export async function resolveEntitiesAndConceptsFromPrompt(
-  prompt: string
+  prompt: string,
+  onTraceStep?: (step: TraceStep) => void
 ): Promise<ComprehensiveResolutionResult> {
   const start = Date.now();
   const extraction = extractEntitiesAndConcepts(prompt);
@@ -464,13 +466,32 @@ export async function resolveEntitiesAndConceptsFromPrompt(
   // 1. Resolve named entities in parallel
   const entityPromises = extraction.namedEntities.map((e) => {
     totalCalls++;
-    return resolveSingleNamedEntity(e, prompt, apiKey);
+    return resolveSingleNamedEntity(e, prompt, apiKey).then((res) => {
+      onTraceStep?.({
+        endpoint: `/search?query=${encodeURIComponent(e.name)}`,
+        status: res.status,
+        count: res.entity ? 1 : 0,
+        latencyMs: res.latencyMs,
+        domain: "entity",
+        error: res.reason,
+      });
+      return res;
+    });
   });
 
   // 2. Resolve concepts to tags in parallel
   const conceptPromises = extraction.concepts.map((c) => {
     totalCalls++;
-    return resolveSingleConceptToTag(c, apiKey);
+    return resolveSingleConceptToTag(c, apiKey).then((res) => {
+      onTraceStep?.({
+        endpoint: `/v2/tags?filter.query=${encodeURIComponent(c.term)}`,
+        status: res.status,
+        count: res.tag ? 1 : 0,
+        latencyMs: res.latencyMs,
+        domain: "tag",
+      });
+      return res;
+    });
   });
 
   const [entityResults, conceptResults] = await Promise.all([

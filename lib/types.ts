@@ -739,6 +739,8 @@ export interface SceneSpec {
     floorHex: string;
     wallHex: string;
     ambientHex: string;
+    isFallback?: boolean;
+    fallbackNotice?: string;
   };
   materials: {
     floor: MaterialSpec;
