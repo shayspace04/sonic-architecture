@@ -80,7 +80,7 @@ async function runVerification() {
       const data = await vibeResp.json();
       console.log(`   HTTP Status: ${vibeResp.status} in ${vibeRoundtrip}ms`);
       console.log(`   Venue Typology: ${data.scene?.typology}`);
-      console.log(`   Lighting: ${data.scene?.lighting?.colorTemperatureK}K (${data.scene?.lighting?.timeOfDay})`);
+      console.log(`   Lighting: ${data.scene?.lighting?.temperatureK}K (${data.scene?.timeOfDay || data.timeOfDay || "evening"})`);
       console.log(`   Palette Accent: ${data.scene?.palette?.accentHex}`);
       console.log(`   Comparison Source: ${data.comparison?.source || "unknown"}`);
       console.log(`   Differences Identified: ${data.comparison?.diff?.length || 0}`);
@@ -100,7 +100,7 @@ async function runVerification() {
   }
 
   // 3. Verify Homepage Rendering
-  console.log(`\n[3/3] Testing homepage delivery ...`);
+  console.log(`\n[3/4] Testing homepage delivery ...`);
   try {
     const homeResp = await fetch(`${targetUrl}/`, { signal: AbortSignal.timeout(35000) });
     if (homeResp.ok) {
@@ -112,6 +112,43 @@ async function runVerification() {
   } catch (err) {
     console.error(`❌ Homepage request failed: ${err.message}`);
     passed = false;
+  }
+
+  // 4. Verify Cold Latency for Landing-Page Chips
+  console.log(`\n[4/4] Testing cold latency for all 4 landing-page chips ...`);
+  const LANDING_CHIPS = [
+    "Miles Davis + Brutalist concrete",
+    "Aphex Twin + gallery warehouse",
+    "A24 films + indie music",
+    "Japanese Gardens + ambient",
+  ];
+
+  console.log(`\n${"Landing Chip".padEnd(42)} | ${"Status".padEnd(8)} | ${"Latency".padEnd(10)} | Source`);
+  console.log(`-`.repeat(75));
+
+  for (const chip of LANDING_CHIPS) {
+    const cStart = Date.now();
+    try {
+      const cResp = await fetch(`${targetUrl}/api/vibe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: chip, seed: 42 }),
+        signal: AbortSignal.timeout(20000),
+      });
+      const cLatency = Date.now() - cStart;
+      if (cResp.ok) {
+        const cData = await cResp.json();
+        const src = cData.source || "unknown";
+        console.log(`${chip.padEnd(42)} | HTTP ${String(cResp.status).padEnd(3)} | ${String(cLatency + "ms").padEnd(10)} | ${src}`);
+      } else {
+        console.log(`${chip.padEnd(42)} | HTTP ${String(cResp.status).padEnd(3)} | ${String(cLatency + "ms").padEnd(10)} | FAILED`);
+        passed = false;
+      }
+    } catch (cErr) {
+      const cLatency = Date.now() - cStart;
+      console.log(`${chip.padEnd(42)} | ERROR    | ${String(cLatency + "ms").padEnd(10)} | ${cErr.message}`);
+      passed = false;
+    }
   }
 
   console.log(`\n========================================================================`);

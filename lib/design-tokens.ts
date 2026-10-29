@@ -51,15 +51,7 @@ export const sonicTokens = {
   },
 } as const;
 
-export const STARTER_PROMPTS = [
-  "Miles Davis + Brutalist concrete",
-  "Aphex Twin + gallery warehouse",
-  "A24 films + indie music",
-  "Japanese Gardens + ambient",
-] as const;
-
-export function buildStudioHref(prompt: string): string {
-  return `/studio?prompt=${encodeURIComponent(prompt.trim())}`;
-}
+export { STARTER_PROMPTS, buildStudioHref, getStarterKvKey, isStarterPrompt } from "./starters";
+export type { StarterPrompt } from "./starters";
 
 export type SonicTokens = typeof sonicTokens;

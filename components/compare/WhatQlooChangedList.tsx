@@ -67,6 +67,11 @@ export function WhatQlooChangedList({
                 <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
                 <span>Cached Qloo Signal</span>
               </div>
+            ) : comparison.source === "partly_sample" ? (
+              <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-amber-950/80 text-amber-400 border border-amber-800/80 text-[10px] font-semibold uppercase tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                <span>Partly Sample Data</span>
+              </div>
             ) : comparison.source === "fallback" ? (
               <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-neutral-900 text-neutral-300 border border-neutral-700 text-[10px] font-semibold uppercase tracking-wider">
                 <span className="w-1.5 h-1.5 rounded-full bg-neutral-400" />

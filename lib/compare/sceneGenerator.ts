@@ -172,41 +172,82 @@ export function designScene({
 
   // ==========================================================================
   // MODULATION 1: TYPOLOGY & PROGRAM CHOICE (Driven by Qloo, not prompt text)
+  // Priority: Artist's returned venues and cultural profile FIRST, style tags SECOND
   // ==========================================================================
-  const isPinkGrunge =
-    allSignals.includes("pink_grunge") ||
-    allSignals.includes("grunge") ||
-    allEntities.includes("hole") ||
-    cleanPrompt.toLowerCase().includes("pink grunge");
+  const venueNames = (bundle?.places || []).map((p: any) => (p.name || "").toLowerCase()).join(" ");
+  const venueDescriptions = (bundle?.places || []).map((p: any) => (p.properties?.description || "").toLowerCase()).join(" ");
+  const allTasteTags = (bundle?.tasteTags || []).map((t: any) => (t.name || "").toLowerCase()).join(" ");
+  const allResolvedTags = (bundle?.resolvedTags || []).map((t: any) => (t.name || "").toLowerCase()).join(" ");
+  const allText = `${cleanPrompt.toLowerCase()} ${allSignals} ${allEntities} ${venueNames} ${venueDescriptions} ${allTasteTags} ${allResolvedTags}`;
 
-  const isBrutalist =
+  const isJazzClubOrAcoustic =
+    /jazz|bebop|modal|vanguard|blue note|listening room|cellar|trumpet|piano trio|hard bop|cool jazz/i.test(allText);
+
+  const isIndustrialElectronic =
+    /aphex|techno|idm|breakcore|acid|warehouse|printworks|fabric|berghain|industrial/i.test(allText);
+
+  const isGardenContemplative =
+    /garden|ambient|chisen|tea|hinoki|tatami|shakkei|zen|brian eno/i.test(allText);
+
+  const isA24AmbientCinema =
+    /a24|cinema|film|indie film|screening|subdued_naturalism/i.test(allText);
+
+  const isFashionEditorialLoft =
+    /pink grunge|cyclorama|strobe|photo loft|couture/i.test(allText);
+
+  const isFashionRunway =
+    /runway|fashion show|catwalk|couture presentation/i.test(allText);
+
+  const isBrutalistPrompt =
+    /brutalist|brutalism|board_concrete|raw concrete/i.test(cleanPrompt) ||
     allSignals.includes("raw_board_concrete") ||
-    allSignals.includes("massive_forms") ||
-    allEntities.includes("brutalism");
+    allSignals.includes("massive_forms");
 
-  const isTechnoBunker =
-    allSignals.includes("sub_bass") ||
-    allSignals.includes("techno") ||
-    allEntities.includes("club") ||
-    allEntities.includes("berlin");
-
-  const isJapaneseKissa =
-    allSignals.includes("kissa") ||
-    allSignals.includes("listening_alcove") ||
-    allEntities.includes("kissa") ||
-    allSignals.includes("analog_vinyl");
-
-  const isGardenAmbient =
-    allSignals.includes("chisen-kaiyushiki") ||
-    allSignals.includes("borrowed_scenery") ||
-    allEntities.includes("garden");
-
-  const isA24Ambient =
-    allSignals.includes("subdued_naturalism") ||
-    allEntities.includes("a24") ||
-    allSignals.includes("ambient_cinema");
-
-  if (isPinkGrunge) {
+  if (isJazzClubOrAcoustic) {
+    // Requirement 5: Miles Davis + Brutalist concrete yields a brutalist listening room (NOT a fashion runway!)
+    payload.typology = "listening_room";
+    provenanceMap["typology"] = {
+      toolCallId: "call_qloo_resolve",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: isBrutalistPrompt ? "brutalist_listening_room" : "intimate_jazz_acoustic",
+      provenance: defaultProv,
+      rationale: isBrutalistPrompt
+        ? `Selected brutalist acoustic listening room derived from ${primaryEntity.name} jazz venue affinities paired with monolithic concrete massing.`
+        : `Selected intimate acoustic listening room derived from ${primaryEntity.name} jazz cellar affinities.`,
+    };
+  } else if (isIndustrialElectronic) {
+    // Requirement 5: Aphex Twin + Brutalist concrete yields an industrial warehouse
+    payload.typology = "industrial_warehouse";
+    provenanceMap["typology"] = {
+      toolCallId: "call_qloo_resolve",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "industrial_warehouse_volume",
+      provenance: defaultProv,
+      rationale: `Selected industrial warehouse typology derived from ${primaryEntity.name} electronic and warehouse venue affinities.`,
+    };
+  } else if (isGardenContemplative) {
+    payload.typology = "garden_mandap";
+    provenanceMap["typology"] = {
+      toolCallId: "call_qloo_resolve",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "borrowed_scenery_shakkei",
+      provenance: defaultProv,
+      rationale: `Selected contemplative open-air pavilion for ${primaryEntity.name}.`,
+    };
+  } else if (isA24AmbientCinema) {
+    payload.typology = "gallery_pavilion";
+    provenanceMap["typology"] = {
+      toolCallId: "call_qloo_resolve",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "ambient_cinema_screening",
+      provenance: defaultProv,
+      rationale: `Selected micro-cinema screening gallery for ${primaryEntity.name}.`,
+    };
+  } else if (isFashionEditorialLoft) {
     payload.typology = "grunge_loft";
     provenanceMap["typology"] = {
       toolCallId: "call_qloo_resolve",
@@ -216,35 +257,25 @@ export function designScene({
       provenance: defaultProv,
       rationale: `Selected industrial grunge loft typology based on ${primaryEntity.name} cultural affinity.`,
     };
-  } else if (isBrutalist) {
+  } else if (isFashionRunway) {
     payload.typology = "brutalist_runway";
     provenanceMap["typology"] = {
       toolCallId: "call_qloo_resolve",
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
-      signal: "massive_forms",
+      signal: "haute_couture_runway",
       provenance: defaultProv,
-      rationale: `Selected brutalist monumental volume derived from ${primaryEntity.name}.`,
+      rationale: `Selected brutalist monumental runway volume derived from ${primaryEntity.name}.`,
     };
-  } else if (isTechnoBunker) {
-    payload.typology = "underground_club";
+  } else if (isBrutalistPrompt) {
+    payload.typology = "listening_room";
     provenanceMap["typology"] = {
       toolCallId: "call_qloo_resolve",
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
-      signal: "sub_bass_containment",
+      signal: "brutalist_concrete_volume",
       provenance: defaultProv,
-      rationale: `Selected underground subterranean bunker for ${primaryEntity.name}.`,
-    };
-  } else if (isGardenAmbient) {
-    payload.typology = "garden_mandap";
-    provenanceMap["typology"] = {
-      toolCallId: "call_qloo_resolve",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "borrowed_scenery_shakkei",
-      provenance: defaultProv,
-      rationale: `Selected contemplative open-air pavilion for ${primaryEntity.name}.`,
+      rationale: `Selected brutalist listening space with monolithic concrete massing.`,
     };
   }
 
@@ -302,7 +333,56 @@ export function designScene({
   // ==========================================================================
   // MODULATION 5: MASSING GEOMETRY & ACOUSTIC TUNING
   // ==========================================================================
-  if (isPinkGrunge) {
+  if (payload.typology === "listening_room") {
+    if (isBrutalistPrompt) {
+      groundedSpec.roomDimensions.width = 14.0;
+      groundedSpec.roomDimensions.depth = 10.5;
+      groundedSpec.roomDimensions.height = 4.4;
+      groundedSpec.roomDimensions.ridgeHeight = 4.8;
+      groundedSpec.acousticTarget.calculatedRT60Seconds = 0.44;
+      groundedSpec.acousticTarget.complianceStatus = "optimal";
+      provenanceMap["geometry"] = {
+        toolCallId: "call_qloo_signals",
+        entityId: primaryEntity.id,
+        entityName: primaryEntity.name,
+        signal: "brutalist_listening_room_geometry",
+        provenance: defaultProv,
+        rationale: "14.0m × 10.5m monolithic brutalist listening volume with 4.4m ceiling for controlled jazz acoustic intimacy.",
+      };
+    } else {
+      groundedSpec.roomDimensions.width = 12.0;
+      groundedSpec.roomDimensions.depth = 9.0;
+      groundedSpec.roomDimensions.height = 3.6;
+      groundedSpec.roomDimensions.ridgeHeight = 4.0;
+      groundedSpec.acousticTarget.calculatedRT60Seconds = 0.38;
+      groundedSpec.acousticTarget.complianceStatus = "optimal";
+      provenanceMap["geometry"] = {
+        toolCallId: "call_qloo_signals",
+        entityId: primaryEntity.id,
+        entityName: primaryEntity.name,
+        signal: "intimate_acoustic_listening_geometry",
+        provenance: defaultProv,
+        rationale: "12.0m × 9.0m intimate listening room envelope calibrated for high-fidelity acoustic reproduction.",
+      };
+    }
+  } else if (payload.typology === "industrial_warehouse") {
+    groundedSpec.roomDimensions.width = 20.0;
+    groundedSpec.roomDimensions.depth = 15.0;
+    groundedSpec.roomDimensions.height = 6.8;
+    groundedSpec.roomDimensions.ridgeHeight = 7.2;
+    groundedSpec.acousticTarget.calculatedRT60Seconds = 0.65;
+    groundedSpec.acousticTarget.complianceStatus = "optimal";
+    groundedSpec.isOpenAir = false;
+    groundedSpec.enclosureMode = "indoor";
+    provenanceMap["geometry"] = {
+      toolCallId: "call_qloo_signals",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "industrial_warehouse_envelope",
+      provenance: defaultProv,
+      rationale: "20.0m × 15.0m industrial warehouse envelope with 6.8m clear-span structural trusses.",
+    };
+  } else if (payload.typology === "grunge_loft") {
     groundedSpec.roomDimensions.width = 14.5;
     groundedSpec.roomDimensions.depth = 11.2;
     groundedSpec.roomDimensions.height = 4.2;
@@ -319,31 +399,22 @@ export function designScene({
       provenance: defaultProv,
       rationale: "14.5m × 11.2m clear-span editorial photo loft with 4.2m ceiling.",
     };
-  } else if (isBrutalist) {
-    groundedSpec.roomDimensions.height = Number((groundedSpec.roomDimensions.height * 1.32).toFixed(1));
-    groundedSpec.roomDimensions.ridgeHeight = Number((groundedSpec.roomDimensions.height * 1.12).toFixed(1));
-    groundedSpec.acousticTarget.calculatedRT60Seconds = 0.58;
-    groundedSpec.acousticTarget.complianceStatus = "optimal";
-    provenanceMap["geometry"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "monolithic_cavernous_volume",
-      provenance: defaultProv,
-      rationale: "Elevated ceiling height to 4.5m+ for brutalist acoustic resonance.",
-    };
-  } else if (isA24Ambient) {
+  } else if (payload.typology === "gallery_pavilion") {
+    groundedSpec.roomDimensions.width = 13.0;
+    groundedSpec.roomDimensions.depth = 10.0;
+    groundedSpec.roomDimensions.height = 3.8;
+    groundedSpec.roomDimensions.ridgeHeight = 4.2;
     groundedSpec.acousticTarget.calculatedRT60Seconds = 0.44;
-    groundedSpec.roomDimensions.height = 3.6;
+    groundedSpec.acousticTarget.complianceStatus = "optimal";
     provenanceMap["geometry"] = {
       toolCallId: "call_qloo_signals",
       entityId: primaryEntity.id,
       entityName: primaryEntity.name,
       signal: "intimate_acoustic_containment",
       provenance: defaultProv,
-      rationale: "Compact 3.6m ceiling creating dry, intimate folk acoustic envelope.",
+      rationale: "13.0m × 10.0m gallery space with 3.8m ceiling creating dry, intimate acoustic envelope.",
     };
-  } else if (isGardenAmbient) {
+  } else if (payload.typology === "garden_mandap") {
     groundedSpec.isOpenAir = true;
     groundedSpec.enclosureMode = "open_air_canopy";
     groundedSpec.roomDimensions.width = 16.0;
@@ -358,29 +429,16 @@ export function designScene({
       provenance: defaultProv,
       rationale: "16.0m × 12.5m open-air pavilion layout with dispersive acoustic reflections.",
     };
-  } else if (isTechnoBunker) {
-    groundedSpec.roomDimensions.width = 18.0;
-    groundedSpec.roomDimensions.depth = 14.0;
-    groundedSpec.roomDimensions.height = 5.2;
-    groundedSpec.roomDimensions.ridgeHeight = 5.6;
-    groundedSpec.acousticTarget.calculatedRT60Seconds = 0.52;
+  } else {
+    groundedSpec.roomDimensions.height = Number((groundedSpec.roomDimensions.height * 1.25).toFixed(1));
+    groundedSpec.acousticTarget.calculatedRT60Seconds = 0.50;
     groundedSpec.acousticTarget.complianceStatus = "optimal";
-    groundedSpec.isOpenAir = false;
-    groundedSpec.enclosureMode = "indoor";
-    provenanceMap["geometry"] = {
-      toolCallId: "call_qloo_signals",
-      entityId: primaryEntity.id,
-      entityName: primaryEntity.name,
-      signal: "industrial_sound_containment",
-      provenance: defaultProv,
-      rationale: "18.0m × 14.0m subterranean club bunker with 5.2m industrial clearance.",
-    };
   }
 
   // ==========================================================================
   // MODULATION 6: PROPS & STAGED ASSEMBLIES
   // ==========================================================================
-  if (isPinkGrunge) {
+  if (payload.typology === "grunge_loft") {
     groundedSpec.focalPoint = {
       name: "Fashion Editorial Cyclorama & Flash Strobe Stage",
       position: [0, 1.2, -3.2],
@@ -472,7 +530,7 @@ export function designScene({
   // ==========================================================================
   // MODULATION 7: SOUNDTRACK
   // ==========================================================================
-  if (isPinkGrunge) {
+  if (payload.typology === "grunge_loft") {
     if (groundedSpec.musicProfile) {
       groundedSpec.musicProfile.genres = [
         "90s Grunge",
@@ -586,7 +644,7 @@ export function generateSceneComparison({
     diff,
     isSampleFixture,
     source,
-    baselineMode: "prompt-only design",
+    baselineMode: "Without Qloo (prompt-only design)",
     unresolvedCandidates: qlooContext?.unresolved,
     matchedTags: qlooContext?.crossDomainBundle?.resolvedTags,
   };

@@ -124,10 +124,10 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
     description: "Precision laboratory acoustics, bead-blasted aluminum surfaces, black linoleum, and sterile red LED indicators.",
   },
 
-  // --- 12 Unseen Cultural Prompts ---
+  // --- 12 Cultural Aesthetic Domains (Generic Cultural Archetypes) ---
   glacial_ethereal_cyan: {
     id: "glacial_ethereal_cyan",
-    name: "Glacial Geothermal Ethereal (Bjork)",
+    name: "Glacial Geothermal Ethereal",
     primaryHex: "#2C4854",
     secondaryHex: "#469BA2",
     accentHex: "#88D49E",
@@ -138,7 +138,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   tropical_sunset_terracotta: {
     id: "tropical_sunset_terracotta",
-    name: "Caribbean Neon Sunset (Bad Bunny)",
+    name: "Caribbean Neon Sunset",
     primaryHex: "#82220D",
     secondaryHex: "#FF5E36",
     accentHex: "#FFB703",
@@ -149,7 +149,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   pastoral_meadow_cedar: {
     id: "pastoral_meadow_cedar",
-    name: "Pastoral Forest Cedar (Studio Ghibli)",
+    name: "Pastoral Forest Cedar",
     primaryHex: "#3B2E1E",
     secondaryHex: "#4A7C59",
     accentHex: "#D4A373",
@@ -160,7 +160,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   vintage_pastel_symmetry: {
     id: "vintage_pastel_symmetry",
-    name: "Pastel Symmetrical Chic (Wes Anderson)",
+    name: "Pastel Symmetrical Chic",
     primaryHex: "#425B50",
     secondaryHex: "#E6AF2E",
     accentHex: "#F07167",
@@ -171,7 +171,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   westcoast_asphalt_gold: {
     id: "westcoast_asphalt_gold",
-    name: "West Coast Asphalt & Raw Gold (Kendrick Lamar)",
+    name: "West Coast Asphalt & Raw Gold",
     primaryHex: "#1C1C1E",
     secondaryHex: "#3A3A3C",
     accentHex: "#D4AF37",
@@ -182,7 +182,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   nordic_foraged_granite: {
     id: "nordic_foraged_granite",
-    name: "Nordic Foraged Lichen & Granite (Noma)",
+    name: "Nordic Foraged Lichen & Granite",
     primaryHex: "#2B2E28",
     secondaryHex: "#586950",
     accentHex: "#8C9A7D",
@@ -193,7 +193,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   shibuya_monochrome_neon: {
     id: "shibuya_monochrome_neon",
-    name: "Shibuya Cyber Monolith & Electric Violet (Tokyo Fashion)",
+    name: "Shibuya Cyber Monolith & Electric Violet",
     primaryHex: "#0A0A0F",
     secondaryHex: "#20202F",
     accentHex: "#00F0FF",
@@ -204,7 +204,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   royal_saffron_crimson: {
     id: "royal_saffron_crimson",
-    name: "Royal Saffron Courtyard & Crimson Silk (Bollywood)",
+    name: "Royal Saffron Courtyard & Crimson Silk",
     primaryHex: "#800020",
     secondaryHex: "#FF9933",
     accentHex: "#FFD700",
@@ -215,7 +215,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   seattle_pine_flannel: {
     id: "seattle_pine_flannel",
-    name: "Pacific Northwest Pine & Flannel Rust (Nirvana)",
+    name: "Pacific Northwest Pine & Flannel Rust",
     primaryHex: "#222B24",
     secondaryHex: "#8B2500",
     accentHex: "#B8860B",
@@ -226,7 +226,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   south_london_nocturnal_asphalt: {
     id: "south_london_nocturnal_asphalt",
-    name: "South London Nocturnal Mist (Burial)",
+    name: "South London Nocturnal Mist",
     primaryHex: "#1A202C",
     secondaryHex: "#4A5568",
     accentHex: "#718096",
@@ -237,7 +237,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   laurel_canyon_sunbleached_teak: {
     id: "laurel_canyon_sunbleached_teak",
-    name: "Laurel Canyon Sun-Bleached Teak (Fleetwood Mac)",
+    name: "Laurel Canyon Sun-Bleached Teak",
     primaryHex: "#4A3428",
     secondaryHex: "#C17C54",
     accentHex: "#D4A373",
@@ -248,7 +248,7 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
   },
   bubblegum_lacquer_glamour: {
     id: "bubblegum_lacquer_glamour",
-    name: "Hyper-Pop Bubblegum Lacquer (Barbie)",
+    name: "Hyper-Pop Bubblegum Lacquer",
     primaryHex: "#4A0E2E",
     secondaryHex: "#E0218A",
     accentHex: "#FF69B4",
@@ -275,10 +275,12 @@ export const ARCHITECTURAL_PALETTES: Record<string, PaletteFamily> = {
 };
 
 // ============================================================================
-// ARCHITECTURAL MAPPING RULES
+// ARCHITECTURAL MAPPING RULES (GENERIC CULTURAL RULES — ZERO NAME ENTRIES)
 // ============================================================================
 
 export interface ArchitecturalMappingRule {
+  ruleId: string;
+  name: string;
   targetKeywords: string[];
   paletteId: string;
   wallMaterial: WallFinish;
@@ -290,19 +292,11 @@ export interface ArchitecturalMappingRule {
 }
 
 export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
-  // --- Starter Rules ---
+  // --- Generic Jazz & Acoustic Rules ---
   {
-    targetKeywords: ["aphex twin", "industrial", "idm", "glitch", "drill n bass", "techno", "warehouse", "cold"],
-    paletteId: "aphex_twin_industrial_concrete",
-    wallMaterial: "acoustic_slats",
-    flooringMaterial: "polished_concrete",
-    ceilingStructure: "space_frame_truss",
-    seatingFabric: "anodized_aluminum",
-    lightingTemperatureK: 5400,
-    acousticRT60Target: 0.65,
-  },
-  {
-    targetKeywords: ["miles davis", "jazz", "bebop", "cool jazz", "modal jazz", "blue note", "trumpet", "intimate"],
+    ruleId: "rule_modal_jazz",
+    name: "Modal Jazz & Subterranean Acoustic Club",
+    targetKeywords: ["modal jazz", "hard bop", "cool jazz", "bebop", "blue note", "jazz club", "trumpet", "intimate acoustic"],
     paletteId: "miles_davis_blue_amber",
     wallMaterial: "acoustic_slats",
     flooringMaterial: "herringbone_parquet",
@@ -312,7 +306,47 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.42,
   },
   {
-    targetKeywords: ["brian eno", "ambient", "generative", "vaporwave", "drone", "meditation", "ethereal", "minimal"],
+    ruleId: "rule_piano_trio",
+    name: "Acoustic Piano Trio & Harmonic Oak",
+    targetKeywords: ["piano trio", "chamber jazz", "soft jazz", "acoustic modal", "quiet piano", "listening room", "village vanguard"],
+    paletteId: "bill_evans_quiet_oak",
+    wallMaterial: "vertical_timber_slats",
+    flooringMaterial: "warm_oak",
+    ceilingStructure: "coffered_timber",
+    seatingFabric: "moss_velvet",
+    lightingTemperatureK: 2600,
+    acousticRT60Target: 0.38,
+  },
+
+  // --- Generic Electronic & Industrial Rules ---
+  {
+    ruleId: "rule_industrial_techno",
+    name: "Industrial Raw Concrete & Breakcore Acid Cyan",
+    targetKeywords: ["idm", "industrial techno", "glitch", "drill n bass", "breakcore", "acid techno", "industrial electronic", "raw concrete", "industrial warehouse"],
+    paletteId: "aphex_twin_industrial_concrete",
+    wallMaterial: "acoustic_slats",
+    flooringMaterial: "polished_concrete",
+    ceilingStructure: "space_frame_truss",
+    seatingFabric: "anodized_aluminum",
+    lightingTemperatureK: 5400,
+    acousticRT60Target: 0.65,
+  },
+  {
+    ruleId: "rule_laboratory_krautrock",
+    name: "Precision Laboratory & Minimalist Synth",
+    targetKeywords: ["krautrock", "synth-pop", "minimal electronic", "motorik", "bauhaus electronic", "vocoder", "anodized aluminum", "kling klang"],
+    paletteId: "kraftwerk_klingklang_aluminum",
+    wallMaterial: "anodized_panel",
+    flooringMaterial: "polished_concrete",
+    ceilingStructure: "monolithic_cantilever",
+    seatingFabric: "mirror_chrome",
+    lightingTemperatureK: 5000,
+    acousticRT60Target: 0.32,
+  },
+  {
+    ruleId: "rule_ambient_drone",
+    name: "Luminescent Mist & Generative Ambient",
+    targetKeywords: ["ambient", "generative ambient", "drone", "vaporwave", "meditation", "ethereal mist", "minimalism", "vapor pavilion"],
     paletteId: "brian_eno_ambient_vapor",
     wallMaterial: "limewash_plaster",
     flooringMaterial: "honed_limestone",
@@ -321,8 +355,12 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     lightingTemperatureK: 4000,
     acousticRT60Target: 0.85,
   },
+
+  // --- Generic Global Cultural Rules ---
   {
-    targetKeywords: ["fela kuti", "afrobeat", "yoruba", "shrine", "highlife", "lagos", "brass", "polyrhythm"],
+    ruleId: "rule_afrobeat_polyrhythm",
+    name: "Afrobeat Terracotta & Communal Shrine",
+    targetKeywords: ["afrobeat", "yoruba", "highlife", "polyrhythm", "african percussion", "tropical brass", "afrobeat shrine"],
     paletteId: "fela_kuti_afrobeat_terracotta",
     wallMaterial: "distressed_brick",
     flooringMaterial: "terracotta_tile",
@@ -332,29 +370,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.48,
   },
   {
-    targetKeywords: ["bill evans", "trio", "vanguard", "waltz for debby", "soft jazz", "subtle", "piano"],
-    paletteId: "bill_evans_quiet_oak",
-    wallMaterial: "vertical_timber_slats",
-    flooringMaterial: "warm_oak",
-    ceilingStructure: "coffered_timber",
-    seatingFabric: "moss_velvet",
-    lightingTemperatureK: 2600,
-    acousticRT60Target: 0.38,
-  },
-  {
-    targetKeywords: ["kraftwerk", "kling klang", "autobahn", "electronic", "synthesizer", "minimalist", "bauhaus"],
-    paletteId: "kraftwerk_klingklang_aluminum",
-    wallMaterial: "anodized_panel",
-    flooringMaterial: "polished_concrete",
-    ceilingStructure: "monolithic_cantilever",
-    seatingFabric: "mirror_chrome",
-    lightingTemperatureK: 5000,
-    acousticRT60Target: 0.32,
-  },
-
-  // --- 12 Unseen Cultural Domain Rules ---
-  {
-    targetKeywords: ["bjork", "björk", "iceland", "avant-garde", "art pop", "experimental", "glacial", "electronic chamber"],
+    ruleId: "rule_avant_garde_art_pop",
+    name: "Glacial Volcanic Ethereal & Art Pop",
+    targetKeywords: ["art pop", "avant-garde", "glacial", "geothermal", "volcanic", "experimental electronic", "chamber pop", "volcanic sanctuary"],
     paletteId: "glacial_ethereal_cyan",
     wallMaterial: "acoustic_slats",
     flooringMaterial: "polished_concrete",
@@ -364,7 +382,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.55,
   },
   {
-    targetKeywords: ["bad bunny", "reggaeton", "trap latino", "san juan", "caribbean", "puerto rico", "urban", "summer"],
+    ruleId: "rule_reggaeton_caribbean",
+    name: "Caribbean Rooftop & Latin Urban Sunset",
+    targetKeywords: ["reggaeton", "trap latino", "caribbean", "tropical", "sun-baked", "san juan rooftop", "latin urban", "caribbean rooftop"],
     paletteId: "tropical_sunset_terracotta",
     wallMaterial: "distressed_brick",
     flooringMaterial: "terracotta_tile",
@@ -374,7 +394,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.45,
   },
   {
-    targetKeywords: ["studio ghibli", "ghibli", "miyazaki", "joe hisaishi", "anime", "pastoral", "nature", "folklore"],
+    ruleId: "rule_pastoral_timber_folklore",
+    name: "Pastoral Timber Cedar & Forest Folklore",
+    targetKeywords: ["pastoral folklore", "japanese cedar", "forest moss", "tatami", "handcrafted timber", "nature anime", "cedar moss", "pastoral forest"],
     paletteId: "pastoral_meadow_cedar",
     wallMaterial: "washi_screen",
     flooringMaterial: "tatami_mat",
@@ -384,7 +406,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.46,
   },
   {
-    targetKeywords: ["wes anderson", "symmetry", "grand budapest", "pastel", "quirky", "french dispatch", "corduroy", "vintage"],
+    ruleId: "rule_cinematic_symmetry",
+    name: "Cinematic Symmetry & Pastel Mid-Century",
+    targetKeywords: ["cinematic symmetry", "pastel", "mid-century", "mustard corduroy", "mint limewash", "retro aesthetic", "symmetry", "mint and mustard"],
     paletteId: "vintage_pastel_symmetry",
     wallMaterial: "limewash_plaster",
     flooringMaterial: "herringbone_parquet",
@@ -394,7 +418,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.40,
   },
   {
-    targetKeywords: ["kendrick lamar", "kendrick", "hip hop", "compton", "rap", "west coast", "g-funk", "conscious"],
+    ruleId: "rule_westcoast_hiphop",
+    name: "West Coast Hip-Hop & Raw Gold Asphalt",
+    targetKeywords: ["west coast hip hop", "conscious rap", "urban asphalt", "raw gold", "board-formed concrete", "g-funk", "compton asphalt"],
     paletteId: "westcoast_asphalt_gold",
     wallMaterial: "board_concrete",
     flooringMaterial: "polished_concrete",
@@ -404,7 +430,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.44,
   },
   {
-    targetKeywords: ["noma", "noma restaurant", "re organic", "foraging", "nordic", "copenhagen", "rene redzepi", "botanical"],
+    ruleId: "rule_botanical_gastronomy",
+    name: "Nordic Botanical Gastronomy & Granite",
+    targetKeywords: ["botanical gastronomy", "foraged granite", "nordic cuisine", "smoked oak", "boreal daylight", "lichen", "charred oak botanical"],
     paletteId: "nordic_foraged_granite",
     wallMaterial: "vertical_timber_slats",
     flooringMaterial: "tatami_mat",
@@ -414,7 +442,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.36,
   },
   {
-    targetKeywords: ["tokyo street fashion", "harajuku", "shibuya", "streetwear", "cyberpunk", "tokyo", "y2k", "japanese street"],
+    ruleId: "rule_cyberpunk_streetwear",
+    name: "Cyberpunk Streetwear & Shibuya Neon",
+    targetKeywords: ["cyberpunk streetwear", "harajuku", "shibuya neon", "obsidian", "japanese street fashion", "electric violet", "obsidian neon"],
     paletteId: "shibuya_monochrome_neon",
     wallMaterial: "anodized_panel",
     flooringMaterial: "obsidian_terrazzo",
@@ -424,7 +454,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.50,
   },
   {
-    targetKeywords: ["bollywood wedding", "bollywood", "marigold", "sangeet", "indian classical", "shaadi", "punjabi", "desi"],
+    ruleId: "rule_south_asian_palatial",
+    name: "South Asian Palatial Courtyard & Crimson Silk",
+    targetKeywords: ["south asian palatial", "royal saffron", "classical indian", "marigold", "crimson silk", "sandstone courtyard", "bollywood wedding"],
     paletteId: "royal_saffron_crimson",
     wallMaterial: "washi_screen",
     flooringMaterial: "honed_limestone",
@@ -434,7 +466,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.58,
   },
   {
-    targetKeywords: ["nirvana", "kurt cobain", "grunge", "seattle", "sub pop", "punk rock", "alternative rock", "bleach"],
+    ruleId: "rule_pacific_northwest_grunge",
+    name: "Pacific Northwest Grunge & Pine Flannel",
+    targetKeywords: ["pacific northwest grunge", "alternative rock", "weathered brick", "pine timber", "flannel", "sub pop sound", "grunge brick"],
     paletteId: "seattle_pine_flannel",
     wallMaterial: "distressed_brick",
     flooringMaterial: "warm_oak",
@@ -444,7 +478,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.52,
   },
   {
-    targetKeywords: ["burial", "hyperdub", "dubstep", "future garage", "south london", "untru", "night bus", "ambient techno"],
+    ruleId: "rule_future_garage",
+    name: "Future Garage & South London Bitumen",
+    targetKeywords: ["future garage", "nocturnal dubstep", "south london mist", "sodium vapor", "ambient bitumen", "night bus", "bitumen listening tunnel"],
     paletteId: "south_london_nocturnal_asphalt",
     wallMaterial: "board_concrete",
     flooringMaterial: "obsidian_terrazzo",
@@ -454,7 +490,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.60,
   },
   {
-    targetKeywords: ["fleetwood mac", "rumours", "stevie nicks", "laurel canyon", "soft rock", "california", "70s rock"],
+    ruleId: "rule_california_softrock",
+    name: "Laurel Canyon Sun-Bleached Teak & Linen",
+    targetKeywords: ["laurel canyon folk", "sun-bleached teak", "70s soft rock", "california acoustic", "macrame linen", "teak sun-bleached"],
     paletteId: "laurel_canyon_sunbleached_teak",
     wallMaterial: "vertical_timber_slats",
     flooringMaterial: "teak_decking",
@@ -464,7 +502,9 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     acousticRT60Target: 0.44,
   },
   {
-    targetKeywords: ["barbie", "bubblegum", "hyperpop", "pink", "glamour", "greta gerwig", "dreamhouse", "pop"],
+    ruleId: "rule_hyperpop_glamour",
+    name: "Hyper-Pop Bubblegum Lacquer & Chrome",
+    targetKeywords: ["hyperpop glamour", "bubblegum lacquer", "dreamhouse pop", "candy gloss", "mirror chrome pop", "candy bubblegum"],
     paletteId: "bubblegum_lacquer_glamour",
     wallMaterial: "anodized_panel",
     flooringMaterial: "obsidian_terrazzo",
@@ -793,6 +833,7 @@ export interface BecauseSentence {
 const TYPOLOGY_LABELS: Record<string, { noun: string; article: "a" | "an" }> = {
   intimate_club: { noun: "intimate club", article: "an" },
   listening_room: { noun: "listening room", article: "a" },
+  industrial_warehouse: { noun: "industrial warehouse", article: "an" },
   open_air_pavilion: { noun: "open-air pavilion", article: "an" },
   cathedral_hall: { noun: "cathedral hall", article: "a" },
   gallery_space: { noun: "gallery space", article: "a" },
@@ -801,10 +842,21 @@ const TYPOLOGY_LABELS: Record<string, { noun: string; article: "a" | "an" }> = {
   warehouse_rave: { noun: "warehouse rave venue", article: "a" },
   chamber_hall: { noun: "chamber hall", article: "a" },
   minimalist_bunker: { noun: "minimalist bunker", article: "a" },
+  brutalist_runway: { noun: "brutalist runway", article: "a" },
+  grunge_loft: { noun: "editorial grunge loft", article: "an" },
+  garden_mandap: { noun: "garden pavilion", article: "a" },
+  gallery_pavilion: { noun: "gallery pavilion", article: "a" },
+  underground_club: { noun: "underground club", article: "an" },
 };
 
-function formatTypology(typology?: string): { noun: string; article: "a" | "an" } {
+export function formatTypology(typology?: string, prompt?: string): { noun: string; article: "a" | "an" } {
   if (!typology) return { noun: "architectural listening room", article: "an" };
+
+  const isBrutalist = /brutalist|concrete/i.test(prompt || "");
+  if (typology === "listening_room" && isBrutalist) {
+    return { noun: "brutalist listening room", article: "a" };
+  }
+
   if (TYPOLOGY_LABELS[typology]) return TYPOLOGY_LABELS[typology];
   const cleaned = typology.replace(/_/g, " ").toLowerCase();
   const article = /^[aeiou]/i.test(cleaned) ? "an" : "a";
@@ -819,6 +871,7 @@ function formatTypology(typology?: string): { noun: string; article: "a" | "an" 
  *   c. Do NOT cite films or brands unless mapping rule actually used them.
  *   d. Correct grammar (a vs an).
  *   e. If venues came from name search, say "found by name search for 'jazz'" and never say "fans gather at".
+ *   f. Requirement 4: Fixture items are NEVER cited or described as Qloo signals! Because-sentences may use ONLY live/cache items.
  */
 export function generateBecauseSentences(
   prompt: string,
@@ -830,24 +883,42 @@ export function generateBecauseSentences(
   const subject = entities?.[0]?.name || bundle?.resolvedTags?.[0]?.name || prompt.trim();
   const sentences: BecauseSentence[] = [];
 
+  // Filter out any fixture or sample items!
+  // Requirement 4: Fixture items are NEVER described as Qloo signals.
+  const eligiblePlaces = (bundle?.places || []).filter(
+    (p: any) =>
+      p.source !== "fixture" &&
+      p.source !== "fallback" &&
+      p.provenance !== "sample-fixture" &&
+      !p.name?.includes("(Sample fixture)")
+  );
+
+  const eligibleTags = [
+    ...(bundle?.resolvedTags || []),
+    ...(bundle?.tasteTags || []),
+  ].filter(
+    (t: any) =>
+      t.source !== "fixture" &&
+      t.source !== "fallback" &&
+      t.provenance !== "sample-fixture" &&
+      !t.name?.includes("(Sample fixture)")
+  );
+
   // --------------------------------------------------------------------------
   // Decision 1: Spatial Typology & Layout
   // --------------------------------------------------------------------------
-  const { noun: typNoun, article: typArticle } = formatTypology(sceneTypology);
-  const places = bundle?.places || [];
+  const { noun: typNoun, article: typArticle } = formatTypology(sceneTypology, prompt);
   const isNameSearch = bundle?.venueSource === "name_search";
   const searchTerm = bundle?.venueSearchTerm || subject;
 
-  if (places.length >= 2) {
-    const venueList = places.slice(0, 3).map((p) => p.name);
+  if (eligiblePlaces.length >= 2) {
+    const venueList = eligiblePlaces.slice(0, 3).map((p) => p.name);
     const venueNamesStr =
       venueList.length === 3
         ? `${venueList[0]}, ${venueList[1]} and ${venueList[2]}`
         : `${venueList[0]} and ${venueList[1]}`;
 
     if (isNameSearch) {
-      // Rule (e): If venues from name search, say "found by name search for '...'" and NEVER "fans gather at"
-      // Rule (b): Evidence and interpretation stated separately
       sentences.push({
         decision: "typology",
         headline: "Spatial Typology & Layout",
@@ -855,7 +926,6 @@ export function generateBecauseSentences(
         citedEntities: [searchTerm, ...venueList],
       });
     } else {
-      // Rule (b): Evidence and interpretation stated separately
       sentences.push({
         decision: "typology",
         headline: "Spatial Typology & Layout",
@@ -863,52 +933,77 @@ export function generateBecauseSentences(
         citedEntities: [subject, ...venueList],
       });
     }
-  } else {
-    const tags = bundle?.resolvedTags || [];
-    const tagNames = tags.slice(0, 2).map((t) => t.name);
-    const tagsStr = tagNames.length > 0 ? tagNames.join(" and ") : "cultural affinity signals";
+  } else if (eligibleTags.length > 0) {
+    const tagNames = eligibleTags.slice(0, 2).map((t) => t.name);
+    const tagsStr = tagNames.join(" and ");
 
     sentences.push({
       decision: "typology",
       headline: "Spatial Typology & Layout",
       sentence: `Qloo returned affinity tags [${tagsStr}] for ${subject}. Our rule maps these coordinates into ${typArticle} ${typNoun}.`,
-      citedEntities: tagNames.length > 0 ? tagNames : [subject],
+      citedEntities: tagNames,
+    });
+  } else {
+    // Zero live Qloo venue or tag signals — honest non-fixture statement
+    sentences.push({
+      decision: "typology",
+      headline: "Spatial Typology & Layout",
+      sentence: `No live Qloo venue data was retrieved for ${subject}. Our spatial rule configures this venue as ${typArticle} ${typNoun} based on prompt coordinates.`,
+      citedEntities: [subject],
     });
   }
 
   // --------------------------------------------------------------------------
   // Decision 2: Lighting & Atmospheric Tuning
-  // (Rule c: do NOT cite films/brands; cite the actual tag/evidence used by the rule)
   // --------------------------------------------------------------------------
   const kelvin = derived?.materials.lightingTemperatureK || 2700;
   const moodDesc =
     kelvin >= 5000 ? "cold industrial daylight" : kelvin <= 2800 ? "warm incandescent amber" : "diffuse neutral";
   const lightingChoice = derived?.appliedChoices.find((c) => c.element === "lighting");
-  const lightingTrigger = lightingChoice?.triggeredBy || bundle?.resolvedTags?.[0]?.name || subject;
+  const rawLightingTrigger = lightingChoice?.triggeredBy || eligibleTags[0]?.name || subject;
+  const safeLightingTrigger = rawLightingTrigger.includes("(Sample fixture)") ? subject : rawLightingTrigger;
 
-  sentences.push({
-    decision: "lighting",
-    headline: "Atmospheric Lighting & Color Temperature",
-    sentence: `Qloo affinity signals for ${subject} highlight "${lightingTrigger}". Our lighting rule maps this aesthetic to ${kelvin}K ${moodDesc} illumination.`,
-    citedEntities: [subject, lightingTrigger],
-  });
+  if (eligibleTags.length > 0 || (bundle && (bundle.source === "live" || bundle.source === "cache"))) {
+    sentences.push({
+      decision: "lighting",
+      headline: "Atmospheric Lighting & Color Temperature",
+      sentence: `Qloo affinity signals for ${subject} highlight "${safeLightingTrigger}". Our lighting rule maps this aesthetic to ${kelvin}K ${moodDesc} illumination.`,
+      citedEntities: [subject, safeLightingTrigger],
+    });
+  } else {
+    sentences.push({
+      decision: "lighting",
+      headline: "Atmospheric Lighting & Color Temperature",
+      sentence: `Inferred atmospheric lighting at ${kelvin}K ${moodDesc} illumination calibrated to ${subject}.`,
+      citedEntities: [subject],
+    });
+  }
 
   // --------------------------------------------------------------------------
   // Decision 3: Materiality & Acoustic Calibration
-  // (Rule c: do NOT cite films/brands; cite the actual acoustic parameters and materials)
   // --------------------------------------------------------------------------
   const wallMat = (derived?.materials.wallMaterial || "acoustic_slats").replace(/_/g, " ");
   const floorMat = (derived?.materials.flooringMaterial || "warm_oak").replace(/_/g, " ");
   const rt60 = derived?.materials.acousticRT60Target || 0.42;
   const matChoice = derived?.appliedChoices.find((c) => c.element === "wallMaterial");
-  const matTrigger = matChoice?.triggeredBy || subject;
+  const rawMatTrigger = matChoice?.triggeredBy || subject;
+  const safeMatTrigger = rawMatTrigger.includes("(Sample fixture)") ? subject : rawMatTrigger;
 
-  sentences.push({
-    decision: "materiality",
-    headline: "Surface Materials & Acoustic Calibration",
-    sentence: `Qloo taste coordinates for ${subject} indicate "${matTrigger}". Our acoustic rule specifies ${wallMat} walls and ${floorMat} flooring calibrated to an RT60 target of ${rt60}s.`,
-    citedEntities: [subject, matTrigger],
-  });
+  if (eligibleTags.length > 0 || (bundle && (bundle.source === "live" || bundle.source === "cache"))) {
+    sentences.push({
+      decision: "materiality",
+      headline: "Surface Materials & Acoustic Calibration",
+      sentence: `Qloo taste coordinates for ${subject} indicate "${safeMatTrigger}". Our acoustic rule specifies ${wallMat} walls and ${floorMat} flooring calibrated to an RT60 target of ${rt60}s.`,
+      citedEntities: [subject, safeMatTrigger],
+    });
+  } else {
+    sentences.push({
+      decision: "materiality",
+      headline: "Surface Materials & Acoustic Calibration",
+      sentence: `Inferred acoustic specification of ${wallMat} walls and ${floorMat} flooring calibrated to an RT60 target of ${rt60}s for ${subject}.`,
+      citedEntities: [subject],
+    });
+  }
 
   return sentences;
 }

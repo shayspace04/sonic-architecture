@@ -42,7 +42,7 @@ interface QlooHealthState {
   ok: boolean;
   status: number;
   latencyMs: number;
-  source: 'live' | 'sample' | 'fixture' | 'fallback';
+  source: 'live' | 'cache' | 'partly_sample' | 'sample' | 'fixture' | 'fallback';
 }
 
 function StudioEditorialWorkspaceInner() {
@@ -54,7 +54,7 @@ function StudioEditorialWorkspaceInner() {
   const [inputPrompt, setInputPrompt] = useState(queryPrompt);
   const [scene, setScene] = useState<SceneSpec | null>(null);
   const [comparison, setComparison] = useState<SceneComparison | null>(null);
-  const [sceneSource, setSceneSource] = useState<'live' | 'sample' | 'fixture' | 'fallback'>('sample');
+  const [sceneSource, setSceneSource] = useState<'live' | 'cache' | 'partly_sample' | 'sample' | 'fixture' | 'fallback'>('sample');
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<'scene' | 'why-qloo' | 'playlist' | 'brief'>('scene');
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -91,8 +91,42 @@ function StudioEditorialWorkspaceInner() {
 
   useEffect(() => {
     checkHealth();
-    const interval = setInterval(checkHealth, 45000);
-    return () => clearInterval(interval);
+
+    let interval: NodeJS.Timeout | null = null;
+
+    const startPolling = () => {
+      if (!interval) {
+        interval = setInterval(() => {
+          if (typeof document !== 'undefined' && document.visibilityState !== 'hidden') {
+            checkHealth();
+          }
+        }, 45000);
+      }
+    };
+
+    const stopPolling = () => {
+      if (interval) {
+        clearInterval(interval);
+        interval = null;
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        checkHealth();
+        startPolling();
+      } else {
+        stopPolling();
+      }
+    };
+
+    startPolling();
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      stopPolling();
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
   }, [checkHealth]);
 
   // Synthesize scene using the real /api/vibe route with live streaming trace steps
@@ -486,7 +520,13 @@ function StudioEditorialWorkspaceInner() {
                 {sceneSource === 'live' && (
                   <span className="provenance-badge provenance-badge--qloo">● Qloo Live Evidence</span>
                 )}
-                {sceneSource === 'sample' && (
+                {sceneSource === 'cache' && (
+                  <span className="provenance-badge provenance-badge--qloo">○ Cached Evidence</span>
+                )}
+                {sceneSource === 'partly_sample' && (
+                  <span className="provenance-badge provenance-badge--sample">◌ Partly Sample Data</span>
+                )}
+                {(sceneSource === 'sample' || sceneSource === 'fixture') && (
                   <span className="provenance-badge provenance-badge--sample">◌ Sample Data Fixture</span>
                 )}
                 {sceneSource === 'fallback' && (

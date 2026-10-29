@@ -203,7 +203,8 @@ function computeTopContributor(
 export async function executeCrossDomainPipeline(
   resolution: ComprehensiveResolutionResult,
   inputParsed: string,
-  onTraceStep?: (step: TraceStep) => void
+  onTraceStep?: (step: TraceStep) => void,
+  budgetTimeoutMs: number = TOTAL_BUDGET_MS
 ): Promise<RealQlooEvidenceBundle> {
   const entityIds = resolution.resolved.map((e) => e.entity_id);
   const tagIds = resolution.matchedTags.map((t) => t.id);
@@ -351,13 +352,13 @@ export async function executeCrossDomainPipeline(
     return { searchTerm, places: [] };
   });
 
-  // 4. Enforce strict 10s cold budget via Promise.race
+  // 4. Enforce strict cold budget via Promise.race
   let isBudgetExpired = false;
   const budgetDeadline = new Promise<{ timedOut: true }>((resolve) =>
     setTimeout(() => {
       isBudgetExpired = true;
       resolve({ timedOut: true });
-    }, TOTAL_BUDGET_MS)
+    }, budgetTimeoutMs)
   );
 
   const allQueries = Promise.allSettled([
@@ -523,19 +524,57 @@ export async function executeCrossDomainPipeline(
     return createSampleFixtureBundle(primaryEntity, resolution, inputParsed, "fallback");
   }
 
+  // Stamp every evidence item with its concrete source
+  const mappedPlaces: QlooInsightEntity[] = places.map((p) => ({ ...p, source: "live" as const }));
+  const mappedArtists: QlooInsightEntity[] = relatedArtists.map((a) => ({ ...a, source: "live" as const }));
+  const mappedMovies: QlooInsightEntity[] = movies.map((m) => ({ ...m, source: "live" as const }));
+  const mappedBrands: QlooInsightEntity[] = brands.map((b) => ({ ...b, source: "live" as const }));
+  const mappedTags: QlooTasteTag[] = tasteTags.map((t) => ({ ...t, source: "live" as const }));
+  const mappedResolvedEntities: QlooSearchEntity[] = resolution.resolved.map((r) => ({
+    ...r,
+    source: resolution.source,
+  }));
+  const mappedMatchedTags: ResolvedTagEvidence[] = resolution.matchedTags.map((t) => ({
+    ...t,
+    source: resolution.source,
+  }));
+
+  // Determine overall bundle source: "partly_sample" if live & fixture items are mixed
+  const allItemSources = [
+    ...mappedResolvedEntities.map((e) => e.source),
+    ...mappedMatchedTags.map((t) => t.source),
+    ...mappedPlaces.map((p) => p.source),
+    ...mappedArtists.map((a) => a.source),
+    ...mappedMovies.map((m) => m.source),
+    ...mappedBrands.map((b) => b.source),
+    ...mappedTags.map((t) => t.source),
+  ].filter(Boolean);
+
+  const hasLiveOrCache = allItemSources.some((s) => s === "live" || s === "cache");
+  const hasFixtureOrFallback = allItemSources.some((s) => s === "fixture" || s === "fallback");
+
+  let bundleSource: "live" | "cache" | "partly_sample" | "fixture" | "fallback" = "live";
+  if (hasLiveOrCache && hasFixtureOrFallback) {
+    bundleSource = "partly_sample";
+  } else if (hasLiveOrCache) {
+    bundleSource = allItemSources.every((s) => s === "cache") ? "cache" : "live";
+  } else {
+    bundleSource = "fixture";
+  }
+
   const bundle: RealQlooEvidenceBundle = {
-    source: "live",
+    source: bundleSource,
     inputParsed,
-    resolvedEntity: primaryEntity,
-    resolvedEntities: resolution.resolved,
-    resolvedTags: resolution.matchedTags,
+    resolvedEntity: primaryEntity ? { ...primaryEntity, source: resolution.source } : null,
+    resolvedEntities: mappedResolvedEntities,
+    resolvedTags: mappedMatchedTags,
     unmatchedConcepts: resolution.unmatchedConcepts,
     unresolved: resolution.unresolved,
-    places,
-    relatedArtists,
-    movies,
-    brands,
-    tasteTags,
+    places: mappedPlaces,
+    relatedArtists: mappedArtists,
+    movies: mappedMovies,
+    brands: mappedBrands,
+    tasteTags: mappedTags,
     demographics,
     explainabilityScores,
     surfaceExplainability,
@@ -565,9 +604,9 @@ function createSampleFixtureBundle(
   return {
     source,
     inputParsed,
-    resolvedEntity: primaryEntity,
-    resolvedEntities: resolution.resolved,
-    resolvedTags: resolution.matchedTags,
+    resolvedEntity: primaryEntity ? { ...primaryEntity, source } : null,
+    resolvedEntities: resolution.resolved.map((r) => ({ ...r, source })),
+    resolvedTags: resolution.matchedTags.map((t) => ({ ...t, source })),
     unmatchedConcepts: resolution.unmatchedConcepts,
     unresolved: resolution.unresolved,
     places: [
@@ -575,22 +614,23 @@ function createSampleFixtureBundle(
         entity_id: "venue:village-vanguard",
         name: "Village Vanguard (Sample fixture)",
         type: "urn:entity:place",
+        source,
         properties: { description: "Historic subterranean Greenwich Village jazz cellar with triangular acoustic stage." },
       },
     ],
     relatedArtists: [
-      { entity_id: "artist:coltrane", name: "John Coltrane (Sample fixture)", type: "urn:entity:artist" },
-      { entity_id: "artist:thelonious-monk", name: "Thelonious Monk (Sample fixture)", type: "urn:entity:artist" },
+      { entity_id: "artist:coltrane", name: "John Coltrane (Sample fixture)", type: "urn:entity:artist", source },
+      { entity_id: "artist:thelonious-monk", name: "Thelonious Monk (Sample fixture)", type: "urn:entity:artist", source },
     ],
     movies: [
-      { entity_id: "movie:round-midnight", name: "Round Midnight (Sample fixture)", type: "urn:entity:movie" },
+      { entity_id: "movie:round-midnight", name: "Round Midnight (Sample fixture)", type: "urn:entity:movie", source },
     ],
     brands: [
-      { entity_id: "brand:blue-note", name: "Blue Note (Sample fixture)", type: "urn:entity:brand" },
+      { entity_id: "brand:blue-note", name: "Blue Note (Sample fixture)", type: "urn:entity:brand", source },
     ],
     tasteTags: [
-      { tag_id: "tag:modal-jazz", name: "Modal Jazz", tag_value: "sample-tag" },
-      { tag_id: "tag:hard-bop", name: "Hard Bop", tag_value: "sample-tag" },
+      { tag_id: "tag:modal-jazz", name: "Modal Jazz", tag_value: "sample-tag", source },
+      { tag_id: "tag:hard-bop", name: "Hard Bop", tag_value: "sample-tag", source },
     ],
     demographics: null,
     explainabilityScores: {},
@@ -618,6 +658,9 @@ export async function getCrossDomainEvidenceForPrompt(
   resolution: ComprehensiveResolutionResult;
   bundle: RealQlooEvidenceBundle | null;
 }> {
+  const globalStart = Date.now();
+  const GLOBAL_DEADLINE_MS = 9_500; // 9.5s global deadline guarantees cold response under 10s budget
+
   const resolution = await resolveEntitiesAndConceptsFromPrompt(prompt, onTraceStep);
 
   // If both entities and tags are empty, return resolution with no bundle
@@ -625,7 +668,15 @@ export async function getCrossDomainEvidenceForPrompt(
     return { resolution, bundle: null };
   }
 
-  const bundle = await executeCrossDomainPipeline(resolution, prompt, onTraceStep);
+  const elapsedSoFar = Date.now() - globalStart;
+  const remainingBudgetMs = Math.max(1200, GLOBAL_DEADLINE_MS - elapsedSoFar);
+
+  const bundle = await executeCrossDomainPipeline(
+    resolution,
+    prompt,
+    onTraceStep,
+    remainingBudgetMs
+  );
   return { resolution, bundle };
 }
 

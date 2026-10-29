@@ -9,16 +9,10 @@
  */
 
 import type { QlooContext, Provenance } from "@/lib/types";
+import { STARTER_PROMPTS, type StarterPrompt } from "@/lib/starters";
 
-export const STARTER_PROMPTS = [
-  "Miles Davis + Brutalist concrete",
-  "Aphex Twin + gallery warehouse",
-  "A24 films + indie music",
-  "Japanese Gardens + ambient",
-  "Jazz + Brutalist Architecture",
-] as const;
-
-export type StarterPrompt = (typeof STARTER_PROMPTS)[number];
+export { STARTER_PROMPTS };
+export type { StarterPrompt };
 
 export const QLOO_SAMPLE_FIXTURES: Record<string, QlooContext> = {
   // ==========================================================================

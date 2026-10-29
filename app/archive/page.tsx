@@ -11,44 +11,44 @@ export const metadata: Metadata = {
 const ARCHIVE_WORLDS = [
   {
     prompt: STARTER_PROMPTS[0], // Miles Davis + Brutalist concrete
-    typology: 'Subterranean Jazz Cellar',
+    typology: 'Brutalist Listening Room',
     materials: 'Board-formed concrete · Acoustic walnut slats',
-    acoustics: 'RT60 0.85s · 3.4m ceiling',
+    acoustics: 'RT60 0.44s · 4.4m ceiling',
     provenance: 'Qloo live evidence',
   },
   {
     prompt: STARTER_PROMPTS[1], // Aphex Twin + gallery warehouse
-    typology: 'Industrial Gallery Warehouse',
-    materials: 'Polished concrete · Galvanized steel · Perforated metal',
-    acoustics: 'RT60 1.95s · 7.2m ceiling',
+    typology: 'Industrial Warehouse',
+    materials: 'Polished concrete · Space frame truss · Anodized aluminum',
+    acoustics: 'RT60 0.65s · 6.8m ceiling',
     provenance: 'Qloo live evidence',
   },
   {
     prompt: STARTER_PROMPTS[2], // A24 films + indie music
     typology: 'Cinematic Micro-Cinema',
     materials: 'Acoustic dark velvet · Limewash plaster',
-    acoustics: 'RT60 0.65s · 4.0m ceiling',
+    acoustics: 'RT60 0.44s · 3.8m ceiling',
     provenance: 'Qloo live evidence',
   },
   {
     prompt: STARTER_PROMPTS[3], // Japanese Gardens + ambient
-    typology: 'Timber Engawa Pavilion',
+    typology: 'Open-Air Engawa Pavilion',
     materials: 'Hinoki cedar · Rice paper shoji · Tatami mats',
-    acoustics: 'RT60 0.95s · 3.2m ceiling',
+    acoustics: 'RT60 0.36s · 3.4m ceiling',
     provenance: 'Qloo live evidence',
   },
   {
     prompt: 'Kavinsky + French electro neon',
     typology: 'Retro-Futurist Listening Bar',
     materials: 'Dark smoked acrylic · Neon accents · Black rubber',
-    acoustics: 'RT60 1.10s · 3.8m ceiling',
+    acoustics: 'RT60 0.50s · 3.8m ceiling',
     provenance: 'Agent inferred',
   },
   {
     prompt: 'Brian Eno + minimal concrete pavilion',
     typology: 'Contemplative Ambient Sanctuary',
     materials: 'Architectural cast concrete · Travertine stone',
-    acoustics: 'RT60 2.40s · 6.8m ceiling',
+    acoustics: 'RT60 0.85s · 4.5m ceiling',
     provenance: 'Agent inferred',
   },
 ];

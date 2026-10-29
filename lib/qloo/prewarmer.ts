@@ -8,14 +8,9 @@
  */
 
 import { getCrossDomainEvidenceForPrompt } from "./pipeline";
+import { STARTER_PROMPTS } from "@/lib/starters";
 
-export const STARTER_PROMPTS = [
-  "Miles Davis + Brutalist concrete",
-  "Aphex Twin + gallery warehouse",
-  "A24 films + indie music",
-  "Japanese Gardens + ambient",
-  "Jazz + Brutalist Architecture",
-];
+export { STARTER_PROMPTS };
 
 let prewarmTriggered = false;
 

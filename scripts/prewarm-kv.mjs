@@ -39,12 +39,15 @@ if (fs.existsSync(envPath)) {
 }
 
 const STARTER_PROMPTS = [
-  "Aphex Twin warehouse in London",
-  "Miles Davis intimate jazz lounge with bourbon bar",
-  "Brian Eno ambient vapor pavilion",
-  "Fela Kuti open-air Afrobeat shrine",
-  "Bill Evans quiet Japanese garden listening room",
+  "Miles Davis + Brutalist concrete",
+  "Aphex Twin + gallery warehouse",
+  "A24 films + indie music",
+  "Japanese Gardens + ambient",
 ];
+
+function getStarterKvKey(prompt) {
+  return `starter_${prompt.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").slice(0, 60)}`;
+}
 
 const targetBaseUrl = (
   process.argv[2] ||
@@ -85,7 +88,7 @@ async function prewarmSinglePrompt(prompt, index, total) {
     // Sync to Vercel KV REST if credentials configured
     if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
       try {
-        const starterSlug = `starter_${prompt.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").slice(0, 60)}`;
+        const starterSlug = getStarterKvKey(prompt);
         const kvUrl = `${process.env.KV_REST_API_URL.replace(/\/$/, "")}/set/${encodeURIComponent(starterSlug)}?ex=86400`;
         await fetch(kvUrl, {
           method: "POST",

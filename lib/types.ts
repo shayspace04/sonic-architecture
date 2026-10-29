@@ -852,8 +852,8 @@ export interface SceneComparison {
   qlooCallsUsed: number;
   diff: DiffItem[];
   isSampleFixture?: boolean;
-  source?: "live" | "cache" | "fixture" | "fallback";
-  baselineMode?: "prompt-only design" | "llm-prompt-only";
+  source?: "live" | "cache" | "partly_sample" | "fixture" | "fallback";
+  baselineMode?: "Without Qloo (prompt-only design)" | "prompt-only design" | "llm-prompt-only";
   unresolvedCandidates?: { name: string; reason: string }[];
   matchedTags?: any[];
 }
@@ -864,6 +864,7 @@ export interface QlooContextEntity {
   type: string;
   signals: string[];
   provenance: Provenance;
+  source?: "live" | "cache" | "fixture" | "fallback";
   drivenChoice?: string;
 }
 
@@ -924,7 +925,7 @@ export interface QlooSceneSpecImpact {
 
 export interface QlooEvidencePayload {
   input_parsed: string;
-  source?: "live" | "cache" | "fixture" | "fallback";
+  source?: "live" | "cache" | "partly_sample" | "fixture" | "fallback";
   resolved_entities: QlooResolvedEntity[];
   cross_domain_signals: QlooCrossDomainSignal[];
   fallback_choices: QlooFallbackChoice[];

@@ -16,6 +16,7 @@ export interface QlooSearchEntity {
   type?: string;
   popularity?: number;
   disambiguation?: string;
+  source?: "live" | "cache" | "fixture" | "fallback";
   properties?: {
     image?: { url?: string };
     description?: string;
@@ -53,6 +54,7 @@ export interface QlooInsightEntity {
   subtype?: string;
   popularity?: number;
   disambiguation?: string;
+  source?: "live" | "cache" | "fixture" | "fallback";
   location?: {
     lat?: number;
     lng?: number;
@@ -97,6 +99,7 @@ export interface QlooTasteTag {
   subtype?: string;
   tag_value?: string;
   popularity?: number;
+  source?: "live" | "cache" | "fixture" | "fallback";
   query?: {
     affinity?: number;
   };
@@ -168,6 +171,7 @@ export interface ResolvedTagEvidence {
   conceptTerm: string;
   popularity?: number;
   provenance: "qloo-evidence" | "sample-fixture";
+  source?: "live" | "cache" | "fixture" | "fallback";
 }
 
 export interface UnmatchedConcept {
@@ -192,7 +196,7 @@ export interface TraceStep {
 }
 
 export interface RealQlooEvidenceBundle {
-  source: "live" | "cache" | "fixture" | "fallback";
+  source: "live" | "cache" | "partly_sample" | "fixture" | "fallback";
   inputParsed: string;
   resolvedEntity: QlooSearchEntity | null;
   resolvedEntities: QlooSearchEntity[];

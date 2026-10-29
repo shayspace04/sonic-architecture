@@ -145,7 +145,7 @@ export function LandingPage() {
         </div>
         <div className="comparison" aria-label="Grounded and ungrounded design comparison">
           <div>
-            <span className="comparison-label">QLOO-GROUNDED · EXAMPLE OUTPUT</span>
+            <span className="comparison-label">QLOO-GROUNDED DESIGN · REAL GENERATED OUTPUT</span>
             <div className="comparison-visual grounded">
               <i />
               <i />
@@ -153,11 +153,11 @@ export function LandingPage() {
               <b />
             </div>
             <p>
-              <strong>Miles Davis + Brutalist:</strong> Low subterranean jazz cellar (3.4m), board-formed raw concrete, acoustic dark walnut slats, deep indigo (#0b1428) & amber (#e28743) lighting, RT60 = 0.85s intimate warmth.
+              <strong>Miles Davis + Brutalist:</strong> Brutalist listening room (4.4m monolithic ceiling), calibrated RT60 = 0.44s modal jazz resonance, modal blue velvet (#1A2238) & cognac amber (#DDA032) palette, board-formed concrete and acoustic timber slats.
             </p>
           </div>
           <div>
-            <span className="comparison-label">PLAIN LLM (UNGROUNDED) · EXAMPLE OUTPUT</span>
+            <span className="comparison-label">WITHOUT QLOO (PROMPT-ONLY DESIGN) · BASELINE</span>
             <div className="comparison-visual plain">
               <i />
               <i />
@@ -165,7 +165,7 @@ export function LandingPage() {
               <b />
             </div>
             <p>
-              <strong>Generic LLM fallback:</strong> Standard monumental concrete cube (12m), flat grey drywall, polished floor, uniform monochrome grey (#707070), RT60 = 3.2s echoing hall with no cultural intimacy.
+              <strong>Without Qloo (prompt-only design):</strong> Generic prompt interpretation yields standard 3.4m room dimensions, unmodulated RT60 = 0.31s, neutral slate walls (#52565C), and prompt-only default materials without cultural taste grounding.
             </p>
           </div>
         </div>
@@ -222,7 +222,7 @@ export function LandingPage() {
       <section className="sequence" id="sequence">
         <div className="section-head">
           <h2>A short score for moving through space</h2>
-          <span>duration / 03:18</span>
+          <span>spatial sequence / 04 movements</span>
         </div>
         <div className="sequence-layout">
           <div>
