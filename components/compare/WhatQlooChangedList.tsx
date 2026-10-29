@@ -110,27 +110,42 @@ export function WhatQlooChangedList({
           </div>
         )}
 
-        {/* Top 3 "Because" Sentences Built Strictly from Real Qloo Data (Requirement 2) */}
+        {/* Top 3 "Because" Sentences Built Strictly from Real Qloo Data & Architectural Rules */}
         {grounded.becauseSentences && grounded.becauseSentences.length > 0 && (
           <div className="p-3.5 rounded bg-emerald-950/20 border border-emerald-800/40 space-y-2">
-            <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-emerald-400">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              <span>Architectural Rationales (Derived Directly from Qloo Data)</span>
+            <div className="flex items-center justify-between text-[10px] uppercase font-bold tracking-wider text-emerald-400">
+              <div className="flex items-center gap-2">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
+                <span>Evidence-Informed Design Decisions</span>
+              </div>
+              <span className="text-[9px] font-mono font-normal text-emerald-500/80">Traced to Grounded State</span>
             </div>
             <div className="space-y-2 font-sans text-xs text-neutral-200">
-              {grounded.becauseSentences.map((b, idx) => (
-                <div key={idx} className="flex items-start gap-2.5">
-                  <span className="text-emerald-400 font-mono font-bold text-[11px] mt-0.5">0{idx + 1}.</span>
-                  <div>
-                    <span className="text-[var(--muted)] font-mono text-[10px] uppercase tracking-wider block font-semibold">
-                      {b.headline}:
-                    </span>
-                    <p className="m-0 text-neutral-100 font-medium leading-relaxed">
-                      &ldquo;{b.sentence}&rdquo;
-                    </p>
+              {grounded.becauseSentences.map((b, idx) => {
+                const isDirectQloo = b.sentence.startsWith("Qloo");
+                return (
+                  <div key={idx} className="flex items-start gap-2.5">
+                    <span className="text-emerald-400 font-mono font-bold text-[11px] mt-0.5">0{idx + 1}.</span>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[var(--muted)] font-mono text-[10px] uppercase tracking-wider font-semibold">
+                          {b.headline}:
+                        </span>
+                        <span className={`text-[9px] font-mono px-1.5 py-0.2 rounded border ${
+                          isDirectQloo
+                            ? "bg-emerald-950 text-emerald-300 border-emerald-800"
+                            : "bg-neutral-900 text-neutral-400 border-neutral-700"
+                        }`}>
+                          {isDirectQloo ? "Direct Grounding" : "Rule-Based Inference"}
+                        </span>
+                      </div>
+                      <p className="m-0 text-neutral-100 font-medium leading-relaxed mt-0.5">
+                        &ldquo;{b.sentence}&rdquo;
+                      </p>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}

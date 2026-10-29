@@ -328,9 +328,15 @@ export function designScene({
   groundedSpec.palette.floorHex = derivedDesign.palette.floorHex;
   groundedSpec.palette.wallHex = derivedDesign.palette.wallHex;
   groundedSpec.palette.ambientHex = derivedDesign.palette.ambientHex;
+  groundedSpec.palette.paletteName = derivedDesign.palette.name;
   if (derivedDesign.palette.isFallback) {
     groundedSpec.palette.isFallback = true;
     groundedSpec.palette.fallbackNotice = derivedDesign.palette.fallbackNotice || "No Qloo-derived palette for this reference";
+    groundedSpec.palette.provenance = "fallback";
+  } else {
+    groundedSpec.palette.isFallback = false;
+    delete groundedSpec.palette.fallbackNotice;
+    groundedSpec.palette.provenance = source === "live" || source === "cache" ? "qloo-evidence" : ruleProv;
   }
 
   // ==========================================================================

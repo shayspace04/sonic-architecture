@@ -717,12 +717,14 @@ function ProceduralArchObject({
   isPulsing = false,
   onSelect,
   defaultContactShadowOpacity,
+  paletteAccentHex,
 }: {
   obj: SpatialObject;
   isSelected: boolean;
   isPulsing?: boolean;
   onSelect: (id: string) => void;
   defaultContactShadowOpacity: number;
+  paletteAccentHex?: string;
 }) {
   const [w, h, d] = obj.dimensions;
   const shadowOpacity =
@@ -748,13 +750,13 @@ function ProceduralArchObject({
       obj.materialId,
       Math.max(w, d),
       Math.max(h, d),
-      obj.accentColorHex
+      obj.colorHex || obj.accentColorHex || paletteAccentHex
     );
     const aMat = getPhotographicOrProceduralMaterial(
       obj.secondaryMaterialId || "brushed_brass",
       1,
       1,
-      obj.accentColorHex
+      obj.accentColorHex || paletteAccentHex
     );
     const wMat = getPhotographicOrProceduralMaterial("warm_oak", 1.5, 1.5);
     return {
@@ -762,14 +764,16 @@ function ProceduralArchObject({
       accentPbrMat: aMat,
       secondaryWoodMat: wMat,
       accentLinearColor: srgbHexToLinearColor(
-        obj.accentColorHex || "#C59B4E",
+        obj.accentColorHex || paletteAccentHex || "#C59B4E",
         "accent"
       ),
     };
   }, [
     obj.materialId,
     obj.secondaryMaterialId,
+    obj.colorHex,
     obj.accentColorHex,
+    paletteAccentHex,
     w,
     h,
     d,
@@ -1577,6 +1581,7 @@ export function Venue3D({
             defaultContactShadowOpacity={
               sceneSpec.contactShadowOpacity ?? 0.64
             }
+            paletteAccentHex={sceneSpec.palette?.accentHex}
           />
         ))}
       </Canvas>

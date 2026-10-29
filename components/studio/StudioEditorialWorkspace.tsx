@@ -126,6 +126,16 @@ function StudioEditorialWorkspaceInner() {
     URL.revokeObjectURL(url);
   }, [scene, procurementList, budgetConfig]);
 
+  // Prevent stale procurement items from previous scenes when a new scene is generated
+  useEffect(() => {
+    if (!scene) return;
+    const currentObjectIds = new Set(scene.objects.map((o) => o.id));
+    setProcurementList((prev) => {
+      const filtered = prev.filter((item) => currentObjectIds.has(item.objectId));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [scene]);
+
   // Sync state if URL prompt changes
   useEffect(() => {
     if (queryPrompt && queryPrompt !== currentPrompt) {
@@ -658,11 +668,17 @@ function StudioEditorialWorkspaceInner() {
                 <span className="provenance-badge provenance-badge--inferred">● Agent Inferred</span>
               </div>
 
-              {scene?.palette?.isFallback && (
-                <div style={{ margin: '8px 0', padding: '6px 10px', background: 'rgba(217, 83, 79, 0.1)', border: '1px solid rgba(217, 83, 79, 0.3)', borderRadius: '2px', fontSize: '11px', color: '#b94a48' }}>
-                  no Qloo-derived palette for this reference
+              {scene?.palette?.isFallback ? (
+                <div style={{ margin: '8px 0', padding: '6px 10px', background: 'rgba(217, 83, 79, 0.08)', border: '1px solid rgba(217, 83, 79, 0.25)', borderRadius: '2px', fontSize: '11px', color: '#b94a48', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>◌</span>
+                  <span><strong>Neutral Fallback Palette:</strong> No Qloo-derived palette for this reference (standard architectural neutral applied)</span>
                 </div>
-              )}
+              ) : scene?.palette ? (
+                <div style={{ margin: '8px 0', padding: '6px 10px', background: 'rgba(47, 90, 76, 0.08)', border: '1px solid rgba(47, 90, 76, 0.25)', borderRadius: '2px', fontSize: '11px', color: '#2F5A4C', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>●</span>
+                  <span><strong>{scene?.palette?.provenance === 'qloo-evidence' ? 'Qloo-Grounded Palette:' : scene?.palette?.provenance === 'rule-based' ? 'Rule-Based Palette:' : 'Inferred Cultural Palette:'}</strong> {scene?.palette?.paletteName || 'Culturally Calibrated Palette'}</span>
+                </div>
+              ) : null}
 
               <div style={{ marginTop: '14px' }}>
                 <span className="eyebrow">Design Decisions</span>
@@ -1163,6 +1179,7 @@ function StudioEditorialWorkspaceInner() {
                 onUpdateBudgetConfig={setBudgetConfig}
                 procurementList={procurementList}
                 onUpdateProcurementList={setProcurementList}
+                onSwitchTo3D={() => setStageViewMode('viewport')}
               />
             </div>
           ) : isGenerating ? (

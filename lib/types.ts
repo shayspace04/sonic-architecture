@@ -189,7 +189,10 @@ export type ObjectArchetype =
   | "warehouse_truss_portal"
   | "retreat_timber_pavilion"
   | "dramatic_entry_portal"
-  | "translucent_canopy";
+  | "translucent_canopy"
+  | "cinema_projection_screen"
+  | "curator_projection_plinth"
+  | "cinema_lounge_seat";
 
 /**
  * Step 3 (E + F + G) — Procedural Architectural Shell Kit Specification
@@ -742,6 +745,9 @@ export interface SceneSpec {
     ambientHex: string;
     isFallback?: boolean;
     fallbackNotice?: string;
+    provenance?: Provenance;
+    paletteName?: string;
+    rationale?: string;
   };
   materials: {
     floor: MaterialSpec;
@@ -1058,6 +1064,8 @@ export interface ProjectProcurementSummary {
   budgetUtilizationPct: number;
   categoryBreakdown: Record<ObjectCategory, CategoryBudgetBreakdown>;
   disclaimer?: string;
+  currencyConversionSource?: string;
+  currencyConversionTimestamp?: string;
 }
 
 export interface CategoryBudgetBreakdown {

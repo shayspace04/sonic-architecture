@@ -233,7 +233,7 @@ export function diffScenes(
   const avgDeltaE = (floorDeltaE + wallDeltaE + accentDeltaE) / 3;
   const paletteMagnitude = Math.min(1.0, Math.max(0.0, avgDeltaE / 55.0));
 
-  if (avgDeltaE > 4.5 || baseline.palette.accentHex !== grounded.palette.accentHex) {
+  if (!grounded.palette?.isFallback && (avgDeltaE > 4.5 || baseline.palette.accentHex !== grounded.palette.accentHex)) {
     const trace = findTraceableEntity(
       [
         grounded.palette.accentHex,
