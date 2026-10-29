@@ -4,6 +4,7 @@ import { buildSceneSpecFromPayload } from "@/lib/scene-spec";
 import { applyTargetedRevision } from "@/lib/revisions";
 import { generateSceneComparison } from "@/lib/compare/sceneGenerator";
 import { getCrossDomainEvidenceForPrompt } from "@/lib/qloo/pipeline";
+import { getQlooCacheAdapter } from "@/lib/qloo/cache";
 import type {
   ResolvedEntity,
   SceneSpec,
@@ -155,6 +156,18 @@ export async function POST(req: Request) {
       );
     }
 
+    // Requirement 3: Check KV / server cache for pre-warmed starter prompt
+    const starterSlug = `starter_${prompt.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").slice(0, 60)}`;
+    const cacheAdapter = getQlooCacheAdapter();
+    const prewarmed = (await cacheAdapter.get(starterSlug)) as any;
+    if (prewarmed && prewarmed.scene) {
+      console.log(`[Qloo KV] Starter prompt served directly from KV: "${prompt}" (<10ms)`);
+      return NextResponse.json({
+        ...prewarmed,
+        source: "cache",
+      });
+    }
+
     const urlObj = new URL(req.url);
     const wantsStream = urlObj.searchParams.get("stream") === "true";
 
@@ -199,6 +212,9 @@ export async function POST(req: Request) {
     // Standard JSON Mode
     const { resolution, bundle } = await getCrossDomainEvidenceForPrompt(prompt);
     const result = assembleFinalResponse(prompt, resolution, bundle);
+    try {
+      await cacheAdapter.set(starterSlug, result as any, 24 * 60 * 60 * 1000);
+    } catch {}
     return NextResponse.json(result);
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unexpected generation error";

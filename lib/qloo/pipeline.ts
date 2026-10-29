@@ -71,8 +71,8 @@ async function fetchInsightsEndpoint<T>(
       );
 
       if (!resp.ok) {
-        if (attempt === 1) {
-          await new Promise((r) => setTimeout(r, 400));
+        if (attempt === 1 && resp.status >= 500) {
+          await new Promise((r) => setTimeout(r, 300));
           continue;
         }
         const step: TraceStep = {
@@ -241,10 +241,9 @@ export async function executeCrossDomainPipeline(
   // 2. Build signals query string combining entities and tags
   const signalParts: string[] = [];
   if (entityIds.length > 0) {
-    signalParts.push(`signal.interests.entities=${encodeURIComponent(entityIds.slice(0, 3).join(","))}`);
-  }
-  if (tagIds.length > 0) {
-    signalParts.push(`signal.interests.tags=${encodeURIComponent(tagIds.slice(0, 3).join(","))}`);
+    signalParts.push(`signal.interests.entities=${encodeURIComponent(entityIds[0])}`);
+  } else if (tagIds.length > 0) {
+    signalParts.push(`signal.interests.tags=${encodeURIComponent(tagIds.slice(0, 2).join(","))}`);
   }
   const signalsQuery = signalParts.join("&");
 

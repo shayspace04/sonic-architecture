@@ -82,6 +82,25 @@ async function prewarmSinglePrompt(prompt, index, total) {
     const source = data.source || (data.scene?.qloo_evidence ? "live" : "unknown");
     const domainStatus = data.bundle?.domainStatus || {};
 
+    // Sync to Vercel KV REST if credentials configured
+    if (process.env.KV_REST_API_URL && process.env.KV_REST_API_TOKEN) {
+      try {
+        const starterSlug = `starter_${prompt.toLowerCase().trim().replace(/[^a-z0-9]+/g, "_").slice(0, 60)}`;
+        const kvUrl = `${process.env.KV_REST_API_URL.replace(/\/$/, "")}/set/${encodeURIComponent(starterSlug)}?ex=86400`;
+        await fetch(kvUrl, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.KV_REST_API_TOKEN}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(data),
+        });
+        console.log(`          ✓ Synced to Vercel KV store (${starterSlug})`);
+      } catch {
+        // Ignored
+      }
+    }
+
     console.log(
       `[Prewarm] [${index}/${total}] "${prompt}"\n          status=${res.status} latency=${latencyMs}ms source=${source}`
     );
