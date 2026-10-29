@@ -173,8 +173,12 @@ export function extractEntitiesAndConcepts(prompt: string): ExtractionOutput {
   if (lower.includes("brutalist concrete") || lower.includes("concrete ribs") || lower.includes("concrete")) {
     addConcept("concrete", "material");
     addConcept("brutalism", "style");
+    seenConcepts.add("brutalist concrete");
+    seenConcepts.add("concrete ribs");
   } else if (lower.includes("brutalist architecture") || lower.includes("brutalist")) {
     addConcept("brutalism", "style");
+    seenConcepts.add("brutalist architecture");
+    seenConcepts.add("brutalist");
   }
   if (lower.includes("ambient")) addConcept("ambient", "genre");
   if (lower.includes("indie music") || lower.includes("indie")) addConcept("indie", "genre");
@@ -196,12 +200,18 @@ export function extractEntitiesAndConcepts(prompt: string): ExtractionOutput {
   }
 
   // 4. Handle plus-separated phrases e.g. "Miles Davis + Brutalist concrete"
+  const CONCEPT_KEYWORDS_PATTERN =
+    /\b(architecture|architectural|style|movement|design|brutalist|brutalism|concrete|modernism|minimalism|revival|acoustic|sound|soundtrack|ambient|techno|jazz|blues|rock|pop|house|electronic|club|warehouse|gallery|pavilion|room|house|lounge|studio|hall|material|timber|wood|oak|steel|chrome|glass|stone|granite|marble|brick|terrazzo|art deco|mid-century|postmodern)\b/i;
+
   if (clean.includes("+")) {
     const parts = clean.split("+").map((s) => s.trim());
     for (const p of parts) {
-      if (p.length > 2 && !seenEntities.has(p.toLowerCase()) && !seenConcepts.has(p.toLowerCase())) {
-        // If 2 words capitalized, check as namedEntity
-        if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+$/.test(p)) {
+      const pLower = p.toLowerCase();
+      if (p.length > 2 && !seenEntities.has(pLower) && !seenConcepts.has(pLower)) {
+        if (CONCEPT_KEYWORDS_PATTERN.test(p)) {
+          addConcept(p, "style");
+        } else if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+$/.test(p)) {
+          // If 2 words capitalized and not an architectural/music concept, check as namedEntity
           addEntity(p, "person");
         } else {
           addConcept(p, "style");
@@ -537,15 +547,37 @@ export async function resolveEntitiesAndConceptsFromPrompt(
   } else {
     const fixture = getQlooFixture(prompt);
     if (fixture) {
+      // Concept-only prompts have 0 namedEntities extracted and must have 0 resolved named entities
+      const resolvedEntities =
+        extraction.namedEntities.length > 0
+          ? fixture.entities
+              .filter((e) =>
+                extraction.namedEntities.some(
+                  (ne) =>
+                    isWholeWordInPrompt(ne.name, prompt) &&
+                    (calculateTokenOverlap(ne.name, e.name) >= 0.8 ||
+                      e.name.toLowerCase().includes(ne.name.toLowerCase()))
+                )
+              )
+              .map((e) => ({
+                entity_id: e.id,
+                name: e.name,
+                types: [e.type],
+              }))
+          : [];
+
       return {
         extraction,
-        resolved: fixture.entities.map((e) => ({
-          entity_id: e.id,
-          name: e.name,
-          types: [e.type],
-        })),
+        resolved: resolvedEntities,
         unresolved: [],
-        matchedTags: [],
+        matchedTags:
+          fixture.culturalEvidence?.styleTags?.map((tag) => ({
+            id: `urn:tag:fixture:${tag.replace(/\s+/g, "_")}`,
+            name: tag,
+            type: "urn:tag",
+            conceptTerm: tag,
+            provenance: "sample-fixture" as const,
+          })) || [],
         unmatchedConcepts: [],
         source: "fixture",
         latencyMs,

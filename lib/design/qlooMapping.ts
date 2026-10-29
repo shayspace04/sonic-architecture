@@ -296,7 +296,23 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
   {
     ruleId: "rule_modal_jazz",
     name: "Modal Jazz & Subterranean Acoustic Club",
-    targetKeywords: ["modal jazz", "hard bop", "cool jazz", "bebop", "blue note", "jazz club", "trumpet", "intimate acoustic"],
+    targetKeywords: [
+      "modal jazz",
+      "hard bop",
+      "cool jazz",
+      "bebop",
+      "blue note",
+      "jazz club",
+      "trumpet",
+      "muted trumpet",
+      "harmonic warmth",
+      "harmonic_warmth",
+      "late night intimacy",
+      "late_night_intimacy",
+      "intimate acoustic",
+      "modal improvisation",
+      "jazz",
+    ],
     paletteId: "miles_davis_blue_amber",
     wallMaterial: "acoustic_slats",
     flooringMaterial: "herringbone_parquet",
@@ -322,7 +338,30 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
   {
     ruleId: "rule_industrial_techno",
     name: "Industrial Raw Concrete & Breakcore Acid Cyan",
-    targetKeywords: ["idm", "industrial techno", "glitch", "drill n bass", "breakcore", "acid techno", "industrial electronic", "raw concrete", "industrial warehouse"],
+    targetKeywords: [
+      "idm",
+      "industrial techno",
+      "glitch",
+      "drill n bass",
+      "breakcore",
+      "acid techno",
+      "acid house",
+      "breakbeat",
+      "sub bass",
+      "sub_bass",
+      "strobe",
+      "raw board concrete",
+      "raw_board_concrete",
+      "raw concrete",
+      "industrial warehouse",
+      "techno",
+      "electronic",
+      "experimental electronic",
+      "braindance",
+      "ambient techno",
+      "high gloss mirror chrome",
+      "high_gloss_mirror_chrome",
+    ],
     paletteId: "aphex_twin_industrial_concrete",
     wallMaterial: "acoustic_slats",
     flooringMaterial: "polished_concrete",
@@ -666,6 +705,28 @@ export function deriveArchitecturalDesignFromQloo(
       const lower = ent.name.toLowerCase();
       tokens.push(lower);
       triggerMap.set(lower, { term: ent.name, type: `entity:${ent.type || "cultural"}` });
+
+      if (ent.signals && Array.isArray(ent.signals)) {
+        for (const sig of ent.signals) {
+          const sigLower = sig.toLowerCase();
+          const sigNormalized = sigLower.replace(/_/g, " ");
+          tokens.push(sigLower);
+          tokens.push(sigNormalized);
+          triggerMap.set(sigLower, { term: sigNormalized, type: `signal:${ent.name}` });
+          triggerMap.set(sigNormalized, { term: sigNormalized, type: `signal:${ent.name}` });
+        }
+      }
+
+      const entAny = ent as any;
+      if (entAny.tags && Array.isArray(entAny.tags)) {
+        for (const t of entAny.tags) {
+          if (t?.name) {
+            const tLower = t.name.toLowerCase();
+            tokens.push(tLower);
+            triggerMap.set(tLower, { term: t.name, type: `tag:${t.type || "genre"}` });
+          }
+        }
+      }
     }
   }
 
