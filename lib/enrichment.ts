@@ -217,6 +217,8 @@ export function interpretArchitecturalBrief(promptText: string): InterpretedBrie
     explicitRequirements.push("Open-air coastal timber deck pavilion, collaborative keynote/lounge zones & tropical palm landscaping");
   } else if (
     lower.includes("cathedral") ||
+    lower.includes("church") ||
+    lower.includes("chapel") ||
     lower.includes("banquet") ||
     lower.includes("gala dinner") ||
     lower.includes("nave")
@@ -225,6 +227,62 @@ export function interpretArchitecturalBrief(promptText: string): InterpretedBrie
     seatingStyle = "refectory_banquet";
     eventPurpose = "Ceremonial Vaulted Banquet Hall";
     explicitRequirements.push("Ceremonial head-table sanctuary dais, long banquet tables & candlelit centrepieces");
+  } else if (
+    lower.includes("comedy") ||
+    lower.includes("theatre") ||
+    lower.includes("theater") ||
+    lower.includes("standup") ||
+    lower.includes("stand-up") ||
+    (lower.includes("auditorium") && !lower.includes("car"))
+  ) {
+    focalProgram = "comedy_theatre";
+    seatingStyle = "theatre_tiered_seating";
+    eventPurpose = "Contemporary Comedy & Live Performance Theatre";
+    explicitRequirements.push("Elevated proscenium comedy stage, stand-up microphone stand, tiered audience seating with clear sightlines & stage wash lighting");
+  } else if (
+    lower.includes("a24") ||
+    lower.includes("cinema") ||
+    lower.includes("screening") ||
+    lower.includes("film") ||
+    lower.includes("movie") ||
+    lower.includes("projection")
+  ) {
+    focalProgram = "cinema_screening";
+    seatingStyle = "screening_lounge";
+    eventPurpose = "Independent Art-House Screening Pavilion & Cinema Salon";
+    explicitRequirements.push("16:9 tensioned architectural projection screen, walnut curator plinth, tiered screening lounges & perimeter cinema grazing");
+  } else if (
+    lower.includes("library") ||
+    lower.includes("reading") ||
+    lower.includes("books") ||
+    lower.includes("bookshop") ||
+    lower.includes("archive") ||
+    lower.includes("study") ||
+    lower.includes("manuscript")
+  ) {
+    focalProgram = "library_archive";
+    seatingStyle = "reading_study_tables";
+    eventPurpose = "Minimalist Archival Reading Library & Study Sanctuary";
+    explicitRequirements.push("Curatorial white oak reading table, full-height recessed book archive shelving wall, upholstered wool armchairs & brass task lamps");
+  } else if (
+    (lower.includes("japanese") && lower.includes("garden")) ||
+    lower.includes("zen garden") ||
+    (lower.includes("garden") && (lower.includes("ambient") || lower.includes("bamboo") || lower.includes("shakkei") || lower.includes("tsukubai") || lower.includes("rock garden") || lower.includes("moss") || lower.includes("koi")))
+  ) {
+    focalProgram = "zen_garden_veranda";
+    seatingStyle = "veranda_contemplative";
+    eventPurpose = "Contemplative Japanese Garden Pavilion & Ambient Sound Sanctuary";
+    explicitRequirements.push("Granite tsukubai water feature, sukiya timber veranda deck, Kasuga carved granite lanterns & woven bamboo acoustic screens");
+  } else if (
+    lower.includes("warehouse") ||
+    lower.includes("industrial gallery") ||
+    (lower.includes("industrial") && (lower.includes("gallery") || lower.includes("sound") || lower.includes("aphex") || lower.includes("space") || lower.includes("hangar") || lower.includes("factory"))) ||
+    lower.includes("aphex twin")
+  ) {
+    focalProgram = "industrial_sound_deck";
+    seatingStyle = "gallery_modular_benches";
+    eventPurpose = "Raw Industrial Gallery Warehouse & Acoustic Performance Lab";
+    explicitRequirements.push("Modular steel performance deck, suspended industrial box-truss light rig, bi-radial sound columns & cast-concrete gallery benches");
   } else if (
     lower.includes("tea room") ||
     lower.includes("chashitsu") ||
@@ -235,13 +293,14 @@ export function interpretArchitecturalBrief(promptText: string): InterpretedBrie
     eventPurpose = "Japanese Sukiya Timber & Washi Tea Sanctuary";
     explicitRequirements.push("Sunken ro hearth, low chabudai tea table, tatami mats & shoji screens");
   } else if (
-    lower.includes("courtyard") &&
-    (lower.includes("mediterranean") || lower.includes("restaurant") || lower.includes("olive") || lower.includes("bistro"))
+    lower.includes("mediterranean") ||
+    (lower.includes("residence") && (lower.includes("coastal") || lower.includes("villa") || lower.includes("courtyard"))) ||
+    (lower.includes("courtyard") && (lower.includes("restaurant") || lower.includes("olive") || lower.includes("bistro")))
   ) {
     focalProgram = "courtyard_fountain";
     seatingStyle = "courtyard_bistro";
-    eventPurpose = "Open-Air Mediterranean Peristyle Courtyard Restaurant";
-    explicitRequirements.push("Central limestone courtyard fountain, olive grove planters & pergola dining tables");
+    eventPurpose = "Open-Air Mediterranean Peristyle Courtyard Residence";
+    explicitRequirements.push("Central limestone courtyard fountain, travertine colonnades & archways, pergola dining tables & olive tree planters");
   } else if (
     lower.includes("grunge") ||
     lower.includes("chrome balloon") ||
@@ -266,7 +325,15 @@ export function interpretArchitecturalBrief(promptText: string): InterpretedBrie
     explicitRequirements.push("Analog turntable console, horn loudspeaker towers, acoustic timber treatment & lounge seating");
   } else {
     // Open-ended general architectural synthesis based on keywords
-    if (isOpenAir) {
+    if (lower.includes("gallery") || lower.includes("pavilion") || lower.includes("exhibition")) {
+      focalProgram = "cinema_screening";
+      seatingStyle = "screening_lounge";
+      eventPurpose = "Architectural Exhibition Pavilion & Curatorial Salon";
+    } else if (lower.includes("garden") || lower.includes("nature") || lower.includes("tranquil") || lower.includes("forest")) {
+      focalProgram = "zen_garden_veranda";
+      seatingStyle = "veranda_contemplative";
+      eventPurpose = "Contemplative Garden Pavilion & Natural Sanctuary";
+    } else if (isOpenAir) {
       focalProgram = "coastal_retreat_pavilion";
       seatingStyle = "retreat_cabana_lounges";
       eventPurpose = "Open-Air Architectural Pavilion & Gathering Space";
@@ -289,6 +356,11 @@ export function interpretArchitecturalBrief(promptText: string): InterpretedBrie
     tea_hearth: 8,
     courtyard_fountain: 48,
     editorial_flash_stage: 45,
+    cinema_screening: 32,
+    library_archive: 24,
+    industrial_sound_deck: 120,
+    zen_garden_veranda: 16,
+    comedy_theatre: 120,
   };
   const targetCapacityGuests =
     requestedCapacityGuests !== null
@@ -422,6 +494,11 @@ export function interpretArchitecturalBrief(promptText: string): InterpretedBrie
     tea_hearth: "morning",
     courtyard_fountain: "afternoon",
     editorial_flash_stage: "midnight",
+    cinema_screening: "midnight",
+    library_archive: "afternoon",
+    industrial_sound_deck: "midnight",
+    zen_garden_veranda: "morning",
+    comedy_theatre: "midnight",
   };
   const inferredTimeOfDay: TimeOfDay = explicitTimeOfDay || defaultTodByProgram[focalProgram] || "midnight";
 
@@ -467,6 +544,11 @@ export function interpretArchitecturalBrief(promptText: string): InterpretedBrie
   if (focalProgram === "fashion_runway") requestedElements.push("obsidian_runway_deck", "linear_light_blade");
   if (focalProgram === "coastal_retreat_pavilion") requestedElements.push("retreat_timber_pavilion", "olive_tree_planter");
   if (focalProgram === "listening_console") requestedElements.push("analog_turntable_console", "horn_speaker_pair", "acoustic_wall_panel");
+  if (focalProgram === "cinema_screening") requestedElements.push("projection_screen_16_9", "curator_plinth", "screening_lounge_seats");
+  if (focalProgram === "library_archive") requestedElements.push("curatorial_reading_table", "archival_bookshelf_wall", "reading_armchairs");
+  if (focalProgram === "zen_garden_veranda") requestedElements.push("granite_tsukubai_water_feature", "sukiya_veranda_deck", "kasuga_granite_lantern");
+  if (focalProgram === "industrial_sound_deck") requestedElements.push("modular_steel_sound_deck", "suspended_box_truss_rig", "bi_radial_sound_stacks");
+  if (focalProgram === "comedy_theatre") requestedElements.push("modular_stage_riser", "performer_mic_stand", "tiered_auditorium_row", "acoustic_wall_panel");
   if (hasWaterFeature) requestedElements.push("circular_water_feature");
 
   return {
@@ -515,6 +597,9 @@ export function resolveTypologyFromInterpretedBrief(brief: InterpretedBrief): Sp
     }
     return "brutalist_runway";
   }
+  if (brief.focalProgram === "industrial_sound_deck") {
+    return "industrial_warehouse";
+  }
   if (brief.focalProgram === "coastal_retreat_pavilion") {
     return "coastal_retreat";
   }
@@ -524,14 +609,23 @@ export function resolveTypologyFromInterpretedBrief(brief: InterpretedBrief): Sp
   if (brief.focalProgram === "banquet_sanctuary") {
     return "cathedral_banquet";
   }
-  if (brief.focalProgram === "tea_hearth") {
+  if (brief.focalProgram === "tea_hearth" || brief.focalProgram === "zen_garden_veranda") {
     return "tea_room";
+  }
+  if (brief.focalProgram === "cinema_screening") {
+    return "gallery_pavilion";
+  }
+  if (brief.focalProgram === "library_archive") {
+    return "intimate_lounge";
   }
   if (brief.focalProgram === "courtyard_fountain") {
     return "mediterranean_courtyard";
   }
   if (brief.focalProgram === "editorial_flash_stage") {
     return "grunge_loft";
+  }
+  if (brief.focalProgram === "comedy_theatre") {
+    return "comedy_theatre";
   }
   return "listening_room";
 }
@@ -587,13 +681,15 @@ export function parseUserBrief(promptText: string): ParsedBrief {
     ceremonyScore:
       interpreted.focalProgram === "wedding_mandap" ||
       interpreted.focalProgram === "banquet_sanctuary" ||
-      interpreted.focalProgram === "tea_hearth"
+      interpreted.focalProgram === "tea_hearth" ||
+      interpreted.focalProgram === "zen_garden_veranda"
         ? 0.94
         : 0.6,
     energyScore:
       interpreted.focalProgram === "techno_dj_bunker" ||
       interpreted.focalProgram === "product_launch_plinth" ||
-      interpreted.focalProgram === "fashion_runway"
+      interpreted.focalProgram === "fashion_runway" ||
+      interpreted.focalProgram === "industrial_sound_deck"
         ? 0.9
         : 0.45,
     openAirRequested: interpreted.isOpenAir,
@@ -1030,6 +1126,30 @@ const TYPOLOGY_KNOWLEDGE_BASE: Record<SpatialTypology, TypologyKnowledgePreset> 
     seatingFabric: "moss_velvet",
     llmKnowledgeClaims: [],
     designInferenceClaims: [],
+  },
+  comedy_theatre: {
+    typology: "comedy_theatre",
+    defaultTimeOfDay: "midnight",
+    temperatureK: 3200,
+    primaryColorHex: "#22252A",
+    secondaryColorHex: "#484E59",
+    accentColorHex: "#DDA032",
+    flooringMaterial: "herringbone_parquet",
+    wallMaterial: "acoustic_slats",
+    ceilingStructure: "coffered_timber",
+    seatingFabric: "boucle_wool",
+    llmKnowledgeClaims: [],
+    designInferenceClaims: [
+      {
+        source: "design_inference",
+        domain: "layout",
+        label: "Contemporary Proscenium Comedy Stage Layout",
+        insight: "Contemporary Comedy Theatre layout requires an elevated proscenium performance stage, center stand-up mic stand, and stepped audience sightlines.",
+        architecturalEffect: "Constructs a raked auditorium theatre envelope with tiered seating rows focused on the center stand-up comedy stage.",
+        targetProperty: "typology & objects",
+        confidence: "established",
+      },
+    ],
   },
   custom_hybrid: {
     typology: "custom_hybrid",

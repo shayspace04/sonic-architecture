@@ -89,6 +89,7 @@ function StudioEditorialWorkspaceInner() {
   // Track Audio Preview Player State
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
+  const activeRequestIdRef = useRef(0);
 
   const handleToggleTrackPreview = useCallback((previewUrl: string) => {
     if (activePreviewUrl === previewUrl) {
@@ -201,6 +202,7 @@ function StudioEditorialWorkspaceInner() {
 
   // Synthesize scene using the real /api/vibe route with live streaming trace steps
   const synthesize = useCallback(async (promptText: string) => {
+    const reqId = ++activeRequestIdRef.current;
     setIsGenerating(true);
     setTraceSteps([]);
     setLiveSoundtrack(null);
@@ -220,6 +222,10 @@ function StudioEditorialWorkspaceInner() {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
+          if (reqId !== activeRequestIdRef.current) {
+            reader.cancel();
+            return;
+          }
           buffer += decoder.decode(value, { stream: true });
           const parts = buffer.split('\n\n');
           buffer = parts.pop() || '';
@@ -236,13 +242,17 @@ function StudioEditorialWorkspaceInner() {
             if (event === 'trace' && dataStr) {
               try {
                 const step = JSON.parse(dataStr);
-                setTraceSteps((prev) => [...prev, step]);
+                if (reqId === activeRequestIdRef.current) {
+                  setTraceSteps((prev) => [...prev, step]);
+                }
               } catch {}
             } else if (event === 'complete' && dataStr) {
               try {
                 const data = JSON.parse(dataStr);
+                if (reqId !== activeRequestIdRef.current) return;
                 if (data.scene) {
                   setScene(data.scene);
+                  setSelectedObjectId(data.scene.objects?.[0]?.id || null);
                   setSceneSource(data.source || (data.scene.qloo_evidence ? 'live' : 'sample'));
                   if (data.comparison) {
                     setComparison(data.comparison);
@@ -258,6 +268,8 @@ function StudioEditorialWorkspaceInner() {
         if (receivedResult) return;
       }
 
+      if (reqId !== activeRequestIdRef.current) return;
+
       // If streaming wasn't available, standard JSON fallback
       const jsonRes = await fetch('/api/vibe', {
         method: 'POST',
@@ -265,10 +277,14 @@ function StudioEditorialWorkspaceInner() {
         body: JSON.stringify({ prompt: promptText, seed: 42 }),
       });
 
+      if (reqId !== activeRequestIdRef.current) return;
+
       if (jsonRes.ok) {
         const data = await jsonRes.json();
+        if (reqId !== activeRequestIdRef.current) return;
         if (data.scene) {
           setScene(data.scene);
+          setSelectedObjectId(data.scene.objects?.[0]?.id || null);
           setSceneSource(data.source || (data.scene.qloo_evidence ? 'live' : 'sample'));
           if (data.comparison) {
             setComparison(data.comparison);
@@ -279,18 +295,25 @@ function StudioEditorialWorkspaceInner() {
         }
       }
 
+      if (reqId !== activeRequestIdRef.current) return;
+
       // Local fallback generator
       const comp = generateSceneComparison({ prompt: promptText, seed: 42 });
       setScene(comp.grounded);
+      setSelectedObjectId(comp.grounded.objects?.[0]?.id || null);
       setComparison(comp);
       setSceneSource(comp.isSampleFixture ? 'sample' : 'fallback');
     } catch {
+      if (reqId !== activeRequestIdRef.current) return;
       const comp = generateSceneComparison({ prompt: promptText, seed: 42 });
       setScene(comp.grounded);
+      setSelectedObjectId(comp.grounded.objects?.[0]?.id || null);
       setComparison(comp);
       setSceneSource('fallback');
     } finally {
-      setIsGenerating(false);
+      if (reqId === activeRequestIdRef.current) {
+        setIsGenerating(false);
+      }
     }
   }, []);
 
@@ -449,19 +472,33 @@ function StudioEditorialWorkspaceInner() {
             </button>
           </form>
 
-          <div className="prompt-examples" style={{ marginTop: '10px' }}>
-            <span className="prompt-examples__label">Starters</span>
-            {STARTER_PROMPTS.map((starter) => (
-              <button
-                suppressHydrationWarning
-                key={starter}
-                type="button"
-                onClick={() => handleSelectStarter(starter)}
-                style={{ fontSize: '11px', padding: '3px 8px' }}
-              >
-                {starter}
-              </button>
-            ))}
+          <div className="prompt-examples" style={{ marginTop: '12px' }}>
+            <span className="prompt-examples__label" title="Suggested starter reference collisions">
+              Suggested Worlds
+            </span>
+            {STARTER_PROMPTS.map((starter) => {
+              const isCurrent = starter === currentPrompt;
+              return (
+                <button
+                  suppressHydrationWarning
+                  key={starter}
+                  type="button"
+                  onClick={() => handleSelectStarter(starter)}
+                  style={{
+                    fontSize: '11px',
+                    padding: '3px 8px',
+                    border: isCurrent ? '1px solid var(--blue)' : '1px dashed var(--line)',
+                    background: isCurrent ? 'rgba(21, 87, 232, 0.08)' : 'transparent',
+                    color: isCurrent ? 'var(--blue)' : 'inherit',
+                    fontWeight: isCurrent ? 600 : 400,
+                  }}
+                  title={isCurrent ? 'Currently active project world' : `Switch world to "${starter}"`}
+                >
+                  {isCurrent && <span style={{ marginRight: '4px' }}>●</span>}
+                  {starter}
+                </button>
+              );
+            })}
           </div>
 
           {isGenerating && (
@@ -641,6 +678,9 @@ function StudioEditorialWorkspaceInner() {
                 </div>
                 <div>
                   <strong>Floor Material:</strong> {scene?.materials?.floor?.name ?? 'Dark Timber'}
+                </div>
+                <div>
+                  <strong>Lighting Temperature:</strong> {scene?.lighting?.temperatureK ?? 3200}K
                 </div>
               </div>
             </div>

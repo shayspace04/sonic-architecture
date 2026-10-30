@@ -181,6 +181,9 @@ export function designScene({
   const allResolvedTags = (bundle?.resolvedTags || []).map((t: any) => (t.name || "").toLowerCase()).join(" ");
   const allText = `${cleanPrompt.toLowerCase()} ${allSignals} ${allEntities} ${venueNames} ${venueDescriptions} ${allTasteTags} ${allResolvedTags}`;
 
+  const isComedyRevueOrTheatre =
+    /cedric|comedian|comedy|stand-up|standup|theatre|theater|cabaret|boogalou|nouveau/i.test(allText);
+
   const isJazzClubOrAcoustic =
     /jazz|bebop|modal|vanguard|blue note|listening room|cellar|trumpet|piano trio|hard bop|cool jazz/i.test(allText);
 
@@ -204,7 +207,17 @@ export function designScene({
     allSignals.includes("raw_board_concrete") ||
     allSignals.includes("massive_forms");
 
-  if (isJazzClubOrAcoustic) {
+  if (isComedyRevueOrTheatre) {
+    payload.typology = "comedy_theatre";
+    provenanceMap["typology"] = {
+      toolCallId: "call_qloo_resolve",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "standup_comedy_revue_theatre",
+      provenance: ruleProv,
+      rationale: `Selected intimate comedy revue & live performance theatre derived from ${primaryEntity.name} stand-up comedy and live entertainment venue affinities.`,
+    };
+  } else if (isJazzClubOrAcoustic) {
     // Requirement 5: Miles Davis + Brutalist concrete yields a brutalist listening room (NOT a fashion runway!)
     payload.typology = "listening_room";
     provenanceMap["typology"] = {
@@ -342,7 +355,24 @@ export function designScene({
   // ==========================================================================
   // MODULATION 5: MASSING GEOMETRY & ACOUSTIC TUNING
   // ==========================================================================
-  if (payload.typology === "listening_room") {
+  if (payload.typology === "comedy_theatre") {
+    groundedSpec.roomDimensions.width = 15.0;
+    groundedSpec.roomDimensions.depth = 18.0;
+    groundedSpec.roomDimensions.height = 5.2;
+    groundedSpec.roomDimensions.ridgeHeight = 5.6;
+    groundedSpec.acousticTarget.calculatedRT60Seconds = 0.42;
+    groundedSpec.acousticTarget.complianceStatus = "optimal";
+    groundedSpec.isOpenAir = false;
+    groundedSpec.enclosureMode = "indoor";
+    provenanceMap["geometry"] = {
+      toolCallId: "call_qloo_signals",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "theatrical_comedy_revue_envelope",
+      provenance: ruleProv,
+      rationale: "15.0m × 18.0m cabaret comedy theatre envelope with 5.2m acoustic ceiling tuned for 0.42s speech articulation.",
+    };
+  } else if (payload.typology === "listening_room") {
     if (isBrutalistPrompt) {
       groundedSpec.roomDimensions.width = 14.0;
       groundedSpec.roomDimensions.depth = 10.5;
@@ -643,6 +673,35 @@ export function designScene({
       signal: "raw_distortion",
       provenance: ruleProv,
       rationale: "Curated 90s Grunge, Riot Grrrl & Shoegaze high-energy score.",
+    };
+  } else if (payload.typology === "comedy_theatre") {
+    if (groundedSpec.musicProfile) {
+      groundedSpec.musicProfile.genres = [
+        "Neo-Soul",
+        "Contemporary R&B",
+        "Classic Soul",
+        "Stand-up Comedy Intro Organ & Stabs",
+      ];
+      groundedSpec.musicProfile.moodTags = [
+        "charismatic",
+        "warm",
+        "syncopated",
+        "upbeat",
+        "theatrical",
+      ];
+      groundedSpec.musicProfile.era = "Contemporary & 1990s Soul Revue";
+      groundedSpec.musicProfile.energy = 0.72;
+      groundedSpec.musicProfile.tempoRangeBpm = [92, 116];
+      groundedSpec.musicProfile.acousticCharacter =
+        "intimate speech & live cabaret acoustic (RT60 0.42s, α 0.44, 1404 m³)";
+    }
+    provenanceMap["soundtrack"] = {
+      toolCallId: "call_qloo_signals",
+      entityId: primaryEntity.id,
+      entityName: primaryEntity.name,
+      signal: "r_and_b_soul_revue",
+      provenance: ruleProv,
+      rationale: `Curated Neo-Soul, Contemporary R&B & live stand-up walk-on brass stabs grounded in ${primaryEntity.name} performance revue profile.`,
     };
   } else {
     const musicEntity = qlooContext.entities.find((e) =>

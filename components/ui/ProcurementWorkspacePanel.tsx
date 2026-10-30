@@ -47,6 +47,8 @@ function downloadFile(content: string, filename: string, mimeType: string) {
   URL.revokeObjectURL(url);
 }
 
+type AssemblyCategoryFilter = "all" | ObjectCategory;
+
 export default function ProcurementWorkspacePanel({
   sceneSpec,
   selectedObjectId,
@@ -58,6 +60,7 @@ export default function ProcurementWorkspacePanel({
   onSwitchTo3D,
 }: ProcurementWorkspacePanelProps) {
   const [activeMethod, setActiveMethod] = useState<SourcingMethod>("rent");
+  const [categoryFilter, setCategoryFilter] = useState<AssemblyCategoryFilter>("all");
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
   const [isEditingLocation, setIsEditingLocation] = useState(false);
   const [customCity, setCustomCity] = useState("");
@@ -70,12 +73,19 @@ export default function ProcurementWorkspacePanel({
     [sceneSpec.objects]
   );
 
+  // Grouped objects by category for category filter pills
+  const filteredObjects = useMemo(() => {
+    if (categoryFilter === "all") return sourceableObjects;
+    return sourceableObjects.filter((o) => o.category === categoryFilter);
+  }, [sourceableObjects, categoryFilter]);
+
   const selectedObj = useMemo(
     () =>
       sourceableObjects.find((o) => o.id === selectedObjectId) ||
+      filteredObjects[0] ||
       sourceableObjects[0] ||
       null,
-    [sourceableObjects, selectedObjectId]
+    [sourceableObjects, filteredObjects, selectedObjectId]
   );
 
   const objectMeta = useMemo(
@@ -209,27 +219,63 @@ export default function ProcurementWorkspacePanel({
     downloadFile(json, `${cleanTitle}-procurement-boq.json`, "application/json");
   };
 
+  const handleDownloadMarkdown = () => {
+    const md = exportProcurementBriefMarkdown(summary, sceneSpec);
+    const cleanTitle = (sceneSpec.title || "sonic-architecture").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    downloadFile(md, `${cleanTitle}-procurement-brief.md`, "text/markdown;charset=utf-8;");
+  };
+
+  const categoryCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: sourceableObjects.length };
+    for (const obj of sourceableObjects) {
+      counts[obj.category] = (counts[obj.category] || 0) + 1;
+    }
+    return counts;
+  }, [sourceableObjects]);
+
   return (
-    <section className="bg-[#EEE8DC] border-t border-[#171A1F]/15 p-6 space-y-6 text-[#171A1F]">
-      {/* 1. HEADER: BRANDING, LOCATION SELECTOR, CURRENCY & BUDGET CONTROLS */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#171A1F]/15 pb-5">
-        <div>
-          <span className="font-mono text-xs uppercase tracking-widest text-[#D9532B]">
-            REAL-WORLD SOURCING &amp; BILL OF QUANTITIES (BOQ)
-          </span>
-          <h2 className="font-serif text-3xl font-normal text-[#171A1F] mt-1">
-            Vendor Directory, Sourcing Workflows &amp; Budget Optimization
-          </h2>
-          <p className="font-sans text-xs text-[#5B5F66] mt-0.5">
-            Transparent, attribute-matched procurement for 3D scene assemblies across Buy, Rent, and Bespoke Fabrication.
-          </p>
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 font-sans text-[#171A1F]">
+      {/* =========================================================================
+          SECTION A: PROJECT CONTEXT & LOCATION PARAMETERS
+         ========================================================================= */}
+      <section className="bg-[#FCFAF7] border border-[#171A1F]/15 rounded-lg p-6 shadow-sm space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#171A1F]/10 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-[#D9532B] font-bold">
+                SECTION 01 / PROJECT CONTEXT
+              </span>
+              <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#171A1F] text-[#EEE8DC]">
+                {sceneSpec.typology.replace(/_/g, " ")}
+              </span>
+            </div>
+            <h2 className="font-serif text-2xl sm:text-3xl text-[#171A1F] mt-1">
+              Vendor Directory, Sourcing Workflows &amp; Bill of Quantities (BOQ)
+            </h2>
+            <p className="font-sans text-xs sm:text-sm text-[#5B5F66] mt-1 max-w-3xl">
+              Active project: <strong>&ldquo;{sceneSpec.promptText || sceneSpec.title}&rdquo;</strong> · Footprint:{" "}
+              {sceneSpec.roomDimensions?.width ?? 14}m × {sceneSpec.roomDimensions?.depth ?? 10}m ×{" "}
+              {sceneSpec.roomDimensions?.height ?? 3.4}m · Target RT60:{" "}
+              {sceneSpec.acousticTarget?.targetRT60Seconds ?? 0.42}s · Sabine:{" "}
+              {sceneSpec.acousticTarget?.calculatedRT60Seconds ?? sceneSpec.acousticTarget?.targetRT60Seconds ?? 0.42}s
+            </p>
+          </div>
+
+          <div className="font-mono text-xs text-right hidden lg:block">
+            <div className="text-[10px] uppercase text-[#737882]">Sourcing Status</div>
+            <div className="text-emerald-700 font-bold mt-0.5">
+              ● Active Hub: {parsedLoc.city}, {parsedLoc.country}
+            </div>
+          </div>
         </div>
 
-        {/* Global Location & Currency Configurator */}
-        <div className="flex flex-wrap items-center gap-2.5 font-mono text-xs bg-white/80 p-2.5 border border-[#171A1F]/15 rounded shadow-sm">
-          {/* Location Preset Dropdown */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase text-[#737882] font-semibold">Project Location</span>
+        {/* Global Controls Grid: Location, Currency, Rental Duration, Total Budget */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 font-mono text-xs">
+          {/* 1. Location Preset Dropdown */}
+          <div className="flex flex-col gap-1.5 bg-white p-3 border border-[#171A1F]/15 rounded">
+            <label htmlFor="procurement-location-select" className="text-[10px] uppercase text-[#737882] font-semibold">
+              Project Location Hub
+            </label>
             <select
               id="procurement-location-select"
               value={
@@ -238,7 +284,7 @@ export default function ProcurementWorkspacePanel({
                   : "custom"
               }
               onChange={handlePresetLocationChange}
-              className="px-2.5 py-1.5 bg-white border border-[#171A1F]/20 text-xs rounded focus:outline-none focus:border-[#D9532B]"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#171A1F]/20 text-xs rounded focus:outline-none focus:border-[#D9532B]"
             >
               <optgroup label="International Hubs">
                 {GLOBAL_LOCATION_PRESETS.map((preset) => (
@@ -249,11 +295,14 @@ export default function ProcurementWorkspacePanel({
               </optgroup>
               <option value="custom">✏️ Custom Location...</option>
             </select>
+            <span className="text-[10px] text-[#737882]">Updates regional vendor directory</span>
           </div>
 
-          {/* Currency Selector */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase text-[#737882] font-semibold">Currency</span>
+          {/* 2. Currency Selector */}
+          <div className="flex flex-col gap-1.5 bg-white p-3 border border-[#171A1F]/15 rounded">
+            <label htmlFor="procurement-currency-select" className="text-[10px] uppercase text-[#737882] font-semibold">
+              Project Currency
+            </label>
             <select
               id="procurement-currency-select"
               value={budgetConfig.currency}
@@ -263,21 +312,25 @@ export default function ProcurementWorkspacePanel({
                   currency: e.target.value as CurrencyCode,
                 })
               }
-              className="px-2.5 py-1.5 bg-white border border-[#171A1F]/20 text-xs rounded focus:outline-none focus:border-[#D9532B]"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#171A1F]/20 text-xs rounded focus:outline-none focus:border-[#D9532B]"
             >
-              <option value="INR">INR (₹)</option>
-              <option value="USD">USD ($)</option>
-              <option value="EUR">EUR (€)</option>
-              <option value="GBP">GBP (£)</option>
-              <option value="JPY">JPY (¥)</option>
+              <option value="INR">INR (₹) — Indian Rupee</option>
+              <option value="USD">USD ($) — US Dollar</option>
+              <option value="EUR">EUR (€) — Euro</option>
+              <option value="GBP">GBP (£) — British Pound</option>
+              <option value="JPY">JPY (¥) — Japanese Yen</option>
             </select>
+            <span className="text-[10px] text-[#737882]">Fixed benchmark conversion</span>
           </div>
 
-          {/* Rental Duration Selector */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase text-[#737882] font-semibold">Rental Duration</span>
-            <div className="flex items-center gap-1">
+          {/* 3. Rental Duration (Days) */}
+          <div className="flex flex-col gap-1.5 bg-white p-3 border border-[#171A1F]/15 rounded">
+            <label htmlFor="procurement-duration-input" className="text-[10px] uppercase text-[#737882] font-semibold">
+              Rental Duration Window
+            </label>
+            <div className="flex items-center gap-2">
               <input
+                id="procurement-duration-input"
                 type="number"
                 min={1}
                 max={60}
@@ -288,16 +341,20 @@ export default function ProcurementWorkspacePanel({
                     rentalDurationDays: Math.max(1, parseInt(e.target.value, 10) || 1),
                   })
                 }
-                className="w-16 px-2 py-1.5 bg-white border border-[#171A1F]/20 text-xs rounded focus:outline-none focus:border-[#D9532B]"
+                className="w-full px-2.5 py-1.5 bg-white border border-[#171A1F]/20 text-xs rounded focus:outline-none focus:border-[#D9532B]"
               />
-              <span className="text-[11px] text-[#5B5F66]">days</span>
+              <span className="text-xs text-[#5B5F66] font-medium">days</span>
             </div>
+            <span className="text-[10px] text-[#737882]">Applies to AV &amp; staging rentals</span>
           </div>
 
-          {/* Total Budget Input */}
-          <div className="flex flex-col gap-1">
-            <span className="text-[10px] uppercase text-[#737882] font-semibold">Total Budget</span>
+          {/* 4. Total Project Budget */}
+          <div className="flex flex-col gap-1.5 bg-white p-3 border border-[#171A1F]/15 rounded">
+            <label htmlFor="procurement-budget-input" className="text-[10px] uppercase text-[#737882] font-semibold">
+              Target Project Budget
+            </label>
             <input
+              id="procurement-budget-input"
               type="number"
               step={1000}
               min={1000}
@@ -308,341 +365,455 @@ export default function ProcurementWorkspacePanel({
                   totalBudget: Math.max(1000, parseInt(e.target.value, 10) || 1000),
                 })
               }
-              className="w-28 px-2 py-1.5 bg-white border border-[#171A1F]/20 text-xs rounded focus:outline-none focus:border-[#D9532B]"
+              className="w-full px-2.5 py-1.5 bg-white border border-[#171A1F]/20 text-xs rounded focus:outline-none focus:border-[#D9532B]"
             />
+            <span className="text-[10px] text-[#737882]">
+              Cap: {formatCurrency(budgetConfig.totalBudget, budgetConfig.currency)}
+            </span>
           </div>
         </div>
-      </div>
 
-      {/* Custom Location Drawer if enabled */}
-      {isEditingLocation && (
-        <div className="p-3.5 bg-white border border-[#D9532B]/30 rounded flex flex-wrap items-center gap-3 text-xs font-mono">
-          <span className="text-[#D9532B] font-semibold uppercase text-[11px]">Specify Location:</span>
-          <input
-            type="text"
-            placeholder="City / Locality"
-            value={customCity}
-            onChange={(e) => setCustomCity(e.target.value)}
-            className="px-2.5 py-1 border border-[#171A1F]/20 rounded"
-          />
-          <input
-            type="text"
-            placeholder="State / Region / Province"
-            value={customRegion}
-            onChange={(e) => setCustomRegion(e.target.value)}
-            className="px-2.5 py-1 border border-[#171A1F]/20 rounded"
-          />
-          <input
-            type="text"
-            placeholder="Country"
-            value={customCountry}
-            onChange={(e) => setCustomCountry(e.target.value)}
-            className="px-2.5 py-1 border border-[#171A1F]/20 rounded"
-          />
-          <button
-            type="button"
-            onClick={handleApplyCustomLocation}
-            className="px-3 py-1 bg-[#2F5A4C] text-white rounded font-mono uppercase text-[11px]"
-          >
-            Apply Location
-          </button>
-          <button
-            type="button"
-            onClick={() => setIsEditingLocation(false)}
-            className="px-2 py-1 text-[#737882] hover:text-[#171A1F] text-[11px]"
-          >
-            Cancel
-          </button>
-        </div>
-      )}
-
-      {/* 2. MAIN WORKSPACE: SCENE OBJECT SELECTOR + SOURCING WORKFLOW */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column (4 cols): Scene Assemblies Directory */}
-        <div className="lg:col-span-4 bg-[#171A1F] text-[#EEE8DC] p-4 rounded space-y-4 flex flex-col justify-between">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between border-b border-white/10 pb-2">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-emerald-400 font-semibold">
-                Scene Assemblies ({sourceableObjects.length})
-              </span>
-              <span className="font-mono text-[10px] text-white/50">
-                Location: {parsedLoc.city}, {parsedLoc.country}
-              </span>
-            </div>
-
-            {/* Scrollable List of Scene Objects */}
-            <div className="max-h-[360px] overflow-y-auto space-y-1.5 pr-1">
-              {sourceableObjects.map((obj) => {
-                const isSelected = selectedObj?.id === obj.id;
-                const isInBOQ = procurementList.some((item) => item.objectId === obj.id);
-                return (
-                  <div
-                    key={obj.id}
-                    onClick={() => onSelectObject(obj.id)}
-                    className={`p-2.5 rounded cursor-pointer transition-all border ${
-                      isSelected
-                        ? "bg-[#2F5A4C] border-emerald-400 text-white"
-                        : "bg-white/5 border-white/5 hover:bg-white/10 text-white/80"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between font-mono text-[10px]">
-                      <span className="uppercase tracking-wider opacity-80">{obj.category}</span>
-                      {isInBOQ && (
-                        <span className="px-1.5 py-0.2 bg-emerald-900/80 text-emerald-300 border border-emerald-700/60 rounded text-[9px]">
-                          ✓ In BOQ
-                        </span>
-                      )}
-                    </div>
-                    <div className="font-semibold text-xs mt-0.5">{obj.name}</div>
-                    <div className="font-mono text-[10px] text-white/60 mt-1 flex items-center justify-between">
-                      <span>{obj.dimensions.map((d) => Number(d).toFixed(1)).join(" × ")}m</span>
-                      <span className="capitalize">{obj.materialId.replace(/_/g, " ")}</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+        {/* Custom Location Drawer (revealed when user selects "custom") */}
+        {isEditingLocation && (
+          <div className="p-4 bg-white border border-[#D9532B]/40 rounded-lg flex flex-wrap items-center gap-3 text-xs font-mono shadow-sm">
+            <span className="text-[#D9532B] font-bold uppercase text-[11px]">
+              Specify Custom Geographic Dispatch:
+            </span>
+            <input
+              type="text"
+              placeholder="City / Municipality"
+              value={customCity}
+              onChange={(e) => setCustomCity(e.target.value)}
+              className="px-2.5 py-1.5 border border-[#171A1F]/20 rounded text-xs"
+            />
+            <input
+              type="text"
+              placeholder="State / Province / Region"
+              value={customRegion}
+              onChange={(e) => setCustomRegion(e.target.value)}
+              className="px-2.5 py-1.5 border border-[#171A1F]/20 rounded text-xs"
+            />
+            <input
+              type="text"
+              placeholder="Country"
+              value={customCountry}
+              onChange={(e) => setCustomCountry(e.target.value)}
+              className="px-2.5 py-1.5 border border-[#171A1F]/20 rounded text-xs"
+            />
+            <button
+              type="button"
+              onClick={handleApplyCustomLocation}
+              className="px-3.5 py-1.5 bg-[#2F5A4C] hover:bg-[#25483D] text-white rounded font-mono uppercase text-[11px] font-semibold"
+            >
+              Apply Location
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsEditingLocation(false)}
+              className="px-2.5 py-1.5 text-[#737882] hover:text-[#171A1F] text-[11px]"
+            >
+              Cancel
+            </button>
           </div>
+        )}
+      </section>
 
-          {/* Active Selected Object Inspection Card */}
-          {selectedObj && objectMeta && (
-            <div className="pt-3 border-t border-white/10 space-y-2.5">
-              <div className="flex items-center justify-between">
-                <span className="font-mono text-[10px] uppercase px-2 py-0.5 bg-[#D9532B] text-white rounded">
-                  Inspecting: {selectedObj.name.slice(0, 24)}...
-                </span>
-                {onSwitchTo3D && (
-                  <button
-                    type="button"
-                    onClick={onSwitchTo3D}
-                    className="font-mono text-[10px] underline text-emerald-300 hover:text-emerald-200"
-                  >
-                    Focus in 3D ↗
-                  </button>
-                )}
-              </div>
-              <div className="font-mono text-[11px] text-white/80 space-y-1 bg-black/30 p-2.5 rounded">
-                <div>Dimensions: {objectMeta.dimensionsMeters.join("m × ")}m</div>
-                <div>Primary Finish: {objectMeta.materialName} ({objectMeta.finish})</div>
-                <div>Recommended Qty: {objectMeta.quantity} unit(s)</div>
-                <div className="text-white/60 text-[10px] italic">Function: {objectMeta.intendedFunction}</div>
-              </div>
-            </div>
+      {/* =========================================================================
+          SECTION B: SOURCING METHOD & WORKFLOW (BUY / RENT / CUSTOM)
+         ========================================================================= */}
+      <section className="bg-white border border-[#171A1F]/15 rounded-lg p-6 shadow-sm space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#171A1F]/10 pb-3">
+          <div>
+            <span className="font-mono text-[11px] uppercase tracking-widest text-[#D9532B] font-bold">
+              SECTION 02 / SOURCING METHOD
+            </span>
+            <h3 className="font-serif text-xl sm:text-2xl text-[#171A1F] mt-0.5">
+              Select Procurement Workflow
+            </h3>
+          </div>
+          <div className="font-mono text-xs text-[#737882]">
+            Active Method: <strong className="uppercase text-[#171A1F]">{activeMethod}</strong>
+          </div>
+        </div>
+
+        {/* 3 Primary Sourcing Method Buttons */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {(["buy", "rent", "custom"] as SourcingMethod[]).map((method) => {
+            const isActive = activeMethod === method;
+            return (
+              <button
+                key={method}
+                type="button"
+                onClick={() => setActiveMethod(method)}
+                className={`p-3.5 rounded-lg border text-left font-mono transition-all flex flex-col justify-between gap-2 ${
+                  isActive
+                    ? "bg-[#D9532B] text-white border-[#D9532B] shadow-md ring-2 ring-[#D9532B]/30"
+                    : "bg-[#FCFAF7] text-[#171A1F] border-[#171A1F]/15 hover:border-[#171A1F]/30 hover:bg-[#F2ECE1]"
+                }`}
+              >
+                <div className="flex items-center justify-between">
+                  <span className="text-xs uppercase font-bold tracking-wider">
+                    {method === "buy"
+                      ? "🛒 Purchase (Buy)"
+                      : method === "rent"
+                      ? "🎪 Equipment Rental"
+                      : "🔨 Bespoke Fabrication"}
+                  </span>
+                  {isActive && <span className="text-[10px] bg-white/20 px-1.5 py-0.5 rounded">Active</span>}
+                </div>
+                <p className={`text-[11px] leading-relaxed ${isActive ? "text-white/90" : "text-[#5B5F66]"}`}>
+                  {method === "buy" && "Procure permanent commercial catalog inventory & materials."}
+                  {method === "rent" && `Lease pro-AV staging & acoustic hardware for ${budgetConfig.rentalDurationDays} days.`}
+                  {method === "custom" && "Commission custom millwork, joinery, and architectural fixtures."}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Mode-Specific Explanatory Guidance Banner */}
+        <div className="p-3 bg-[#FCFAF7] border border-[#171A1F]/10 rounded font-mono text-xs text-[#5B5F66] flex items-center gap-2">
+          <span className="text-[#D9532B] font-bold">ℹ</span>
+          {activeMethod === "buy" && (
+            <span>
+              <strong>Purchase Mode:</strong> Evaluating commercial catalog options with freight lead time to{" "}
+              <strong>{parsedLoc.city}</strong>. Product line totals reflect unit price × recommended quantity.
+            </span>
+          )}
+          {activeMethod === "rent" && (
+            <span>
+              <strong>Rental Mode:</strong> Sourcing regional staging &amp; pro-audio inventory for a{" "}
+              <strong>{budgetConfig.rentalDurationDays}-day</strong> event window near{" "}
+              <strong>{parsedLoc.city}</strong>. Subtotals calculate: daily rate × quantity × {budgetConfig.rentalDurationDays} days.
+            </span>
+          )}
+          {activeMethod === "custom" && (
+            <span>
+              <strong>Bespoke Fabrication Mode:</strong> Generating architectural shop drawing specs for local joinery/millwork workshops in{" "}
+              <strong>{parsedLoc.region || parsedLoc.country}</strong>. Prices reflect benchmark craft estimates.
+            </span>
           )}
         </div>
+      </section>
 
-        {/* Right Column (8 cols): BUY, RENT, CUSTOM SOURCING WORKFLOW */}
-        <div className="lg:col-span-8 bg-white border border-[#171A1F]/15 rounded p-5 space-y-4 flex flex-col justify-between">
-          <div className="space-y-4">
-            {/* Sourcing Method Tabs: BUY, RENT, CUSTOM */}
-            <div className="flex items-center justify-between border-b border-[#171A1F]/10 pb-3">
-              <div className="flex gap-2">
-                {(["buy", "rent", "custom"] as SourcingMethod[]).map((method) => {
-                  const isActive = activeMethod === method;
-                  return (
-                    <button
-                      key={method}
-                      type="button"
-                      onClick={() => setActiveMethod(method)}
-                      className={`px-4 py-1.5 font-mono text-xs uppercase tracking-wider rounded font-semibold border transition-all ${
-                        isActive
-                          ? "bg-[#D9532B] text-white border-[#D9532B] shadow-sm"
-                          : "bg-[#EEE8DC]/50 text-[#171A1F]/70 border-[#171A1F]/15 hover:bg-[#EEE8DC]"
-                      }`}
-                    >
-                      {method === "buy" ? "🛒 Purchase (Buy)" : method === "rent" ? "🎪 Equipment Rental" : "🔨 Bespoke Fabrication"}
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="font-mono text-[11px] text-[#5B5F66] hidden sm:block">
-                Location: <strong>{budgetConfig.location}</strong>
-              </div>
-            </div>
-
-            {/* Mode-Specific Explanatory Guidance Banner */}
-            <div className="p-2.5 rounded bg-[#EEE8DC]/40 border border-[#171A1F]/10 font-mono text-[11px] text-[#5B5F66]">
-              {activeMethod === "buy" && (
-                <span>
-                  <strong>Purchase Mode:</strong> Sourcing purchasable catalog items with freight lead time to {parsedLoc.city}. Product prices reflect benchmark estimates until verified via supplier quote.
-                </span>
-              )}
-              {activeMethod === "rent" && (
-                <span>
-                  <strong>Rental Mode:</strong> Sourcing regional pro-AV and staging inventory for a <strong>{budgetConfig.rentalDurationDays}-day</strong> event window near {parsedLoc.city}. Subtotals include daily rate × quantity × days.
-                </span>
-              )}
-              {activeMethod === "custom" && (
-                <span>
-                  <strong>Bespoke Fabrication Mode:</strong> Generating custom architectural CAD specifications for local joinery/millwork fabricators in {parsedLoc.region || parsedLoc.country}. Prices are indicative and await formal shop drawing sign-off.
-                </span>
-              )}
-            </div>
-
-            {/* 3 Tiered Cards (Economy, Recommended, Premium) */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {methodMatches.map((opt) => {
-                const isInBOQ = procurementList.some(
-                  (item) => item.objectId === opt.objectId && item.selectedOption.id === opt.id
-                );
-                return (
-                  <div
-                    key={opt.id}
-                    className={`border p-4 rounded flex flex-col justify-between space-y-3 transition-all ${
-                      opt.tier === "recommended"
-                        ? "bg-[#FCFAF7] border-[#2F5A4C]/40 shadow-sm ring-1 ring-[#2F5A4C]/20"
-                        : "bg-white border-[#171A1F]/15 hover:border-[#171A1F]/30"
-                    }`}
-                  >
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between font-mono text-[10px]">
-                        <span className={`uppercase px-2 py-0.5 rounded font-bold ${
-                          opt.tier === "recommended"
-                            ? "bg-[#2F5A4C] text-white"
-                            : opt.tier === "premium"
-                            ? "bg-[#171A1F] text-white"
-                            : "bg-[#737882] text-white"
-                        }`}>
-                          {opt.tier} Tier
-                        </span>
-                        <span className="text-[#2F5A4C] font-semibold">
-                          {opt.matchScorePct}% Spec Match
-                        </span>
-                      </div>
-
-                      <h4 className="font-semibold text-sm text-[#171A1F] leading-tight line-clamp-2">
-                        {opt.title}
-                      </h4>
-
-                      {/* Pricing Readout */}
-                      <div className="font-mono space-y-0.5">
-                        <div className="text-base text-[#D9532B] font-bold">
-                          {formatCurrency(opt.estimatedLineTotalInUserCurrency, budgetConfig.currency)}
-                        </div>
-                        <div className="text-[10px] text-[#737882]">
-                          Unit: {formatCurrency(convertFromUSD(opt.unitPriceUSD, budgetConfig.currency), budgetConfig.currency)}
-                          {opt.pricingPeriod === "per_day" ? ` / day × ${budgetConfig.rentalDurationDays}d` : ` (${opt.pricingPeriod})`}
-                          {" "}× {opt.recommendedQuantity} qty
-                        </div>
-                      </div>
-
-                      {/* Fit & Verification Status Note */}
-                      <p className="text-[11px] text-[#5B5F66] leading-relaxed">
-                        {opt.budgetFitExplanation}
-                      </p>
-
-                      <div className="font-mono text-[10px] bg-neutral-100 p-2 rounded text-[#171A1F] space-y-0.5">
-                        <div className="font-semibold truncate">Vendor: {opt.supplierName}</div>
-                        <div className="text-[9px] text-[#737882] truncate">Region: {opt.supplierRegion}</div>
-                        <div className="text-[9px] text-amber-800 font-medium">Status: {opt.priceStatus.replace(/_/g, " ")}</div>
-                      </div>
-                    </div>
-
-                    {/* Action Buttons: Links & Save to BOQ */}
-                    <div className="space-y-1.5 pt-3 border-t border-[#171A1F]/10">
-                      <div className="flex gap-1.5">
-                        <a
-                          href={opt.productUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 text-center py-1.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] font-mono text-[10px] uppercase rounded transition-colors"
-                        >
-                          Supplier Page ↗
-                        </a>
-                        <a
-                          href={opt.supplierSearchUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 text-center py-1.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] font-mono text-[10px] uppercase rounded transition-colors"
-                        >
-                          Search Local ↗
-                        </a>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() =>
-                          onUpdateProcurementList(
-                            upsertProcurementLineItem(
-                              procurementList,
-                              opt,
-                              selectedObj.category,
-                              objectMeta?.quantity || 1,
-                              budgetConfig.rentalDurationDays
-                            )
-                          )
-                        }
-                        className={`w-full py-2 font-mono text-[10px] uppercase rounded font-bold transition-all ${
-                          isInBOQ
-                            ? "bg-emerald-700 text-white"
-                            : "bg-[#2F5A4C] hover:bg-[#25483D] text-white shadow-sm"
-                        }`}
-                      >
-                        {isInBOQ ? "✓ Update in Project BOQ" : "+ Save to Project BOQ"}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 3. INTERACTIVE PROJECT BOQ SHEET & PROCUREMENT SUMMARY */}
-      <div className="bg-white border border-[#171A1F]/20 rounded p-5 space-y-5 shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#171A1F]/15 pb-4">
+      {/* =========================================================================
+          SECTION C: SCENE ASSEMBLIES & AVAILABLE SOURCING TIERS
+         ========================================================================= */}
+      <section className="bg-white border border-[#171A1F]/15 rounded-lg p-6 shadow-sm space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#171A1F]/10 pb-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-mono text-xs uppercase tracking-wider text-[#D9532B] font-bold">
-                Project Bill of Quantities (BOQ)
+              <span className="font-mono text-[11px] uppercase tracking-widest text-[#D9532B] font-bold">
+                SECTION 03 / SCENE ASSEMBLIES &amp; SOURCING TIERS
               </span>
-              <span className="px-2 py-0.2 rounded-full bg-[#171A1F] text-white font-mono text-[10px]">
+              <span className="font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-900 text-emerald-200">
+                {sourceableObjects.length} Generated Assemblies
+              </span>
+            </div>
+            <h3 className="font-serif text-xl sm:text-2xl text-[#171A1F] mt-1">
+              Select Assembly &amp; Review Available Sourcing Options
+            </h3>
+            <p className="font-sans text-xs text-[#5B5F66] mt-0.5">
+              Choose an architectural assembly from the current scene to inspect its specification matches across Economy, Recommended, and Premium tiers.
+            </p>
+          </div>
+
+          {/* Distinction Callout */}
+          <div className="font-mono text-[11px] bg-[#FCFAF7] border border-[#171A1F]/15 px-3 py-1.5 rounded text-[#5B5F66]">
+            <span>In Scene: <strong>{sourceableObjects.length}</strong></span>
+            <span className="mx-2">·</span>
+            <span>Committed in BOQ: <strong className="text-emerald-700">{procurementList.length}</strong></span>
+          </div>
+        </div>
+
+        {/* Category Filter Pills for Scene Assemblies */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="font-mono text-[11px] text-[#737882] uppercase mr-1">Filter Assemblies:</span>
+          {[
+            { id: "all", label: "All Assemblies" },
+            { id: "Furniture", label: "Furniture" },
+            { id: "Lighting", label: "Lighting" },
+            { id: "Architecture", label: "Architecture" },
+            { id: "Structure", label: "Structure" },
+            { id: "Decoration", label: "Decoration" },
+            { id: "Planting", label: "Planting" },
+            { id: "Event Installations", label: "Event Installations" },
+          ].map((cat) => {
+            const count = categoryCounts[cat.id] || 0;
+            if (cat.id !== "all" && count === 0) return null;
+            const isSelected = categoryFilter === cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setCategoryFilter(cat.id as AssemblyCategoryFilter)}
+                className={`font-mono text-[11px] px-3 py-1 rounded-full border transition-all ${
+                  isSelected
+                    ? "bg-[#171A1F] text-white border-[#171A1F] shadow-sm font-semibold"
+                    : "bg-[#FCFAF7] text-[#5B5F66] border-[#171A1F]/15 hover:border-[#171A1F]/30"
+                }`}
+              >
+                {cat.label} ({count})
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Scene Assemblies Selection Grid (Open, Unnested Layout) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+          {filteredObjects.map((obj) => {
+            const isSelected = selectedObj?.id === obj.id;
+            const isInBOQ = procurementList.some((item) => item.objectId === obj.id);
+            return (
+              <div
+                key={obj.id}
+                onClick={() => onSelectObject(obj.id)}
+                className={`p-3 rounded-lg cursor-pointer transition-all border flex flex-col justify-between gap-2 ${
+                  isSelected
+                    ? "bg-[#2F5A4C] border-emerald-400 text-white shadow-md ring-2 ring-emerald-500/30"
+                    : "bg-[#FCFAF7] border-[#171A1F]/15 hover:border-[#171A1F]/40 text-[#171A1F]"
+                }`}
+              >
+                <div>
+                  <div className="flex items-center justify-between font-mono text-[10px]">
+                    <span className={`uppercase tracking-wider ${isSelected ? "text-emerald-200" : "text-[#737882]"}`}>
+                      {obj.category}
+                    </span>
+                    {isInBOQ && (
+                      <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold ${
+                        isSelected ? "bg-emerald-950 text-emerald-300 border border-emerald-700" : "bg-emerald-100 text-emerald-800 border border-emerald-300"
+                      }`}>
+                        ✓ In BOQ
+                      </span>
+                    )}
+                  </div>
+                  <div className="font-semibold text-xs mt-1 leading-snug">{obj.name}</div>
+                </div>
+
+                <div className={`font-mono text-[10px] flex items-center justify-between pt-1 border-t ${
+                  isSelected ? "border-white/20 text-white/80" : "border-[#171A1F]/10 text-[#737882]"
+                }`}>
+                  <span>{obj.dimensions.map((d) => Number(d).toFixed(1)).join(" × ")}m</span>
+                  <span className="capitalize truncate max-w-[100px]">{obj.materialId.replace(/_/g, " ")}</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Currently Inspecting Assembly Bar */}
+        {selectedObj && objectMeta && (
+          <div className="p-4 bg-[#FCFAF7] border border-[#171A1F]/20 rounded-lg flex flex-wrap items-center justify-between gap-4 font-mono text-xs">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 bg-[#D9532B] text-white rounded text-[10px] uppercase font-bold">
+                  Inspecting Assembly
+                </span>
+                <strong className="text-sm text-[#171A1F]">{selectedObj.name}</strong>
+              </div>
+              <div className="text-[11px] text-[#5B5F66]">
+                Dimensions: {objectMeta.dimensionsMeters.join("m × ")}m · Material: {objectMeta.materialName} ({objectMeta.finish}) · Rec. Qty: {objectMeta.quantity} unit(s)
+              </div>
+            </div>
+
+            {onSwitchTo3D && (
+              <button
+                type="button"
+                onClick={onSwitchTo3D}
+                className="px-3 py-1.5 bg-[#171A1F] hover:bg-black text-[#EEE8DC] rounded font-mono text-[11px] uppercase tracking-wider flex items-center gap-1.5 shadow-sm transition-colors"
+              >
+                <span>Focus in 3D</span>
+                <span aria-hidden="true">↗</span>
+              </button>
+            )}
+          </div>
+        )}
+
+        {/* 3 Sourcing Option Cards (Economy, Recommended, Premium) */}
+        <div className="space-y-3">
+          <div className="flex items-center justify-between font-mono text-xs text-[#737882]">
+            <span>Available Tiers for: <strong>{selectedObj?.name || "Selected Assembly"}</strong></span>
+            <span>Location: <strong>{budgetConfig.location}</strong></span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+            {methodMatches.map((opt) => {
+              const isInBOQ = procurementList.some(
+                (item) => item.objectId === opt.objectId && item.selectedOption.id === opt.id
+              );
+              return (
+                <div
+                  key={opt.id}
+                  className={`border rounded-lg p-5 flex flex-col justify-between space-y-4 transition-all ${
+                    opt.tier === "recommended"
+                      ? "bg-[#FCFAF7] border-[#2F5A4C]/60 shadow-md ring-1 ring-[#2F5A4C]/30"
+                      : "bg-white border-[#171A1F]/15 hover:border-[#171A1F]/30 shadow-sm"
+                  }`}
+                >
+                  <div className="space-y-3">
+                    {/* Header: Tier + Match Score */}
+                    <div className="flex items-center justify-between font-mono text-[10px]">
+                      <span className={`uppercase px-2.5 py-0.5 rounded font-bold tracking-wider ${
+                        opt.tier === "recommended"
+                          ? "bg-[#2F5A4C] text-white"
+                          : opt.tier === "premium"
+                          ? "bg-[#171A1F] text-white"
+                          : "bg-[#737882] text-white"
+                      }`}>
+                        {opt.tier} Tier
+                      </span>
+                      <span className="text-[#2F5A4C] font-bold text-xs">
+                        {opt.matchScorePct}% Spec Match
+                      </span>
+                    </div>
+
+                    {/* Title */}
+                    <h4 className="font-semibold text-sm sm:text-base text-[#171A1F] leading-snug">
+                      {opt.title}
+                    </h4>
+
+                    {/* Pricing Readout */}
+                    <div className="font-mono bg-[#FCFAF7] p-3 rounded border border-[#171A1F]/10 space-y-1">
+                      <div className="text-lg text-[#D9532B] font-bold">
+                        {formatCurrency(opt.estimatedLineTotalInUserCurrency, budgetConfig.currency)}
+                      </div>
+                      <div className="text-[10px] text-[#737882] leading-tight">
+                        Unit Rate: {formatCurrency(convertFromUSD(opt.unitPriceUSD, budgetConfig.currency), budgetConfig.currency)}
+                        {opt.pricingPeriod === "per_day"
+                          ? ` / day × ${budgetConfig.rentalDurationDays}d × ${opt.recommendedQuantity} units`
+                          : ` (${opt.pricingPeriod}) × ${opt.recommendedQuantity} units`}
+                      </div>
+                    </div>
+
+                    {/* Fit & Verification Status Note */}
+                    <p className="text-xs text-[#5B5F66] leading-relaxed">
+                      {opt.budgetFitExplanation}
+                    </p>
+
+                    {/* Vendor and Region Details */}
+                    <div className="font-mono text-[10px] bg-neutral-100 p-2.5 rounded text-[#171A1F] space-y-1">
+                      <div className="font-semibold truncate">Supplier: {opt.supplierName}</div>
+                      <div className="text-[#737882] truncate">Region: {opt.supplierRegion}</div>
+                      <div className="text-amber-900 font-medium">Status: {opt.priceStatus.replace(/_/g, " ")}</div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons: Links & Save to BOQ */}
+                  <div className="space-y-2 pt-3 border-t border-[#171A1F]/10">
+                    <div className="grid grid-cols-2 gap-2">
+                      <a
+                        href={opt.productUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-center py-2 bg-[#EEE8DC] hover:bg-[#E4DDD0] font-mono text-[10px] uppercase rounded font-semibold transition-colors truncate px-1"
+                      >
+                        Supplier Page ↗
+                      </a>
+                      <a
+                        href={opt.supplierSearchUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-center py-2 bg-[#EEE8DC] hover:bg-[#E4DDD0] font-mono text-[10px] uppercase rounded font-semibold transition-colors truncate px-1"
+                      >
+                        Search Local ↗
+                      </a>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() =>
+                        onUpdateProcurementList(
+                          upsertProcurementLineItem(
+                            procurementList,
+                            opt,
+                            selectedObj?.category || "furniture",
+                            objectMeta?.quantity || 1,
+                            budgetConfig.rentalDurationDays
+                          )
+                        )
+                      }
+                      className={`w-full py-2.5 font-mono text-xs uppercase rounded font-bold transition-all shadow-sm ${
+                        isInBOQ
+                          ? "bg-emerald-700 hover:bg-emerald-800 text-white"
+                          : "bg-[#2F5A4C] hover:bg-[#25483D] text-white"
+                      }`}
+                    >
+                      {isInBOQ ? "✓ Update in Project BOQ" : "+ Save to Project BOQ"}
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* =========================================================================
+          SECTION D: PROJECT BILL OF QUANTITIES (BOQ)
+         ========================================================================= */}
+      <section className="bg-white border border-[#171A1F]/20 rounded-lg p-6 shadow-sm space-y-6">
+        <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#171A1F]/15 pb-4">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono text-[11px] uppercase tracking-widest text-[#D9532B] font-bold">
+                SECTION 04 / PROJECT BILL OF QUANTITIES (BOQ)
+              </span>
+              <span className="px-2.5 py-0.5 rounded-full bg-[#171A1F] text-white font-mono text-[10px] font-bold">
                 {summary.items.length} Committed Assemblies
               </span>
             </div>
-            <h3 className="font-serif text-2xl text-[#171A1F] mt-0.5">
-              Cost Allocation &amp; Specification Manifest
+            <h3 className="font-serif text-2xl text-[#171A1F] mt-1">
+              Cost Allocation &amp; Project Procurement List
             </h3>
+            <p className="font-sans text-xs text-[#5B5F66] mt-0.5">
+              Scene contains <strong>{sourceableObjects.length}</strong> architectural assemblies. Currently{" "}
+              <strong>{summary.items.length}</strong> items are committed to the project procurement budget.
+            </p>
           </div>
 
-          {/* Export Actions */}
+          {/* Export Actions Bar */}
           <div className="flex flex-wrap items-center gap-2 font-mono text-xs">
             {copyFeedback && (
-              <span className="text-emerald-700 font-semibold text-[11px] animate-fade-in">
-                {copyFeedback}
+              <span className="text-emerald-700 font-semibold text-[11px] animate-fade-in mr-2">
+                ✓ {copyFeedback}
               </span>
             )}
             <button
               type="button"
               onClick={handleCopyBrief}
-              className="px-3 py-1.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] border border-[#171A1F]/20 rounded uppercase text-[10px] font-semibold"
+              className="px-3 py-1.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] border border-[#171A1F]/20 rounded uppercase text-[10px] font-semibold transition-colors"
             >
               Copy Brief (MD)
             </button>
             <button
               type="button"
               onClick={handleDownloadCSV}
-              className="px-3 py-1.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] border border-[#171A1F]/20 rounded uppercase text-[10px] font-semibold"
+              className="px-3 py-1.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] border border-[#171A1F]/20 rounded uppercase text-[10px] font-semibold transition-colors"
             >
               Download CSV
             </button>
             <button
               type="button"
               onClick={handleDownloadJSON}
-              className="px-3 py-1.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] border border-[#171A1F]/20 rounded uppercase text-[10px] font-semibold"
+              className="px-3 py-1.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] border border-[#171A1F]/20 rounded uppercase text-[10px] font-semibold transition-colors"
             >
               Export JSON
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadMarkdown}
+              className="px-3 py-1.5 bg-[#171A1F] hover:bg-black text-white rounded uppercase text-[10px] font-semibold transition-colors"
+            >
+              Download BOQ (.md)
             </button>
           </div>
         </div>
 
         {/* Dynamic Budget Utilization Bar & Breakdown Metrics */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-[#FCFAF7] p-4 rounded border border-[#171A1F]/10 font-mono text-xs">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-[#FCFAF7] p-5 rounded-lg border border-[#171A1F]/10 font-mono text-xs">
           <div>
             <div className="text-[10px] uppercase text-[#737882]">Purchase (Buy) Total</div>
-            <div className="text-base font-bold text-[#171A1F]">
+            <div className="text-lg font-bold text-[#171A1F] mt-0.5">
               {formatCurrency(summary.buySubtotal, summary.currency)}
             </div>
           </div>
@@ -650,13 +821,13 @@ export default function ProcurementWorkspacePanel({
             <div className="text-[10px] uppercase text-[#737882]">
               Rental Total ({summary.rentalDurationDays} Days)
             </div>
-            <div className="text-base font-bold text-[#171A1F]">
+            <div className="text-lg font-bold text-[#171A1F] mt-0.5">
               {formatCurrency(summary.rentSubtotal, summary.currency)}
             </div>
           </div>
           <div>
             <div className="text-[10px] uppercase text-[#737882]">Custom Fabrication Total</div>
-            <div className="text-base font-bold text-[#171A1F]">
+            <div className="text-lg font-bold text-[#171A1F] mt-0.5">
               {formatCurrency(summary.customSubtotal, summary.currency)}
             </div>
           </div>
@@ -664,33 +835,57 @@ export default function ProcurementWorkspacePanel({
             <div className="text-[10px] uppercase text-[#737882]">
               Grand Estimated Total / Budget
             </div>
-            <div className="text-base font-bold text-[#D9532B]">
+            <div className="text-lg font-bold text-[#D9532B] mt-0.5">
               {formatCurrency(summary.grandTotalEstimated, summary.currency)} / {formatCurrency(summary.totalBudget, summary.currency)}
             </div>
-            <div className="text-[10px] text-[#737882] mt-0.5">
-              Utilization: {summary.budgetUtilizationPct}% ({summary.remainingBudget >= 0 ? `${formatCurrency(summary.remainingBudget, summary.currency)} remaining` : `Over budget by ${formatCurrency(Math.abs(summary.remainingBudget), summary.currency)}`})
+            <div className="text-[10px] text-[#737882] mt-1">
+              Utilization: {summary.budgetUtilizationPct}% (
+              {summary.remainingBudget >= 0
+                ? `${formatCurrency(summary.remainingBudget, summary.currency)} remaining`
+                : `Over budget by ${formatCurrency(Math.abs(summary.remainingBudget), summary.currency)}`}
+              )
             </div>
           </div>
         </div>
 
-        {/* Interactive BOQ Items Table */}
+        {/* Budget Utilization Visual Progress Bar */}
+        <div className="space-y-1">
+          <div className="flex justify-between font-mono text-[10px] text-[#737882]">
+            <span>Budget Utilization: {summary.budgetUtilizationPct}%</span>
+            <span>Target: {formatCurrency(summary.totalBudget, summary.currency)}</span>
+          </div>
+          <div className="w-full h-2 bg-neutral-200 rounded-full overflow-hidden">
+            <div
+              className={`h-full transition-all duration-300 ${
+                summary.budgetUtilizationPct > 100
+                  ? "bg-red-600"
+                  : summary.budgetUtilizationPct > 85
+                  ? "bg-amber-600"
+                  : "bg-[#2F5A4C]"
+              }`}
+              style={{ width: `${Math.min(100, summary.budgetUtilizationPct)}%` }}
+            />
+          </div>
+        </div>
+
+        {/* Committed BOQ Items Table (Clear, Unnested Full-Width Display) */}
         {summary.items.length === 0 ? (
-          <div className="p-8 text-center text-sm font-sans text-[#737882] italic bg-[#EEE8DC]/20 border border-dashed border-[#171A1F]/20 rounded">
-            No assemblies saved to your Project BOQ yet. Select an assembly above and click &ldquo;+ Save to Project BOQ&rdquo;.
+          <div className="p-8 text-center text-sm font-sans text-[#737882] italic bg-[#EEE8DC]/20 border border-dashed border-[#171A1F]/20 rounded-lg">
+            No assemblies saved to your Project BOQ yet. Select an assembly above and click &ldquo;+ Save to Project BOQ&rdquo; to build your budget.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto rounded border border-[#171A1F]/15">
             <table className="w-full text-left font-mono text-xs border-collapse">
               <thead>
                 <tr className="border-b border-[#171A1F]/20 text-[10px] uppercase text-[#737882] tracking-wider bg-[#FCFAF7]">
-                  <th className="py-2.5 px-3">Assembly &amp; Category</th>
-                  <th className="py-2.5 px-3">Selected Match &amp; Tier</th>
-                  <th className="py-2.5 px-3 text-center">Method</th>
-                  <th className="py-2.5 px-3 text-center">Quantity</th>
-                  <th className="py-2.5 px-3 text-right">Unit Price</th>
-                  <th className="py-2.5 px-3 text-right">Line Total</th>
-                  <th className="py-2.5 px-3">Supplier Link</th>
-                  <th className="py-2.5 px-3 text-center">Action</th>
+                  <th className="py-3 px-3">Assembly &amp; Category</th>
+                  <th className="py-3 px-3">Selected Match &amp; Tier</th>
+                  <th className="py-3 px-3 text-center">Method</th>
+                  <th className="py-3 px-3 text-center">Quantity</th>
+                  <th className="py-3 px-3 text-right">Unit Price</th>
+                  <th className="py-3 px-3 text-right">Line Total</th>
+                  <th className="py-3 px-3">Supplier Link</th>
+                  <th className="py-3 px-3 text-center">Action</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#171A1F]/10">
@@ -701,29 +896,29 @@ export default function ProcurementWorkspacePanel({
                       <div className="text-[10px] text-[#737882]">{item.category}</div>
                     </td>
                     <td className="py-3 px-3">
-                      <div className="text-xs text-[#171A1F] truncate max-w-[220px]">{item.selectedOption.title}</div>
-                      <div className="text-[10px] text-[#2F5A4C]">{item.matchScorePct}% Spec Match • {item.tier}</div>
+                      <div className="text-xs text-[#171A1F] font-medium">{item.selectedOption.title}</div>
+                      <div className="text-[10px] text-[#2F5A4C]">{item.matchScorePct}% Spec Match · {item.tier}</div>
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <span className="uppercase text-[9px] px-1.5 py-0.5 rounded bg-[#171A1F] text-white">
+                      <span className="uppercase text-[9px] px-2 py-0.5 rounded font-bold bg-[#171A1F] text-white">
                         {item.sourcingMethod}
                       </span>
                     </td>
                     <td className="py-3 px-3 text-center">
-                      <div className="inline-flex items-center gap-1.5 border border-[#171A1F]/20 rounded px-1.5 py-0.5 bg-white">
+                      <div className="inline-flex items-center gap-1.5 border border-[#171A1F]/20 rounded px-2 py-0.5 bg-white">
                         <button
                           type="button"
                           onClick={() => handleUpdateLineQty(item.objectId, -1)}
-                          className="text-[#737882] hover:text-[#171A1F] px-1 font-bold"
+                          className="text-[#737882] hover:text-[#171A1F] px-1 font-bold text-sm"
                           title="Decrease quantity"
                         >
                           -
                         </button>
-                        <span className="font-bold min-w-[16px] text-center">{item.quantity}</span>
+                        <span className="font-bold min-w-[18px] text-center text-xs">{item.quantity}</span>
                         <button
                           type="button"
                           onClick={() => handleUpdateLineQty(item.objectId, 1)}
-                          className="text-[#737882] hover:text-[#171A1F] px-1 font-bold"
+                          className="text-[#737882] hover:text-[#171A1F] px-1 font-bold text-sm"
                           title="Increase quantity"
                         >
                           +
@@ -751,7 +946,7 @@ export default function ProcurementWorkspacePanel({
                       <button
                         type="button"
                         onClick={() => handleRemoveFromBOQ(item.objectId)}
-                        className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-[11px]"
+                        className="px-2.5 py-1 text-red-600 hover:bg-red-50 rounded text-[11px] font-semibold transition-colors"
                         title="Remove from BOQ"
                       >
                         ✕ Remove
@@ -764,16 +959,17 @@ export default function ProcurementWorkspacePanel({
           </div>
         )}
 
-        {/* Mandatory Transparency Disclaimer & Benchmark Timestamp */}
-        <div className="border-t border-[#171A1F]/10 pt-3 space-y-1">
+        {/* Mandatory Transparency Disclaimer & Benchmark Disclosures */}
+        <div className="border-t border-[#171A1F]/10 pt-4 space-y-1.5">
           <p className="font-mono text-[10px] text-[#737882] leading-relaxed">
             {summary.disclaimer}
           </p>
           <p className="font-mono text-[9px] text-[#737882]/80">
-            FX Benchmark: Application-defined benchmark assumptions (Base: USD, dated Oct 2026) • Index Date: {summary.currencyConversionTimestamp?.slice(0, 10) || "2026-10-01"} • Verification Status: Preliminary Trade Reference (Non-Live Quotes / Non-Verified Stock)
+            FX Benchmark: Application-defined benchmark assumptions (Base: USD, dated Oct 2026) · Index Date:{" "}
+            {summary.currencyConversionTimestamp?.slice(0, 10) || "2026-10-01"} · Verification Status: Preliminary Trade Reference (Non-Live Quotes / Non-Verified Stock)
           </p>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   );
 }

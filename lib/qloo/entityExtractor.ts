@@ -163,6 +163,7 @@ export function extractEntitiesAndConcepts(prompt: string): ExtractionOutput {
   if (lower.includes("kraftwerk")) addEntity("Kraftwerk", "artist");
   if (lower.includes("a24 films") || lower.includes("a24")) addEntity("A24", "brand");
   if (lower.includes("blue note records") || lower.includes("blue note")) addEntity("Blue Note", "brand");
+  if (lower.includes("cedric the entertainer") || lower.includes("cedric")) addEntity("Cedric the Entertainer", "person");
   if (lower.includes("japanese gardens")) addEntity("Japanese Gardens", "place");
   if (lower.includes("tokyo")) addEntity("Tokyo", "place");
   if (lower.includes("berlin")) addEntity("Berlin", "place");
@@ -200,18 +201,28 @@ export function extractEntitiesAndConcepts(prompt: string): ExtractionOutput {
   }
 
   // 4. Handle plus-separated phrases e.g. "Miles Davis + Brutalist concrete"
+  // 4. Handle plus-separated phrases e.g. "Miles Davis + Brutalist concrete" or "Cedric the Entertainer + Contemporary Comedy Theatre"
+  const ARCHITECTURAL_PROGRAM_PATTERN =
+    /\b(theatre|theater|comedy theatre|comedy theater|contemporary comedy|comedy club|auditorium|amphitheatre|amphitheater|opera house|concert hall|cinema|screening room|gallery|pavilion|sanctuary|lounge|listening room|warehouse|loft|courtyard|residence|retreat|mandap|chapel|cathedral|hall|studio|deck)\b/i;
+
   const CONCEPT_KEYWORDS_PATTERN =
-    /\b(architecture|architectural|style|movement|design|brutalist|brutalism|concrete|modernism|minimalism|revival|acoustic|sound|soundtrack|ambient|techno|jazz|blues|rock|pop|house|electronic|club|warehouse|gallery|pavilion|room|house|lounge|studio|hall|material|timber|wood|oak|steel|chrome|glass|stone|granite|marble|brick|terrazzo|art deco|mid-century|postmodern)\b/i;
+    /\b(architecture|architectural|style|movement|design|brutalist|brutalism|concrete|modernism|minimalism|revival|acoustic|sound|soundtrack|ambient|techno|jazz|blues|rock|pop|house|electronic|club|warehouse|gallery|pavilion|room|house|lounge|studio|hall|material|timber|wood|oak|steel|chrome|glass|stone|granite|marble|brick|terrazzo|art deco|mid-century|postmodern|contemporary|theatre|theater|comedy)\b/i;
+
+  const CULTURAL_NAME_PATTERN =
+    /^[A-Z][A-Za-z0-9]*(?:\s+(?:the|of|and|de|la|von|van|da|[A-Z][A-Za-z0-9]*))+$/;
 
   if (clean.includes("+")) {
     const parts = clean.split("+").map((s) => s.trim());
     for (const p of parts) {
       const pLower = p.toLowerCase();
       if (p.length > 2 && !seenEntities.has(pLower) && !seenConcepts.has(pLower)) {
-        if (CONCEPT_KEYWORDS_PATTERN.test(p)) {
+        if (ARCHITECTURAL_PROGRAM_PATTERN.test(p)) {
+          // Architectural venue requirement: treat as spatial concept, never search as named person
           addConcept(p, "style");
-        } else if (/^[A-Z][a-z]+(?:\s+[A-Z][a-z]+)+$/.test(p)) {
-          // If 2 words capitalized and not an architectural/music concept, check as namedEntity
+        } else if (CONCEPT_KEYWORDS_PATTERN.test(p)) {
+          addConcept(p, "style");
+        } else if (CULTURAL_NAME_PATTERN.test(p)) {
+          // Cultural figure / artist / creator (e.g. "Cedric the Entertainer", "Miles Davis")
           addEntity(p, "person");
         } else {
           addConcept(p, "style");
@@ -234,7 +245,7 @@ function mapTypeToQlooSearch(type: ExtractedNamedEntity["type"]): string {
   switch (type) {
     case "artist":
     case "person":
-      return "urn:entity:artist";
+      return "urn:entity:artist,urn:entity:person";
     case "movie":
       return "urn:entity:movie";
     case "tv_show":

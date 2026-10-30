@@ -13,6 +13,7 @@
     "test:reliability": "node --test tests/system-reliability.test.mjs",
     "test:procurement": "node --test tests/qloo-visual-and-procurement.test.mjs",
     "test:readiness": "node --test tests/release-readiness-grounding.test.mjs",
+    "test:baseline": "node --test tests/dynamic-baseline-differentiation.test.mjs",
     "proof:cold": "node scripts/qloo-telemetry-proof.mjs --clear-cache",
     "proof:matrix": "node scripts/qloo-telemetry-proof.mjs",
     "prewarm": "node scripts/prewarm-kv.mjs",

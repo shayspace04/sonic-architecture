@@ -529,6 +529,73 @@ export const QLOO_SAMPLE_FIXTURES: Record<string, QlooContext> = {
       },
     ],
   },
+  // ==========================================================================
+  // 6. CEDRIC THE ENTERTAINER + CONTEMPORARY COMEDY THEATRE
+  // ==========================================================================
+  "cedric the entertainer + contemporary comedy theatre": {
+    prompt: "Cedric the Entertainer + Contemporary Comedy Theatre",
+    source: "fixture",
+    qlooCallsUsed: 2,
+    culturalEvidence: {
+      genreTags: ["stand-up comedy", "urban contemporary", "neo-soul", "comedy revue"],
+      styleTags: ["theatrical velvet", "burnished brass", "cabaret seating", "fluted timber"],
+      themeTags: ["charismatic live performance", "intimate cabaret banter", "celebratory communal laughter"],
+      adjectives: ["charismatic", "theatrical", "intimate", "vibrant"],
+    },
+    entities: [
+      {
+        id: "artist:3b124908-b8e6-4cf2-8d3e-2e024cd78bbe",
+        name: "Cedric the Entertainer",
+        type: "person",
+        signals: [
+          "african_american_standup_comedians",
+          "original_kings_of_comedy",
+          "boogalou_lounge_affinity",
+          "charismatic_stage_presence",
+        ],
+        provenance: "sample-fixture",
+        drivenChoice:
+          "Semicircular curved thrust comedy stage with glowing ruby uplighting, vintage ribbon microphone on brass stand, and intimate cabaret table clusters.",
+      },
+      {
+        id: "venue:boogalou-restaurant-lounge",
+        name: "Boogalou Restaurant & Lounge",
+        type: "venue",
+        signals: [
+          "upscale_comedy_lounge",
+          "plush_velvet_banquettes",
+          "intimate_social_hospitality",
+        ],
+        provenance: "sample-fixture",
+        drivenChoice:
+          "Curved velvet banquette booths and warm amber brass table lamps flanking the comedy performance floor.",
+      },
+    ],
+    crossDomainSignals: [
+      {
+        domain: "hospitality",
+        entity: "Boogalou & Nouveau Live Lounges",
+        signal: "intimate_cabaret_social_banquettes",
+        spatial_translation:
+          "Tiered cabaret booth seating and front cocktail tables replacing stiff rectilinear auditorium rows.",
+      },
+      {
+        domain: "lighting",
+        entity: "Theatrical Stage Spotlighting",
+        signal: "warm_performer_pin_spot",
+        spatial_translation:
+          "Focused 2600K performer pin-spot with rich ruby backdrop grazing and low ambient table candle illumination.",
+      },
+    ],
+    fallbackChoices: [
+      {
+        choice: "Fluted walnut acoustic diffusers & pleated heavy velvet drapery",
+        reason:
+          "Tuned Sabine RT60 to 0.42s to balance punchy vocal articulation with resonant communal room laughter.",
+        provenance: "inferred",
+      },
+    ],
+  },
 };
 
 /**
@@ -545,6 +612,9 @@ export function getQlooFixture(promptText: string): QlooContext | null {
   }
 
   // 2. Key phrases
+  if (clean.includes("cedric")) {
+    return QLOO_SAMPLE_FIXTURES["cedric the entertainer + contemporary comedy theatre"];
+  }
   if (clean.includes("miles davis") || (clean.includes("jazz") && (clean.includes("brutal") || clean.includes("concrete")))) {
     return QLOO_SAMPLE_FIXTURES["jazz + brutalist architecture"];
   }

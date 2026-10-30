@@ -182,7 +182,7 @@ async function runBrowserAudit() {
     // --------------------------------------------------------------------------
     console.log("7. Testing '3D View' toggle...");
     const view3dBtn = page.locator("button:has-text('Focus in 3D'), button:has-text('01'), button:has-text('Scene')").first();
-    await view3dBtn.click({ force: true, noWaitAfter: true });
+    await view3dBtn.dispatchEvent('click');
     await page.waitForTimeout(1000);
 
     const canvasAfterReturn = page.locator(".studio-stage__viewport-frame canvas").first();
@@ -195,12 +195,12 @@ async function runBrowserAudit() {
     // --------------------------------------------------------------------------
     console.log("8. Testing Compare Split Viewer...");
     const compareBtn = page.locator("button:has-text('Split Compare'), button[title*='split wipe comparison']").first();
-    await compareBtn.click({ force: true, noWaitAfter: true });
+    await compareBtn.dispatchEvent('click');
     await page.waitForTimeout(1200);
 
     // Close Compare
     const exitCompare = page.locator("button:has-text('Close ✕'), button[title*='Exit comparison']");
-    await exitCompare.click({ force: true, noWaitAfter: true });
+    await exitCompare.dispatchEvent('click');
     await page.waitForTimeout(800);
     console.log("   ✓ Exited Compare Split Viewer");
 

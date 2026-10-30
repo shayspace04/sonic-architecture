@@ -33,6 +33,7 @@ export type SpatialTypology =
   | "underground_club"
   | "industrial_warehouse"
   | "coastal_retreat"
+  | "comedy_theatre"
   | "custom_hybrid";
 
 export type LayoutMode =
@@ -192,7 +193,25 @@ export type ObjectArchetype =
   | "translucent_canopy"
   | "cinema_projection_screen"
   | "curator_projection_plinth"
-  | "cinema_lounge_seat";
+  | "cinema_lounge_seat"
+  | "granite_tsukubai_basin"
+  | "sukiya_veranda_deck"
+  | "kasuga_stone_lantern"
+  | "bamboo_acoustic_screen"
+  | "tatami_bench"
+  | "ambient_sound_column"
+  | "curatorial_reading_table"
+  | "archival_bookshelf_wall"
+  | "reading_armchair"
+  | "brass_task_lamp"
+  | "acoustic_felt_panel"
+  | "modular_stage_riser"
+  | "suspended_box_truss"
+  | "gallery_bench"
+  | "performer_mic_stand"
+  | "cabaret_cocktail_table"
+  | "velvet_theatre_curtain"
+  | "curved_banquette_booth";
 
 /**
  * Step 3 (E + F + G) — Procedural Architectural Shell Kit Specification
@@ -303,7 +322,12 @@ export interface InterpretedBrief {
     | "banquet_sanctuary"
     | "tea_hearth"
     | "courtyard_fountain"
-    | "editorial_flash_stage";
+    | "editorial_flash_stage"
+    | "cinema_screening"
+    | "library_archive"
+    | "industrial_sound_deck"
+    | "zen_garden_veranda"
+    | "comedy_theatre";
   seatingStyle:
     | "intimate_lounge"
     | "auditorium_tiers"
@@ -313,7 +337,13 @@ export interface InterpretedBrief {
     | "retreat_cabana_lounges"
     | "refectory_banquet"
     | "tatami_zabuton"
-    | "courtyard_bistro";
+    | "courtyard_bistro"
+    | "screening_lounge"
+    | "reading_study_tables"
+    | "gallery_modular_benches"
+    | "veranda_contemplative"
+    | "theatre_tiered_seating"
+    | "cabaret_lounge_tables";
   requestedElements: string[];
   explicitMaterials: {
     floor?: FloorFinish;

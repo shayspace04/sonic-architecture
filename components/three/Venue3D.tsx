@@ -927,7 +927,9 @@ function ProceduralArchObject({
         </group>
       ) : obj.archetype === "listening_sofa" ||
         obj.archetype === "tufted_grunge_sofa" ||
-        obj.archetype === "diwan_bolster_lounge" ? (
+        obj.archetype === "diwan_bolster_lounge" ||
+        obj.archetype === "tatami_bench" ||
+        obj.archetype === "gallery_bench" ? (
         <RealArchProp
           obj={obj}
           semantic="lounge_sofa"
@@ -935,7 +937,8 @@ function ProceduralArchObject({
           targetHeight={h}
           targetDepth={d}
         />
-      ) : obj.archetype === "low_lounge_chair" ? (
+      ) : obj.archetype === "low_lounge_chair" ||
+        obj.archetype === "reading_armchair" ? (
         <RealArchProp
           obj={obj}
           semantic="armchair"
@@ -952,7 +955,8 @@ function ProceduralArchObject({
           targetDepth={d}
         />
       ) : obj.archetype === "vinyl_record_shelf" ||
-        obj.archetype === "tokonoma_alcove" ? (
+        obj.archetype === "tokonoma_alcove" ||
+        obj.archetype === "archival_bookshelf_wall" ? (
         <group>
           <mesh
             position={[0, 0, -d * 0.44]}
@@ -995,7 +999,9 @@ function ProceduralArchObject({
           ))}
         </group>
       ) : obj.archetype === "acoustic_wall_panel" ||
-        obj.archetype === "shoji_sliding_screen" ? (
+        obj.archetype === "shoji_sliding_screen" ||
+        obj.archetype === "bamboo_acoustic_screen" ||
+        obj.archetype === "acoustic_felt_panel" ? (
         <group>
           <mesh material={primaryPbrMat} castShadow receiveShadow>
             <boxGeometry args={[w, h, d * 0.45]} />
@@ -1151,7 +1157,8 @@ function ProceduralArchObject({
         </group>
       ) : obj.archetype === "circular_water_feature" ||
         obj.archetype === "limestone_fountain" ||
-        obj.archetype === "sunken_ro_hearth" ? (
+        obj.archetype === "sunken_ro_hearth" ||
+        obj.archetype === "granite_tsukubai_basin" ? (
         <group>
           <mesh position={[0, 0, 0]} material={primaryPbrMat} receiveShadow>
             <cylinderGeometry args={[w * 0.5, w * 0.52, h, 36]} />
@@ -1169,7 +1176,8 @@ function ProceduralArchObject({
           </mesh>
         </group>
       ) : obj.archetype === "banquet_long_table" ||
-        obj.archetype === "bistro_courtyard_table" ? (
+        obj.archetype === "bistro_courtyard_table" ||
+        obj.archetype === "curatorial_reading_table" ? (
         <group>
           <RealArchProp
             obj={obj}
@@ -1237,7 +1245,10 @@ function ProceduralArchObject({
           </group>
         </group>
       ) : obj.archetype === "brass_ring_chandelier" ||
-        obj.archetype === "linear_light_blade" ? (
+        obj.archetype === "linear_light_blade" ||
+        obj.archetype === "suspended_box_truss" ||
+        obj.archetype === "kasuga_stone_lantern" ||
+        obj.archetype === "brass_task_lamp" ? (
         <group>
           <RealArchProp
             obj={obj}
@@ -1254,6 +1265,96 @@ function ProceduralArchObject({
             distance={Math.max(6, w * 4)}
             decay={2}
           />
+        </group>
+      ) : obj.archetype === "performer_mic_stand" ? (
+        <group>
+          {/* Weighted cast iron microphone base */}
+          <mesh position={[0, -h * 0.48, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[w * 0.42, w * 0.48, 0.05, 24]} />
+            <meshStandardMaterial color="#1A1A1A" roughness={0.3} metalness={0.8} />
+          </mesh>
+          {/* Vertical microphone stand rod */}
+          <mesh position={[0, -h * 0.05, 0]} castShadow>
+            <cylinderGeometry args={[0.022, 0.026, h * 0.88, 16]} />
+            <meshStandardMaterial
+              color={obj.materialId === "brushed_brass" ? "#D4AF37" : "#E2E8F0"}
+              roughness={0.2}
+              metalness={0.9}
+            />
+          </mesh>
+          {/* Microphone capsule head */}
+          <mesh position={[0, h * 0.42, 0.04]} rotation={[0.2, 0, 0]} castShadow>
+            <boxGeometry args={[0.09, 0.14, 0.08]} />
+            <meshStandardMaterial
+              color={obj.materialId === "brushed_brass" ? "#D4AF37" : "#CBD5E1"}
+              roughness={0.25}
+              metalness={0.85}
+            />
+          </mesh>
+        </group>
+      ) : obj.archetype === "velvet_theatre_curtain" ? (
+        <group>
+          {/* Top backdrop curtain rail */}
+          <mesh position={[0, h * 0.48, 0]} castShadow>
+            <boxGeometry args={[w * 1.02, 0.06, 0.06]} />
+            <meshStandardMaterial color="#1A1A1A" roughness={0.3} metalness={0.8} />
+          </mesh>
+          {/* Pleated undulating velvet folds */}
+          {Array.from({ length: 18 }, (_, fIdx) => {
+            const fx = -w * 0.48 + (fIdx / 17) * (w * 0.96);
+            const fz = fIdx % 2 === 0 ? 0.04 : -0.04;
+            return (
+              <mesh key={fIdx} position={[fx, 0, fz]} castShadow receiveShadow>
+                <cylinderGeometry args={[w * 0.038, w * 0.042, h * 0.94, 16]} />
+                <meshStandardMaterial
+                  color={obj.colorHex || "#4A0E17"}
+                  roughness={0.88}
+                  metalness={0.08}
+                />
+              </mesh>
+            );
+          })}
+        </group>
+      ) : obj.archetype === "cabaret_cocktail_table" ? (
+        <group>
+          {/* Round tabletop */}
+          <mesh position={[0, h * 0.42, 0]} castShadow receiveShadow>
+            <cylinderGeometry args={[w * 0.48, w * 0.48, 0.04, 28]} />
+            <meshStandardMaterial color="#1E1618" roughness={0.35} metalness={0.4} />
+          </mesh>
+          {/* Brass pedestal stem */}
+          <mesh position={[0, -h * 0.05, 0]} castShadow>
+            <cylinderGeometry args={[0.035, 0.045, h * 0.88, 16]} />
+            <meshStandardMaterial color="#D4AF37" roughness={0.3} metalness={0.85} />
+          </mesh>
+          {/* Base disc */}
+          <mesh position={[0, -h * 0.48, 0]} receiveShadow>
+            <cylinderGeometry args={[w * 0.38, w * 0.42, 0.03, 24]} />
+            <meshStandardMaterial color="#D4AF37" roughness={0.3} metalness={0.85} />
+          </mesh>
+          {/* Glowing amber table candle */}
+          <mesh position={[0, h * 0.52, 0]}>
+            <cylinderGeometry args={[0.04, 0.045, 0.12, 16]} />
+            <meshStandardMaterial color="#FFAA44" emissive="#FF8800" emissiveIntensity={0.6} />
+          </mesh>
+        </group>
+      ) : obj.archetype === "curved_banquette_booth" ? (
+        <group>
+          {/* Base platform */}
+          <mesh position={[0, -h * 0.35, 0]} castShadow receiveShadow>
+            <boxGeometry args={[w, h * 0.3, d]} />
+            <meshStandardMaterial color="#1A1416" roughness={0.6} />
+          </mesh>
+          {/* Curved plush seat cushion */}
+          <mesh position={[0, -h * 0.08, d * 0.08]} castShadow receiveShadow>
+            <boxGeometry args={[w * 0.96, h * 0.28, d * 0.78]} />
+            <meshStandardMaterial color={obj.colorHex || "#4A0E17"} roughness={0.85} />
+          </mesh>
+          {/* Tall fluted backrest */}
+          <mesh position={[0, h * 0.22, -d * 0.38]} castShadow>
+            <boxGeometry args={[w * 0.98, h * 0.65, d * 0.24]} />
+            <meshStandardMaterial color={obj.colorHex || "#4A0E17"} roughness={0.85} />
+          </mesh>
         </group>
       ) : (
         <group>

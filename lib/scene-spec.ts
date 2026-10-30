@@ -367,6 +367,18 @@ export function computeSabineAcoustics(
     targetRT60 = 0.48;
     alpha = 0.40;
     nc = 18;
+  } else if (typology === "intimate_lounge") {
+    targetRT60 = 0.38;
+    alpha = 0.44;
+    nc = 18;
+  } else if (typology === "grunge_loft") {
+    targetRT60 = 0.62;
+    alpha = 0.34;
+    nc = 25;
+  } else if (typology === "comedy_theatre") {
+    targetRT60 = 0.44;
+    alpha = 0.42;
+    nc = 18;
   } else if (isOpenAir) {
     targetRT60 = 0.28;
     alpha = 0.65;
@@ -441,7 +453,7 @@ export function buildLightingForTypology(
       type: "spot",
       position: [0, dims.height - 0.3, -dims.depth * 0.15],
       target: [0, 0.8, -dims.depth * 0.32],
-      colorHex: typology === "underground_club" ? "#EF4444" : primaryLightHex,
+      colorHex: typology === "underground_club" ? "#EF4444" : typology === "comedy_theatre" ? "#FFE8D6" : primaryLightHex,
       temperatureK: canonicalTempK,
       intensity: 2.2,
       angleRad: 0.58,
@@ -1243,130 +1255,285 @@ export function buildSceneSpecFromPayload(
     );
   } else if (typology === "industrial_warehouse") {
     isOpenAir = false;
-    roomDimensions = scaleDimensionsToCapacity(
-      { width: 18.0, height: 8.4, depth: 30.0, ridgeHeight: 9.6, wallThickness: 0.48 },
-      interp,
-      2.3
-    );
-    title = "Atelier Dock-04 — Industrial Warehouse Luxury Fashion Runway";
-    subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Distressed Brick Masonry, Steel Roof Trusses & 22m Mirror Catwalk`;
-    layoutMode = "runway";
-    focalPoint = {
-      name: "22m Mirror-Obsidian Catwalk & Backstage Steel Truss Portal",
-      position: [0, 0.6, -9.8],
-      description: "Sleek specular runway cutting through a raw brick-and-steel industrial warehouse with backstage model reveal portal.",
-    };
+    const isGalleryOrSound =
+      interp.focalProgram === "industrial_sound_deck" ||
+      promptText.toLowerCase().includes("gallery") ||
+      promptText.toLowerCase().includes("sound art") ||
+      promptText.toLowerCase().includes("aphex");
 
-    zones.push(
-      {
-        id: "zone-warehouse-runway",
-        name: "22m Central Mirror-Obsidian Catwalk Spine",
-        role: "focal",
-        bounds: { x: 0, z: 0, width: 3.6, depth: 22.0 },
-        clearanceMeters: 2.2,
-        colorHex: "#E2E8F0",
-        description: "Elevated luxury catwalk platform contrasting with weathered industrial brick walls.",
-      },
-      {
-        id: "zone-warehouse-backstage",
-        name: "Backstage Industrial Portal & Model Entry Threshold",
-        role: "threshold",
-        bounds: { x: 0, z: -12.0, width: 10.0, depth: 3.4 },
-        clearanceMeters: 2.0,
-        colorHex: "#D9532B",
-        description: "Illuminated steel portal framing model entrances onto the catwalk.",
-      },
-      {
-        id: "zone-warehouse-seating",
-        name: "Parallel Front-Row & Second-Row Fashion Seating Galleries",
-        role: "seating",
-        bounds: { x: 0, z: 0.5, width: 12.8, depth: 20.0 },
-        clearanceMeters: 1.6,
-        colorHex: "#475569",
-        description: "Flanking audience benches nested between industrial steel truss columns.",
-      }
-    );
+    if (isGalleryOrSound) {
+      roomDimensions = scaleDimensionsToCapacity(
+        { width: 16.0, height: 7.2, depth: 22.0, ridgeHeight: 8.4, wallThickness: 0.45 },
+        interp,
+        2.2
+      );
+      title = "Turbine Hall 07 — Raw Industrial Gallery Warehouse & Acoustic Sound Lab";
+      subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Distressed Brick Masonry, Riveted Steel Trusses & Bi-Radial Sound Column Arrays`;
+      layoutMode = "showcase";
+      const deckZ = Number((-roomDimensions.depth * 0.32).toFixed(2));
+      focalPoint = {
+        name: "Modular Steel Sound Deck & Suspended Industrial Rig",
+        position: [0, 0.75, deckZ],
+        description: "Perforated steel performance platform flanked by bi-radial horn speaker stacks and suspended box-truss lighting rig.",
+      };
 
-    objects.push(
-      {
-        id: "obj-warehouse-runway",
-        name: "22m Mirror-Polished Obsidian Luxury Catwalk Platform",
-        category: "Event Installations",
-        archetype: "obsidian_runway_deck",
-        position: [0, 0.16, 0],
-        rotation: [0, 0, 0],
-        dimensions: [3.4, 0.32, 22.0],
-        materialId: "obsidian_terrazzo",
-        colorHex: "#14171A",
-        accentColorHex: "#E2E8F0",
-        provenanceId: "prov-llm-1",
-        designNote: "High-gloss obsidian catwalk reflecting the industrial steel roof trusses and 4200K light blade.",
-      },
-      {
-        id: "obj-warehouse-light-blade",
-        name: "Suspended 22m Continuous Catwalk Key-Light Blade",
-        category: "Lighting",
-        archetype: "linear_light_blade",
-        position: [0, 6.2, 0],
-        rotation: [0, 0, 0],
-        dimensions: [0.75, 0.28, 21.5],
-        materialId: "anodized_aluminum",
-        colorHex: "#F8FAFC",
-        provenanceId: "prov-llm-1",
-        designNote: "Continuous high-CRI 4200K catwalk key light suspended from the warehouse trusses.",
-      },
-      {
-        id: "obj-backstage-portal",
-        name: "Backstage Riveted Steel & Frosted Glass Model Reveal Portal",
-        category: "Architecture",
-        archetype: "dramatic_entry_portal",
-        position: [0, 2.4, -11.5],
-        rotation: [0, 0, 0],
-        dimensions: [6.4, 4.8, 0.9],
-        materialId: "anodized_aluminum",
-        secondaryMaterialId: "distressed_brick",
-        colorHex: "#334155",
-        accentColorHex: "#D9532B",
-        provenanceId: "prov-llm-1",
-        designNote: "Dramatic backlit industrial steel portal at the northern catwalk origin.",
-      }
-    );
+      zones.push(
+        {
+          id: "zone-sound-deck",
+          name: "Modular Sound Art Deck & Experimental Audio Stage",
+          role: "focal",
+          bounds: { x: 0, z: deckZ, width: 8.0, depth: 4.8 },
+          clearanceMeters: 1.8,
+          colorHex: "#334155",
+          description: "Elevated perforated steel sound deck and modular synthesis console.",
+        },
+        {
+          id: "zone-gallery-floor",
+          name: "Industrial Acoustic Gallery Floor & Concrete Seating",
+          role: "seating",
+          bounds: { x: 0, z: 1.5, width: 11.0, depth: 10.0 },
+          clearanceMeters: 1.6,
+          colorHex: "#475569",
+          description: "Raw concrete exhibition floor with monolithic gallery benches.",
+        },
+        {
+          id: "zone-warehouse-portal",
+          name: "Riveted Steel Portal & Sound Lab Entry",
+          role: "threshold",
+          bounds: { x: 0, z: Number((-roomDimensions.depth * 0.44).toFixed(2)), width: 6.5, depth: 2.2 },
+          clearanceMeters: 1.8,
+          colorHex: "#1E293B",
+          description: "Industrial steel threshold leading to exhibition floor.",
+        }
+      );
 
-    [-8.0, -2.5, 2.5, 8.0].forEach((zPos, idx) => {
-      objects.push({
-        id: `obj-warehouse-truss-${idx + 1}`,
-        name: `Riveted Industrial Steel Roof Truss & Brick Pier (Bay 0${idx + 1})`,
-        category: "Structure",
-        archetype: "warehouse_truss_portal",
-        position: [0, 4.1, zPos],
-        rotation: [0, 0, 0],
-        dimensions: [16.6, 8.0, 0.65],
-        materialId: "anodized_aluminum",
-        secondaryMaterialId: "distressed_brick",
-        colorHex: "#475569",
-        accentColorHex: "#6E3B32",
-        provenanceId: "prov-llm-1",
-        designNote: "Clear-span industrial Pratt steel truss supported on weathered brick pilasters.",
-      });
-    });
-
-    [-6.5, 0, 6.5].forEach((zPos, idx) => {
-      [-3.9, 3.9].forEach((xPos, sIdx) => {
-        objects.push({
-          id: `obj-warehouse-bench-${sIdx}-${idx}`,
-          name: `Front-Row Architectural Runway Bench (${sIdx === 0 ? "West" : "East"} 0${idx + 1})`,
-          category: "Furniture",
-          archetype: "sculptural_concrete_bench",
-          position: [xPos, 0.25, zPos],
+      objects.push(
+        {
+          id: "obj-industrial-sound-deck",
+          name: "Perforated Steel Modular Sound Deck & Performance Stage",
+          category: "Event Installations",
+          archetype: "modular_stage_riser",
+          position: [0, 0.35, deckZ],
           rotation: [0, 0, 0],
-          dimensions: [1.4, 0.48, 4.8],
-          materialId: "board_concrete",
-          colorHex: "#64748B",
+          dimensions: [6.4, 0.7, 4.2],
+          materialId: "anodized_aluminum",
+          colorHex: "#1E2228",
+          accentColorHex: "#94A3B8",
           provenanceId: "prov-llm-1",
-          designNote: "Minimalist front-row benching aligned along the 22m catwalk edge.",
+          designNote: "Heavy-duty modular steel staging deck for electronic hardware and acoustic sound synthesis.",
+        },
+        {
+          id: "obj-industrial-sound-stack-left",
+          name: "Bi-Radial Horn Sound Column Stack (West)",
+          category: "Event Installations",
+          archetype: "techno_sound_stack",
+          position: [-3.8, 1.4, deckZ],
+          rotation: [0, 0.22, 0],
+          dimensions: [1.2, 2.8, 1.1],
+          materialId: "anodized_aluminum",
+          colorHex: "#14171A",
+          accentColorHex: "#E2E8F0",
+          provenanceId: "prov-llm-1",
+          designNote: "High-power bi-radial horn speaker array providing direct spatial projection across the warehouse.",
+        },
+        {
+          id: "obj-industrial-sound-stack-right",
+          name: "Bi-Radial Horn Sound Column Stack (East)",
+          category: "Event Installations",
+          archetype: "techno_sound_stack",
+          position: [3.8, 1.4, deckZ],
+          rotation: [0, -0.22, 0],
+          dimensions: [1.2, 2.8, 1.1],
+          materialId: "anodized_aluminum",
+          colorHex: "#14171A",
+          accentColorHex: "#E2E8F0",
+          provenanceId: "prov-llm-1",
+          designNote: "Matched bi-radial horn speaker array providing direct spatial projection across the warehouse.",
+        },
+        {
+          id: "obj-industrial-box-truss",
+          name: "Suspended Rectangular Steel Box-Truss Light Rig",
+          category: "Lighting",
+          archetype: "suspended_box_truss",
+          position: [0, 5.4, 0],
+          rotation: [0, 0, 0],
+          dimensions: [8.5, 0.6, 12.0],
+          materialId: "anodized_aluminum",
+          colorHex: "#3A3F47",
+          provenanceId: "prov-llm-1",
+          designNote: "Overhead industrial truss framework suspending dimmable 3200K linear tubes and exhibition wash lights.",
+        },
+        {
+          id: "obj-gallery-bench-west",
+          name: "Monolithic Cast-Concrete Gallery Exhibition Bench (West)",
+          category: "Furniture",
+          archetype: "gallery_bench",
+          position: [-3.6, 0.25, 2.2],
+          rotation: [0, 0, 0],
+          dimensions: [3.2, 0.5, 0.85],
+          materialId: "board_concrete",
+          colorHex: "#4B5563",
+          provenanceId: "prov-llm-1",
+          designNote: "Cast-concrete bench offering unadorned spectator seating for sound installations.",
+        },
+        {
+          id: "obj-gallery-bench-east",
+          name: "Monolithic Cast-Concrete Gallery Exhibition Bench (East)",
+          category: "Furniture",
+          archetype: "gallery_bench",
+          position: [3.6, 0.25, 2.2],
+          rotation: [0, 0, 0],
+          dimensions: [3.2, 0.5, 0.85],
+          materialId: "board_concrete",
+          colorHex: "#4B5563",
+          provenanceId: "prov-llm-1",
+          designNote: "Cast-concrete bench offering unadorned spectator seating for sound installations.",
+        }
+      );
+
+      [-6.5, 0, 6.5].forEach((zPos, idx) => {
+        objects.push({
+          id: `obj-warehouse-truss-${idx + 1}`,
+          name: `Riveted Industrial Steel Roof Truss & Brick Pier (Bay 0${idx + 1})`,
+          category: "Structure",
+          archetype: "warehouse_truss_portal",
+          position: [0, 3.8, zPos],
+          rotation: [0, 0, 0],
+          dimensions: [15.2, 7.0, 0.65],
+          materialId: "anodized_aluminum",
+          secondaryMaterialId: "distressed_brick",
+          colorHex: "#475569",
+          accentColorHex: "#6E3B32",
+          provenanceId: "prov-llm-1",
+          designNote: "Clear-span industrial Pratt steel truss supported on weathered brick pilasters.",
         });
       });
-    });
+    } else {
+      roomDimensions = scaleDimensionsToCapacity(
+        { width: 18.0, height: 8.4, depth: 30.0, ridgeHeight: 9.6, wallThickness: 0.48 },
+        interp,
+        2.3
+      );
+      title = "Atelier Dock-04 — Industrial Warehouse Luxury Fashion Runway";
+      subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Distressed Brick Masonry, Steel Roof Trusses & 22m Mirror Catwalk`;
+      layoutMode = "runway";
+      focalPoint = {
+        name: "22m Mirror-Obsidian Catwalk & Backstage Steel Truss Portal",
+        position: [0, 0.6, -9.8],
+        description: "Sleek specular runway cutting through a raw brick-and-steel industrial warehouse with backstage model reveal portal.",
+      };
+
+      zones.push(
+        {
+          id: "zone-warehouse-runway",
+          name: "22m Central Mirror-Obsidian Catwalk Spine",
+          role: "focal",
+          bounds: { x: 0, z: 0, width: 3.6, depth: 22.0 },
+          clearanceMeters: 2.2,
+          colorHex: "#E2E8F0",
+          description: "Elevated luxury catwalk platform contrasting with weathered industrial brick walls.",
+        },
+        {
+          id: "zone-warehouse-backstage",
+          name: "Backstage Industrial Portal & Model Entry Threshold",
+          role: "threshold",
+          bounds: { x: 0, z: -12.0, width: 10.0, depth: 3.4 },
+          clearanceMeters: 2.0,
+          colorHex: "#D9532B",
+          description: "Illuminated steel portal framing model entrances onto the catwalk.",
+        },
+        {
+          id: "zone-warehouse-seating",
+          name: "Parallel Front-Row & Second-Row Fashion Seating Galleries",
+          role: "seating",
+          bounds: { x: 0, z: 0.5, width: 12.8, depth: 20.0 },
+          clearanceMeters: 1.6,
+          colorHex: "#475569",
+          description: "Flanking audience benches nested between industrial steel truss columns.",
+        }
+      );
+
+      objects.push(
+        {
+          id: "obj-warehouse-runway",
+          name: "22m Mirror-Polished Obsidian Luxury Catwalk Platform",
+          category: "Event Installations",
+          archetype: "obsidian_runway_deck",
+          position: [0, 0.16, 0],
+          rotation: [0, 0, 0],
+          dimensions: [3.4, 0.32, 22.0],
+          materialId: "obsidian_terrazzo",
+          colorHex: "#14171A",
+          accentColorHex: "#E2E8F0",
+          provenanceId: "prov-llm-1",
+          designNote: "High-gloss obsidian catwalk reflecting the industrial steel roof trusses and 4200K light blade.",
+        },
+        {
+          id: "obj-warehouse-light-blade",
+          name: "Suspended 22m Continuous Catwalk Key-Light Blade",
+          category: "Lighting",
+          archetype: "linear_light_blade",
+          position: [0, 6.2, 0],
+          rotation: [0, 0, 0],
+          dimensions: [0.75, 0.28, 21.5],
+          materialId: "anodized_aluminum",
+          colorHex: "#F8FAFC",
+          provenanceId: "prov-llm-1",
+          designNote: "Continuous high-CRI 4200K catwalk key light suspended from the warehouse trusses.",
+        },
+        {
+          id: "obj-backstage-portal",
+          name: "Backstage Riveted Steel & Frosted Glass Model Reveal Portal",
+          category: "Architecture",
+          archetype: "dramatic_entry_portal",
+          position: [0, 2.4, -11.5],
+          rotation: [0, 0, 0],
+          dimensions: [6.4, 4.8, 0.9],
+          materialId: "anodized_aluminum",
+          secondaryMaterialId: "distressed_brick",
+          colorHex: "#334155",
+          accentColorHex: "#D9532B",
+          provenanceId: "prov-llm-1",
+          designNote: "Dramatic backlit industrial steel portal at the northern catwalk origin.",
+        }
+      );
+
+      [-8.0, -2.5, 2.5, 8.0].forEach((zPos, idx) => {
+        objects.push({
+          id: `obj-warehouse-truss-${idx + 1}`,
+          name: `Riveted Industrial Steel Roof Truss & Brick Pier (Bay 0${idx + 1})`,
+          category: "Structure",
+          archetype: "warehouse_truss_portal",
+          position: [0, 4.1, zPos],
+          rotation: [0, 0, 0],
+          dimensions: [16.6, 8.0, 0.65],
+          materialId: "anodized_aluminum",
+          secondaryMaterialId: "distressed_brick",
+          colorHex: "#475569",
+          accentColorHex: "#6E3B32",
+          provenanceId: "prov-llm-1",
+          designNote: "Clear-span industrial Pratt steel truss supported on weathered brick pilasters.",
+        });
+      });
+
+      [-6.5, 0, 6.5].forEach((zPos, idx) => {
+        [-3.9, 3.9].forEach((xPos, sIdx) => {
+          objects.push({
+            id: `obj-warehouse-bench-${sIdx}-${idx}`,
+            name: `Front-Row Architectural Runway Bench (${sIdx === 0 ? "West" : "East"} 0${idx + 1})`,
+            category: "Furniture",
+            archetype: "sculptural_concrete_bench",
+            position: [xPos, 0.25, zPos],
+            rotation: [0, 0, 0],
+            dimensions: [1.4, 0.48, 4.8],
+            materialId: "board_concrete",
+            colorHex: "#64748B",
+            provenanceId: "prov-llm-1",
+            designNote: "Minimalist front-row benching aligned along the 22m catwalk edge.",
+          });
+        });
+      });
+    }
   } else if (typology === "coastal_retreat") {
     isOpenAir = true;
     roomDimensions = scaleDimensionsToCapacity(
@@ -1937,94 +2104,283 @@ export function buildSceneSpecFromPayload(
       });
     });
   } else if (typology === "tea_room") {
-    roomDimensions = scaleDimensionsToCapacity(
-      { width: 5.4, height: 2.85, depth: 5.4, ridgeHeight: 3.1, wallThickness: 0.18 },
-      interp,
-      3.6
-    );
-    title = "Komorebi-An — Quiet Sukiya Timber & Washi Tea Room";
-    subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Hinoki Joinery, Kumiko Shoji & Tatami Module`;
-    layoutMode = "sanctuary";
-    focalPoint = {
-      name: "Sunken Ro Hearth, Chabudai Low Table & Tokonoma Scroll",
-      position: [0, 0.35, -0.4],
-      description: "Low hinoki tea table centered on woven tatami mats beside a sunken cast-iron hearth.",
-    };
+    const isGardenVeranda =
+      interp.focalProgram === "zen_garden_veranda" ||
+      promptText.toLowerCase().includes("garden") ||
+      promptText.toLowerCase().includes("ambient") ||
+      promptText.toLowerCase().includes("bamboo") ||
+      promptText.toLowerCase().includes("veranda") ||
+      promptText.toLowerCase().includes("tsukubai") ||
+      promptText.toLowerCase().includes("rock");
 
-    zones.push({
-      id: "zone-tatami-hearth",
-      name: "Central Tatami Tea Ceremony & Sunken Ro Hearth",
-      role: "focal",
-      bounds: { x: 0, z: 0, width: 3.6, depth: 3.6 },
-      clearanceMeters: 0.9,
-      colorHex: "#9E9264",
-      description: "Four-and-a-half mat modular tea sanctuary with zabuton floor seating.",
-    });
+    if (isGardenVeranda) {
+      isOpenAir = true;
+      roomDimensions = scaleDimensionsToCapacity(
+        { width: 10.5, height: 3.4, depth: 9.0, ridgeHeight: 3.8, wallThickness: 0.22 },
+        interp,
+        3.2
+      );
+      title = "Shukkei-An — Contemplative Japanese Garden Pavilion & Ambient Sound Sanctuary";
+      subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Sukiya Hinoki Veranda, Granite Tsukubai & Woven Bamboo Acoustic Grilles`;
+      layoutMode = "sanctuary";
+      const waterZ = Number((-roomDimensions.depth * 0.32).toFixed(2));
+      focalPoint = {
+        name: "Granite Tsukubai Water Basin & Bamboo Flute Spout",
+        position: [0, 0.45, waterZ],
+        description: "Hand-carved natural granite water basin with flowing bamboo kakehi flute creating continuous meditative sound texture.",
+      };
 
-    objects.push(
-      {
-        id: "obj-chabudai-table",
-        name: "Low Hinoki & Keyaki Joinery Tea Table (Chabudai)",
-        category: "Furniture",
-        archetype: "chabudai_tea_table",
-        position: [0, 0.18, 0],
-        rotation: [0, 0, 0],
-        dimensions: [1.25, 0.34, 0.95],
-        materialId: "charred_hinoki",
-        colorHex: "#A67C52",
-        provenanceId: "prov-llm-1",
-        designNote: "Hand-planed mortise-and-tenon timber table with matcha chawan ceramic service.",
-      },
-      {
-        id: "obj-sunken-hearth",
-        name: "Sunken Ro Charcoal Hearth & Cast-Iron Tetsubin Kettle",
-        category: "Event Installations",
-        archetype: "sunken_ro_hearth",
-        position: [-0.95, 0.08, -0.85],
-        rotation: [0, 0, 0],
-        dimensions: [0.45, 0.28, 0.45],
-        materialId: "board_concrete",
-        secondaryMaterialId: "brushed_brass",
-        colorHex: "#2D3136",
-        provenanceId: "prov-llm-1",
-        designNote: "Traditional 42cm square sunken hearth set into the tatami grid.",
-      },
-      {
-        id: "obj-shoji-screen-north",
-        name: "Translucent Mulberry Washi & Cedar Kumiko Shoji Screen",
-        category: "Architecture",
-        archetype: "shoji_sliding_screen",
-        position: [0, 1.35, -2.55],
-        rotation: [0, 0, 0],
-        dimensions: [4.8, 2.5, 0.08],
-        materialId: "washi_screen",
-        secondaryMaterialId: "charred_hinoki",
-        colorHex: "#DFD1B8",
-        provenanceId: "prov-llm-1",
-        designNote: "Diffuses soft morning daylight across the tatami floor plane.",
-      }
-    );
+      zones.push(
+        {
+          id: "zone-zen-water",
+          name: "Contemplative Tsukubai Water Feature & Moss Garden",
+          role: "focal",
+          bounds: { x: 0, z: waterZ, width: 4.8, depth: 3.2 },
+          clearanceMeters: 1.2,
+          colorHex: "#4A525A",
+          description: "Granite water basin and gravel rock garden focal zone.",
+        },
+        {
+          id: "zone-sukiya-veranda",
+          name: "Sukiya Hinoki Engawa Veranda Seating Deck",
+          role: "seating",
+          bounds: { x: 0, z: 0.8, width: 7.5, depth: 4.2 },
+          clearanceMeters: 1.2,
+          colorHex: "#8B653E",
+          description: "Raised unlacquered cypress engawa deck with low tatami benches.",
+        },
+        {
+          id: "zone-kumiko-threshold",
+          name: "Shoji & Kumiko Garden Portal Threshold",
+          role: "threshold",
+          bounds: { x: 0, z: Number((roomDimensions.depth * 0.38).toFixed(2)), width: 5.4, depth: 1.6 },
+          clearanceMeters: 1.2,
+          colorHex: "#DFD1B8",
+          description: "Sliding translucent screens framing the dry landscape garden.",
+        }
+      );
 
-    [
-      [-0.85, 0],
-      [0.85, 0],
-      [0, -0.75],
-      [0, 0.75],
-    ].forEach(([x, z], idx) => {
-      objects.push({
-        id: `obj-zabuton-cushion-${idx + 1}`,
-        name: `Indigo & Raw Flax Zabuton Floor Cushion 0${idx + 1}`,
-        category: "Furniture",
-        archetype: "zabuton_floor_cushion",
-        position: [x, 0.05, z],
-        rotation: [0, 0, 0],
-        dimensions: [0.58, 0.09, 0.58],
-        materialId: "raw_linen",
-        colorHex: "#D9CEB8",
-        provenanceId: "prov-llm-1",
-        designNote: "Layered cotton-batting floor cushion arranged around the chabudai table.",
+      objects.push(
+        {
+          id: "obj-tsukubai-basin",
+          name: "Carved Natural Granite Tsukubai Water Basin & Bamboo Flute Spout",
+          category: "Event Installations",
+          archetype: "granite_tsukubai_basin",
+          position: [0, 0.38, waterZ],
+          rotation: [0, 0, 0],
+          dimensions: [1.2, 0.65, 1.2],
+          materialId: "board_concrete",
+          secondaryMaterialId: "charred_hinoki",
+          colorHex: "#4A525A",
+          accentColorHex: "#38BDF8",
+          provenanceId: "prov-llm-1",
+          designNote: "Hand-carved natural granite basin with flowing bamboo kakehi water spout generating continuous organic acoustic background.",
+        },
+        {
+          id: "obj-veranda-deck",
+          name: "Raised Sukiya Hinoki Timber Veranda Engawa Deck",
+          category: "Architecture",
+          archetype: "sukiya_veranda_deck",
+          position: [0, 0.18, 0.8],
+          rotation: [0, 0, 0],
+          dimensions: [7.2, 0.35, 4.2],
+          materialId: "warm_oak",
+          colorHex: "#8B653E",
+          accentColorHex: "#C59B4E",
+          provenanceId: "prov-llm-1",
+          designNote: "Raised unlacquered Japanese cypress (hinoki) engawa deck connecting interior listening mats to gravel garden.",
+        },
+        {
+          id: "obj-kasuga-lantern-west",
+          name: "Kasuga Carved Granite Garden Lantern (West)",
+          category: "Lighting",
+          archetype: "kasuga_stone_lantern",
+          position: [-2.6, 0.75, Number((waterZ + 0.4).toFixed(2))],
+          rotation: [0, 0, 0],
+          dimensions: [0.65, 1.5, 0.65],
+          materialId: "honed_limestone",
+          secondaryMaterialId: "brushed_brass",
+          colorHex: "#6B7280",
+          accentColorHex: "#FFB46B",
+          provenanceId: "prov-llm-1",
+          designNote: "Traditional Japanese carved stone lantern with warm 2200K interior candle illumination.",
+        },
+        {
+          id: "obj-kasuga-lantern-east",
+          name: "Kasuga Carved Granite Garden Lantern (East)",
+          category: "Lighting",
+          archetype: "kasuga_stone_lantern",
+          position: [2.6, 0.75, Number((waterZ + 0.4).toFixed(2))],
+          rotation: [0, 0, 0],
+          dimensions: [0.65, 1.5, 0.65],
+          materialId: "honed_limestone",
+          secondaryMaterialId: "brushed_brass",
+          colorHex: "#6B7280",
+          accentColorHex: "#FFB46B",
+          provenanceId: "prov-llm-1",
+          designNote: "Traditional Japanese carved stone lantern with warm 2200K interior candle illumination.",
+        },
+        {
+          id: "obj-bamboo-acoustic-screen",
+          name: "Woven Bamboo & Cedar Acoustic Diffusion Grille",
+          category: "Architecture",
+          archetype: "bamboo_acoustic_screen",
+          position: [0, 1.6, Number((-roomDimensions.depth * 0.46).toFixed(2))],
+          rotation: [0, 0, 0],
+          dimensions: [5.6, 2.6, 0.12],
+          materialId: "charred_hinoki",
+          colorHex: "#7A5C3E",
+          accentColorHex: "#D4A359",
+          provenanceId: "prov-llm-1",
+          designNote: "Quarter-sawn bamboo slats providing natural sound diffusion for subtle ambient music.",
+        },
+        {
+          id: "obj-tatami-bench-west",
+          name: "Low Sukiya Tatami Contemplation Bench (West)",
+          category: "Furniture",
+          archetype: "tatami_bench",
+          position: [-1.8, 0.32, 1.0],
+          rotation: [0, 0.15, 0],
+          dimensions: [1.8, 0.42, 0.75],
+          materialId: "tatami_mat",
+          secondaryMaterialId: "warm_oak",
+          colorHex: "#9E9264",
+          accentColorHex: "#8B653E",
+          provenanceId: "prov-llm-1",
+          designNote: "Low timber bench topped with woven igusa rush tatami mat.",
+        },
+        {
+          id: "obj-tatami-bench-east",
+          name: "Low Sukiya Tatami Contemplation Bench (East)",
+          category: "Furniture",
+          archetype: "tatami_bench",
+          position: [1.8, 0.32, 1.0],
+          rotation: [0, -0.15, 0],
+          dimensions: [1.8, 0.42, 0.75],
+          materialId: "tatami_mat",
+          secondaryMaterialId: "warm_oak",
+          colorHex: "#9E9264",
+          accentColorHex: "#8B653E",
+          provenanceId: "prov-llm-1",
+          designNote: "Low timber bench topped with woven igusa rush tatami mat.",
+        },
+        {
+          id: "obj-ambient-speaker-west",
+          name: "Discreet Architectural Ambient Sound Column (West)",
+          category: "Event Installations",
+          archetype: "ambient_sound_column",
+          position: [-3.8, 1.1, -0.4],
+          rotation: [0, 0.3, 0],
+          dimensions: [0.32, 1.4, 0.32],
+          materialId: "charred_hinoki",
+          colorHex: "#3E2723",
+          provenanceId: "prov-llm-1",
+          designNote: "Slim cedar-clad line-array column tuned for spatial ambient soundscapes.",
+        },
+        {
+          id: "obj-ambient-speaker-east",
+          name: "Discreet Architectural Ambient Sound Column (East)",
+          category: "Event Installations",
+          archetype: "ambient_sound_column",
+          position: [3.8, 1.1, -0.4],
+          rotation: [0, -0.3, 0],
+          dimensions: [0.32, 1.4, 0.32],
+          materialId: "charred_hinoki",
+          colorHex: "#3E2723",
+          provenanceId: "prov-llm-1",
+          designNote: "Slim cedar-clad line-array column tuned for spatial ambient soundscapes.",
+        }
+      );
+    } else {
+      roomDimensions = scaleDimensionsToCapacity(
+        { width: 5.4, height: 2.85, depth: 5.4, ridgeHeight: 3.1, wallThickness: 0.18 },
+        interp,
+        3.6
+      );
+      title = "Komorebi-An — Quiet Sukiya Timber & Washi Tea Room";
+      subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Hinoki Joinery, Kumiko Shoji & Tatami Module`;
+      layoutMode = "sanctuary";
+      focalPoint = {
+        name: "Sunken Ro Hearth, Chabudai Low Table & Tokonoma Scroll",
+        position: [0, 0.35, -0.4],
+        description: "Low hinoki tea table centered on woven tatami mats beside a sunken cast-iron hearth.",
+      };
+
+      zones.push({
+        id: "zone-tatami-hearth",
+        name: "Central Tatami Tea Ceremony & Sunken Ro Hearth",
+        role: "focal",
+        bounds: { x: 0, z: 0, width: 3.6, depth: 3.6 },
+        clearanceMeters: 0.9,
+        colorHex: "#9E9264",
+        description: "Four-and-a-half mat modular tea sanctuary with zabuton floor seating.",
       });
-    });
+
+      objects.push(
+        {
+          id: "obj-chabudai-table",
+          name: "Low Hinoki & Keyaki Joinery Tea Table (Chabudai)",
+          category: "Furniture",
+          archetype: "chabudai_tea_table",
+          position: [0, 0.18, 0],
+          rotation: [0, 0, 0],
+          dimensions: [1.25, 0.34, 0.95],
+          materialId: "charred_hinoki",
+          colorHex: "#A67C52",
+          provenanceId: "prov-llm-1",
+          designNote: "Hand-planed mortise-and-tenon timber table with matcha chawan ceramic service.",
+        },
+        {
+          id: "obj-sunken-hearth",
+          name: "Sunken Ro Charcoal Hearth & Cast-Iron Tetsubin Kettle",
+          category: "Event Installations",
+          archetype: "sunken_ro_hearth",
+          position: [-0.95, 0.08, -0.85],
+          rotation: [0, 0, 0],
+          dimensions: [0.45, 0.28, 0.45],
+          materialId: "board_concrete",
+          secondaryMaterialId: "brushed_brass",
+          colorHex: "#2D3136",
+          provenanceId: "prov-llm-1",
+          designNote: "Traditional 42cm square sunken hearth set into the tatami grid.",
+        },
+        {
+          id: "obj-shoji-screen-north",
+          name: "Translucent Mulberry Washi & Cedar Kumiko Shoji Screen",
+          category: "Architecture",
+          archetype: "shoji_sliding_screen",
+          position: [0, 1.35, -2.55],
+          rotation: [0, 0, 0],
+          dimensions: [4.8, 2.5, 0.08],
+          materialId: "washi_screen",
+          secondaryMaterialId: "charred_hinoki",
+          colorHex: "#DFD1B8",
+          provenanceId: "prov-llm-1",
+          designNote: "Diffuses soft morning daylight across the tatami floor plane.",
+        }
+      );
+
+      [
+        [-0.85, 0],
+        [0.85, 0],
+        [0, -0.75],
+        [0, 0.75],
+      ].forEach(([x, z], idx) => {
+        objects.push({
+          id: `obj-zabuton-cushion-${idx + 1}`,
+          name: `Indigo & Raw Flax Zabuton Floor Cushion 0${idx + 1}`,
+          category: "Furniture",
+          archetype: "zabuton_floor_cushion",
+          position: [x, 0.05, z],
+          rotation: [0, 0, 0],
+          dimensions: [0.58, 0.09, 0.58],
+          materialId: "raw_linen",
+          colorHex: "#D9CEB8",
+          provenanceId: "prov-llm-1",
+          designNote: "Layered cotton-batting floor cushion arranged around the chabudai table.",
+        });
+      });
+    }
   } else if (typology === "gallery_pavilion") {
     roomDimensions = scaleDimensionsToCapacity(
       { width: 15.0, height: 4.2, depth: 11.0, ridgeHeight: 4.5, wallThickness: 0.3 },
@@ -2073,7 +2429,7 @@ export function buildSceneSpecFromPayload(
         materialId: "washi_screen",
         colorHex: "#F8FAFC",
         accentColorHex: "#38BDF8",
-        provenanceId: "prov-qloo-1",
+        provenanceId: "prov-llm-1",
         designNote: "Tensioned 4K projection surface with integrated rear acoustic absorption.",
       },
       {
@@ -2228,6 +2584,660 @@ export function buildSceneSpecFromPayload(
         designNote: "Paired with mirror-chrome drum tables.",
       }
     );
+  } else if (typology === "intimate_lounge") {
+    isOpenAir = false;
+    roomDimensions = scaleDimensionsToCapacity(
+      { width: 9.6, height: 3.6, depth: 7.8, ridgeHeight: 3.9, wallThickness: 0.28 },
+      interp,
+      2.6
+    );
+    const isLibrary =
+      interp.focalProgram === "library_archive" ||
+      promptText.toLowerCase().includes("library") ||
+      promptText.toLowerCase().includes("reading") ||
+      promptText.toLowerCase().includes("book") ||
+      promptText.toLowerCase().includes("archive") ||
+      promptText.toLowerCase().includes("study");
+
+    if (isLibrary) {
+      title = "Bibliotheca Silentium — Curatorial Reading Library & Archival Study";
+      subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Quarter-Sawn White Oak, Archival Book Stacks & Acoustic Felt`;
+      layoutMode = "lounge";
+      focalPoint = {
+        name: "Curatorial White Oak Reading Table & Brass Task Sconces",
+        position: [0, 0.76, 0],
+        description: "Solid quarter-sawn white oak reading table flanked by warm 2400K brass task lamps and wool reading armchairs.",
+      };
+
+      zones.push(
+        {
+          id: "zone-library-reading",
+          name: "Central Curatorial Study & Reading Quad",
+          role: "focal",
+          bounds: { x: 0, z: 0, width: 4.8, depth: 3.4 },
+          clearanceMeters: 1.2,
+          colorHex: "#5C4033",
+          description: "Primary reading study table with glare-free task illumination.",
+        },
+        {
+          id: "zone-library-stacks",
+          name: "Archival Perimeter Shelving Wall & Folio Stacks",
+          role: "threshold",
+          bounds: { x: 0, z: Number((-roomDimensions.depth * 0.44).toFixed(2)), width: Number((roomDimensions.width * 0.88).toFixed(1)), depth: 1.4 },
+          clearanceMeters: 1.2,
+          colorHex: "#231C18",
+          description: "Full-height recessed book archive shelving wall with acoustic felt backing.",
+        },
+        {
+          id: "zone-library-nook",
+          name: "Quiet Contemplative Wool Reading Nook",
+          role: "seating",
+          bounds: { x: 0, z: Number((roomDimensions.depth * 0.34).toFixed(2)), width: Number((roomDimensions.width * 0.65).toFixed(1)), depth: 2.2 },
+          clearanceMeters: 1.2,
+          colorHex: "#7C3F23",
+          description: "Upholstered armchairs with dedicated side tables for deep study.",
+        }
+      );
+
+      objects.push(
+        {
+          id: "obj-curatorial-reading-table",
+          name: "Curatorial Quarter-Sawn White Oak Reading Table",
+          category: "Furniture",
+          archetype: "curatorial_reading_table",
+          position: [0, 0.42, 0],
+          rotation: [0, 0, 0],
+          dimensions: [3.4, 0.78, 1.2],
+          materialId: "warm_oak",
+          secondaryMaterialId: "brushed_brass",
+          colorHex: "#724626",
+          accentColorHex: "#D4A359",
+          provenanceId: "prov-llm-1",
+          designNote: "Substantial 3.4m long solid oak table with integrated brass cable management and pencil inlay channels.",
+        },
+        {
+          id: "obj-archival-bookshelf-wall",
+          name: "Full-Height Recessed Archival Book Stacks & Folio Cabinet",
+          category: "Furniture",
+          archetype: "archival_bookshelf_wall",
+          position: [0, Number((roomDimensions.height * 0.48).toFixed(2)), Number((-roomDimensions.depth * 0.45).toFixed(2))],
+          rotation: [0, 0, 0],
+          dimensions: [Number((roomDimensions.width * 0.82).toFixed(1)), Number((roomDimensions.height * 0.92).toFixed(1)), 0.52],
+          materialId: "warm_oak",
+          secondaryMaterialId: "acoustic_felt",
+          colorHex: "#452A18",
+          accentColorHex: "#C59B4E",
+          provenanceId: "prov-llm-1",
+          designNote: "Floor-to-ceiling recessed timber joinery housing rare manuscripts and architectural reference folios.",
+        },
+        {
+          id: "obj-reading-armchair-west",
+          name: "Upholstered Natural Wool High-Back Reading Armchair (West)",
+          category: "Furniture",
+          archetype: "reading_armchair",
+          position: [-1.4, 0.44, 0],
+          rotation: [0, Math.PI / 2, 0],
+          dimensions: [0.88, 0.88, 0.84],
+          materialId: "boucle_wool",
+          secondaryMaterialId: "warm_oak",
+          colorHex: "#C9BCA6",
+          accentColorHex: "#724626",
+          provenanceId: "prov-llm-1",
+          designNote: "Ergonomic high-back reading chair upholstered in acoustic-absorptive unbleached wool.",
+        },
+        {
+          id: "obj-reading-armchair-east",
+          name: "Upholstered Natural Wool High-Back Reading Armchair (East)",
+          category: "Furniture",
+          archetype: "reading_armchair",
+          position: [1.4, 0.44, 0],
+          rotation: [0, -Math.PI / 2, 0],
+          dimensions: [0.88, 0.88, 0.84],
+          materialId: "boucle_wool",
+          secondaryMaterialId: "warm_oak",
+          colorHex: "#C9BCA6",
+          accentColorHex: "#724626",
+          provenanceId: "prov-llm-1",
+          designNote: "Ergonomic high-back reading chair upholstered in acoustic-absorptive unbleached wool.",
+        },
+        {
+          id: "obj-brass-task-lamp-01",
+          name: "Architectural Spun Brass Articulated Task Sconce 01",
+          category: "Lighting",
+          archetype: "brass_task_lamp",
+          position: [-0.95, 0.88, 0],
+          rotation: [0, 0, 0],
+          dimensions: [0.24, 0.38, 0.24],
+          materialId: "brushed_brass",
+          colorHex: "#D4A359",
+          accentColorHex: "#FFE6C2",
+          provenanceId: "prov-llm-1",
+          designNote: "2400K glare-shielded warm task fixture providing focused reading illumination.",
+        },
+        {
+          id: "obj-brass-task-lamp-02",
+          name: "Architectural Spun Brass Articulated Task Sconce 02",
+          category: "Lighting",
+          archetype: "brass_task_lamp",
+          position: [0.95, 0.88, 0],
+          rotation: [0, 0, 0],
+          dimensions: [0.24, 0.38, 0.24],
+          materialId: "brushed_brass",
+          colorHex: "#D4A359",
+          accentColorHex: "#FFE6C2",
+          provenanceId: "prov-llm-1",
+          designNote: "2400K glare-shielded warm task fixture providing focused reading illumination.",
+        },
+        {
+          id: "obj-acoustic-felt-panel",
+          name: "Tuned Wool Felt Sound Absorption Wall Panel",
+          category: "Architecture",
+          archetype: "acoustic_felt_panel",
+          position: [Number((roomDimensions.width * 0.47).toFixed(2)), 1.75, 0],
+          rotation: [0, -Math.PI / 2, 0],
+          dimensions: [3.8, 2.2, 0.08],
+          materialId: "acoustic_felt",
+          colorHex: "#3A3835",
+          provenanceId: "prov-llm-1",
+          designNote: "Low-frequency absorption panel maintaining quiet 0.38s reverberation profile for speech and study.",
+        },
+        {
+          id: "obj-reading-rug",
+          name: "Hand-Knotted Unbleached Wool Study Rug",
+          category: "Decoration",
+          archetype: "woven_area_rug",
+          position: [0, 0.02, 0],
+          rotation: [0, 0, 0],
+          dimensions: [4.6, 0.04, 3.2],
+          materialId: "boucle_wool",
+          colorHex: "#B8AA92",
+          provenanceId: "prov-llm-1",
+          designNote: "Dense natural wool floor covering attenuating footstep reverberation.",
+        }
+      );
+    } else {
+      title = "Salotto Notturno — Intimate Architectural Salon & Velvet Lounge";
+      subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Herringbone Parquet, Fluted Acoustic Panels & Curated Settees`;
+      layoutMode = "lounge";
+      focalPoint = {
+        name: "Fluted Timber Fireplace Hearth & Low Cocktail Table",
+        position: [0, 0.82, -2.4],
+        description: "Monolithic limestone fireplace surround flanked by fluted acoustic timber slats and curved velvet lounge seating.",
+      };
+
+      zones.push(
+        {
+          id: "zone-salon-hearth",
+          name: "Architectural Hearth & Conversation Center",
+          role: "focal",
+          bounds: { x: 0, z: -2.0, width: 5.0, depth: 2.8 },
+          clearanceMeters: 1.2,
+          colorHex: "#5C4033",
+          description: "Primary gathering focal point with low conversation tables.",
+        },
+        {
+          id: "zone-salon-lounge",
+          name: "Curved Velvet Salon Seating Ring",
+          role: "seating",
+          bounds: { x: 0, z: 0.6, width: 6.2, depth: 4.0 },
+          clearanceMeters: 1.2,
+          colorHex: "#7C3F23",
+          description: "Low-slung modular velvet seating facing the hearth.",
+        }
+      );
+
+      objects.push(
+        {
+          id: "obj-salon-cocktail-table",
+          name: "Sculpted Walnut & Honed Marble Low Cocktail Table",
+          category: "Furniture",
+          archetype: "chabudai_tea_table",
+          position: [0, 0.36, -0.4],
+          rotation: [0, 0, 0],
+          dimensions: [2.2, 0.38, 1.1],
+          materialId: "warm_oak",
+          secondaryMaterialId: "veined_marble",
+          colorHex: "#452A18",
+          provenanceId: "prov-llm-1",
+          designNote: "Solid walnut base supporting an inset Calacatta marble tray.",
+        },
+        {
+          id: "obj-salon-sofa-west",
+          name: "Curved Moss Velvet Architectural Salon Settee (West)",
+          category: "Furniture",
+          archetype: "listening_sofa",
+          position: [-1.8, 0.44, 0.6],
+          rotation: [0, 0.3, 0],
+          dimensions: [2.4, 0.82, 0.96],
+          materialId: "moss_velvet",
+          colorHex: "#354A34",
+          provenanceId: "prov-llm-1",
+          designNote: "Deep curved seating in acoustic velvet.",
+        },
+        {
+          id: "obj-salon-sofa-east",
+          name: "Curved Moss Velvet Architectural Salon Settee (East)",
+          category: "Furniture",
+          archetype: "listening_sofa",
+          position: [1.8, 0.44, 0.6],
+          rotation: [0, -0.3, 0],
+          dimensions: [2.4, 0.82, 0.96],
+          materialId: "moss_velvet",
+          colorHex: "#354A34",
+          provenanceId: "prov-llm-1",
+          designNote: "Deep curved seating in acoustic velvet.",
+        }
+      );
+    }
+  } else if (typology === "comedy_theatre") {
+    isOpenAir = false;
+    roomDimensions = scaleDimensionsToCapacity(
+      { width: 15.0, height: 5.2, depth: 18.0, ridgeHeight: 5.5, wallThickness: 0.32 },
+      interp,
+      2.8
+    );
+    layoutMode = "showcase";
+
+    const isCedricGrounded =
+      payload.primaryColorHex === "#4A0E17" ||
+      Boolean(payload.resolvedEntities && payload.resolvedEntities.some((e) => e.name.toLowerCase().includes("cedric")));
+
+    if (isCedricGrounded) {
+      // ----------------------------------------------------------------------
+      // GROUNDED SCENE (WITH QLOO — CEDRIC THE ENTERTAINER)
+      // Theatrical cabaret comedy club destination:
+      // Semicircular thrust stage, draped ruby velvet backdrop, front cabaret cocktail tables,
+      // curved plush banquettes, fluted acoustic timber diffusers, high-contrast spotlighting.
+      // ----------------------------------------------------------------------
+      title = "The Cedric Revue — Theatrical Comedy Club & Cabaret Destination";
+      subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Curved Thrust Stage, Draped Ruby Velvet, Cabaret Cocktail Tables & Fluted Walnut Acoustics`;
+
+      focalPoint = {
+        name: "Semicircular Hardwood Thrust Comedy Stage & Vintage Ribbon Mic",
+        position: [0, 1.35, -4.8],
+        description: "Curved dark hardwood comedy thrust stage with glowing brass trim, vintage Shure 55SH ribbon microphone on brass stand, and rich pleated ruby velvet backdrop.",
+      };
+
+      zones.push(
+        {
+          id: "zone-thrust-stage",
+          name: "Semicircular Performance Thrust Stage",
+          role: "focal",
+          bounds: { x: 0, z: -5.8, width: 8.5, depth: 4.8 },
+          clearanceMeters: 1.8,
+          colorHex: "#D4AF37",
+          description: "Elevated performance platform with intimate 3-sided audience sightlines and warm 2600K key spotlighting.",
+        },
+        {
+          id: "zone-cabaret-orchestra",
+          name: "Front Cabaret Cocktail Tables & Intimate Social Floor",
+          role: "seating",
+          bounds: { x: 0, z: -0.8, width: 9.6, depth: 4.6 },
+          clearanceMeters: 1.4,
+          colorHex: "#4A0E17",
+          description: "Intimate cabaret cocktail tables with ambient amber candle lamps and low-slung club chairs for close performer banter.",
+        },
+        {
+          id: "zone-vip-banquettes",
+          name: "Tiered VIP Velvet Banquette Lounges",
+          role: "seating",
+          bounds: { x: 0, z: 4.8, width: Number((roomDimensions.width * 0.88).toFixed(1)), depth: 4.2 },
+          clearanceMeters: 1.4,
+          colorHex: "#181416",
+          description: "Stepped horseshoe curved velvet banquettes and cocktail service stations inspired by Atlanta entertainment lounges.",
+        }
+      );
+
+      objects.push(
+        {
+          id: "obj-comedy-thrust-stage",
+          name: "Curved Hardwood Thrust Comedy Stage with Brass Trim",
+          category: "Event Installations",
+          archetype: "modular_stage_riser",
+          position: [0, 0.45, -5.8],
+          rotation: [0, 0, 0],
+          dimensions: [7.8, 0.9, 4.6],
+          materialId: "warm_oak",
+          secondaryMaterialId: "brushed_brass",
+          colorHex: "#1C1412",
+          accentColorHex: "#D4AF37",
+          provenanceId: "prov-qloo-stage",
+          designNote: "Semicircular curved front comedy thrust stage bringing performer into intimate audience range.",
+        },
+        {
+          id: "obj-performer-ribbon-mic",
+          name: "Vintage Shure 55SH Performer Ribbon Mic on Brass Stand",
+          category: "Event Installations",
+          archetype: "performer_mic_stand",
+          position: [0, 1.35, -4.8],
+          rotation: [0, 0, 0],
+          dimensions: [0.45, 1.4, 0.45],
+          materialId: "brushed_brass",
+          colorHex: "#D4AF37",
+          accentColorHex: "#FFE8D6",
+          provenanceId: "prov-qloo-mic",
+          designNote: "Vintage ribbon stand-up microphone centered on thrust stage with warm brass finish.",
+        },
+        {
+          id: "obj-velvet-curtain-backdrop",
+          name: "Pleated Ruby Theatrical Velvet Stage Curtain Backdrop",
+          category: "Architecture",
+          archetype: "velvet_theatre_curtain",
+          position: [0, 2.6, -8.6],
+          rotation: [0, 0, 0],
+          dimensions: [9.8, 5.0, 0.4],
+          materialId: "moss_velvet",
+          colorHex: "#4A0E17",
+          accentColorHex: "#C92A42",
+          provenanceId: "prov-qloo-curtain",
+          designNote: "Heavy acoustic velvet drapery providing low-frequency sound dampening and dramatic theatrical framing.",
+        },
+        {
+          id: "obj-cabaret-table-01",
+          name: "Burnished Brass & Smoked Glass Cabaret Cocktail Table (W1)",
+          category: "Furniture",
+          archetype: "cabaret_cocktail_table",
+          position: [-2.6, 0.42, -2.2],
+          rotation: [0, 0, 0],
+          dimensions: [0.95, 0.84, 0.95],
+          materialId: "brushed_brass",
+          colorHex: "#D4AF37",
+          accentColorHex: "#FFAA44",
+          provenanceId: "prov-qloo-tables",
+          designNote: "Round brass pedestal table with integrated amber candle illumination.",
+        },
+        {
+          id: "obj-cabaret-table-02",
+          name: "Burnished Brass & Smoked Glass Cabaret Cocktail Table (E1)",
+          category: "Furniture",
+          archetype: "cabaret_cocktail_table",
+          position: [2.6, 0.42, -2.2],
+          rotation: [0, 0, 0],
+          dimensions: [0.95, 0.84, 0.95],
+          materialId: "brushed_brass",
+          colorHex: "#D4AF37",
+          accentColorHex: "#FFAA44",
+          provenanceId: "prov-qloo-tables",
+          designNote: "Round brass pedestal table with integrated amber candle illumination.",
+        },
+        {
+          id: "obj-cabaret-table-03",
+          name: "Burnished Brass & Smoked Glass Cabaret Cocktail Table (Center)",
+          category: "Furniture",
+          archetype: "cabaret_cocktail_table",
+          position: [0.0, 0.42, -0.6],
+          rotation: [0, 0, 0],
+          dimensions: [0.95, 0.84, 0.95],
+          materialId: "brushed_brass",
+          colorHex: "#D4AF37",
+          accentColorHex: "#FFAA44",
+          provenanceId: "prov-qloo-tables",
+          designNote: "Round brass pedestal table with integrated amber candle illumination.",
+        },
+        {
+          id: "obj-banquette-west",
+          name: "Curved Burgundy Velvet VIP Banquette Booth (West)",
+          category: "Furniture",
+          archetype: "curved_banquette_booth",
+          position: [-4.6, 0.65, 2.4],
+          rotation: [0, 0.25, 0],
+          dimensions: [3.4, 1.1, 1.6],
+          materialId: "moss_velvet",
+          colorHex: "#4A0E17",
+          accentColorHex: "#D4AF37",
+          provenanceId: "prov-qloo-banquette",
+          designNote: "Semicircular plush velvet booth inspired by upscale comedy lounges.",
+        },
+        {
+          id: "obj-banquette-east",
+          name: "Curved Burgundy Velvet VIP Banquette Booth (East)",
+          category: "Furniture",
+          archetype: "curved_banquette_booth",
+          position: [4.6, 0.65, 2.4],
+          rotation: [0, -0.25, 0],
+          dimensions: [3.4, 1.1, 1.6],
+          materialId: "moss_velvet",
+          colorHex: "#4A0E17",
+          accentColorHex: "#D4AF37",
+          provenanceId: "prov-qloo-banquette",
+          designNote: "Semicircular plush velvet booth inspired by upscale comedy lounges.",
+        },
+        {
+          id: "obj-banquette-rear",
+          name: "Elevated Theatrical Velvet Mezzanine Banquette (Rear)",
+          category: "Furniture",
+          archetype: "curved_banquette_booth",
+          position: [0.0, 1.05, 6.2],
+          rotation: [0, 0, 0],
+          dimensions: [7.2, 1.25, 1.8],
+          materialId: "moss_velvet",
+          colorHex: "#4A0E17",
+          accentColorHex: "#D4AF37",
+          provenanceId: "prov-qloo-banquette",
+          designNote: "Continuous elevated VIP horseshoe banquette commanding full stage sightlines.",
+        },
+        {
+          id: "obj-fluted-diffuser-west",
+          name: "Fluted Acoustic Walnut Diffuser Wall Assembly (West)",
+          category: "Architecture",
+          archetype: "acoustic_felt_panel",
+          position: [-7.2, 2.4, -0.5],
+          rotation: [0, Math.PI / 2, 0],
+          dimensions: [7.5, 3.8, 0.18],
+          materialId: "vertical_timber_slats",
+          colorHex: "#2D1016",
+          accentColorHex: "#D4AF37",
+          provenanceId: "prov-qloo-acoustics",
+          designNote: "Vertical fluted walnut timber diffusers preventing flutter echo while maintaining speech warmth.",
+        },
+        {
+          id: "obj-fluted-diffuser-east",
+          name: "Fluted Acoustic Walnut Diffuser Wall Assembly (East)",
+          category: "Architecture",
+          archetype: "acoustic_felt_panel",
+          position: [7.2, 2.4, -0.5],
+          rotation: [0, -Math.PI / 2, 0],
+          dimensions: [7.5, 3.8, 0.18],
+          materialId: "vertical_timber_slats",
+          colorHex: "#2D1016",
+          accentColorHex: "#D4AF37",
+          provenanceId: "prov-qloo-acoustics",
+          designNote: "Vertical fluted walnut timber diffusers preventing flutter echo while maintaining speech warmth.",
+        },
+        {
+          id: "obj-theatre-spotlight-truss",
+          name: "Suspended Black Box-Truss Theatrical Spotlight Array",
+          category: "Lighting",
+          archetype: "suspended_box_truss",
+          position: [0, 4.6, -3.2],
+          rotation: [0, 0, 0],
+          dimensions: [8.8, 0.45, 1.8],
+          materialId: "anodized_aluminum",
+          colorHex: "#16191E",
+          accentColorHex: "#FFE8D6",
+          provenanceId: "prov-qloo-lighting",
+          designNote: "Rigged theatrical truss housing 2600K performer pin-spots and saturated ruby wash fixtures.",
+        }
+      );
+    } else {
+      // ----------------------------------------------------------------------
+      // BASELINE SCENE (WITHOUT QLOO — PROMPT-ONLY CONVENTIONAL THEATRE)
+      // Conventional, functional contemporary comedy theatre:
+      // Rectangular elevated proscenium stage, chrome mic stand, rectilinear rows
+      // of stepped tiered auditorium seating with clear sightlines, neutral grey
+      // acoustic panels, and standard halogen stage wash.
+      // ----------------------------------------------------------------------
+      title = "The Apollo Mainstage — Contemporary Comedy & Performance Theatre";
+      subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Elevated Proscenium Stage, Raked Sightlines & Acoustic Felt Baffles`;
+
+      focalPoint = {
+        name: "Proscenium Comedy Performance Stage & Stand-Up Microphone",
+        position: [0, 1.25, -5.6],
+        description: "Elevated dark hardwood proscenium stage with center stand-up microphone and acoustic back wall panels.",
+      };
+
+      zones.push(
+        {
+          id: "zone-proscenium-stage",
+          name: "Proscenium Comedy Performance Stage",
+          role: "focal",
+          bounds: { x: 0, z: -6.4, width: 7.5, depth: 4.2 },
+          clearanceMeters: 1.6,
+          colorHex: "#484E59",
+          description: "Raised performance deck providing direct sightlines across all auditorium tiers.",
+        },
+        {
+          id: "zone-auditorium-floor",
+          name: "Stepped Auditorium Audience Seating",
+          role: "seating",
+          bounds: { x: 0, z: 2.2, width: 10.5, depth: 9.8 },
+          clearanceMeters: 1.2,
+          colorHex: "#22252A",
+          description: "Raked rectilinear tiered theatre seating rows separated by a central circulation aisle.",
+        }
+      );
+
+      objects.push(
+        {
+          id: "obj-comedy-stage",
+          name: "Elevated Hardwood Proscenium Comedy Stage",
+          category: "Event Installations",
+          archetype: "modular_stage_riser",
+          position: [0, 0.45, -6.4],
+          rotation: [0, 0, 0],
+          dimensions: [7.2, 0.9, 4.0],
+          materialId: "warm_oak",
+          colorHex: "#22252A",
+          accentColorHex: "#484E59",
+          provenanceId: "prov-llm-stage",
+          designNote: "Rectilinear elevated performance platform designed for standalone comedy monologue.",
+        },
+        {
+          id: "obj-performer-mic",
+          name: "Center Stage Stand-Up Microphone & Cast Iron Base",
+          category: "Event Installations",
+          archetype: "performer_mic_stand",
+          position: [0, 1.25, -5.6],
+          rotation: [0, 0, 0],
+          dimensions: [0.45, 1.35, 0.45],
+          materialId: "mirror_chrome",
+          colorHex: "#CBD5E1",
+          accentColorHex: "#94A3B8",
+          provenanceId: "prov-llm-mic",
+          designNote: "Standard chrome stand-up microphone positioned at stage focal center.",
+        },
+        {
+          id: "obj-stage-acoustic-baffle",
+          name: "Acoustic Stage Backing Baffle Assembly",
+          category: "Architecture",
+          archetype: "acoustic_wall_panel",
+          position: [0, 2.6, -8.6],
+          rotation: [0, 0, 0],
+          dimensions: [8.0, 3.6, 0.3],
+          materialId: "acoustic_felt",
+          colorHex: "#33373E",
+          accentColorHex: "#484E59",
+          provenanceId: "prov-llm-baffle",
+          designNote: "Flat sound absorption panels behind stage to eliminate slap-back echo.",
+        },
+        {
+          id: "obj-auditorium-row-a",
+          name: "Raked Auditorium Seating Tier (Row A - Floor)",
+          category: "Furniture",
+          archetype: "tiered_auditorium_row",
+          position: [0, 0.38, -2.2],
+          rotation: [0, 0, 0],
+          dimensions: [8.4, 0.82, 0.95],
+          materialId: "boucle_wool",
+          colorHex: "#2B2F38",
+          accentColorHex: "#4A5568",
+          provenanceId: "prov-llm-seats",
+          designNote: "Front row cushioned theatre seats with direct stage sightlines.",
+        },
+        {
+          id: "obj-auditorium-row-b",
+          name: "Raked Auditorium Seating Tier (Row B - Riser 1)",
+          category: "Furniture",
+          archetype: "tiered_auditorium_row",
+          position: [0, 0.68, 0.8],
+          rotation: [0, 0, 0],
+          dimensions: [8.8, 0.82, 0.95],
+          materialId: "boucle_wool",
+          colorHex: "#2B2F38",
+          accentColorHex: "#4A5568",
+          provenanceId: "prov-llm-seats",
+          designNote: "Elevated second-tier seating row providing clear sightlines over front row.",
+        },
+        {
+          id: "obj-auditorium-row-c",
+          name: "Raked Auditorium Seating Tier (Row C - Riser 2)",
+          category: "Furniture",
+          archetype: "tiered_auditorium_row",
+          position: [0, 0.98, 3.8],
+          rotation: [0, 0, 0],
+          dimensions: [9.2, 0.82, 0.95],
+          materialId: "boucle_wool",
+          colorHex: "#2B2F38",
+          accentColorHex: "#4A5568",
+          provenanceId: "prov-llm-seats",
+          designNote: "Third-tier seating row with stepped elevation.",
+        },
+        {
+          id: "obj-auditorium-row-d",
+          name: "Raked Auditorium Seating Tier (Row D - Upper Riser)",
+          category: "Furniture",
+          archetype: "tiered_auditorium_row",
+          position: [0, 1.28, 6.8],
+          rotation: [0, 0, 0],
+          dimensions: [9.6, 0.82, 0.95],
+          materialId: "boucle_wool",
+          colorHex: "#2B2F38",
+          accentColorHex: "#4A5568",
+          provenanceId: "prov-llm-seats",
+          designNote: "Fourth-tier elevated seating completing auditorium capacity.",
+        },
+        {
+          id: "obj-perimeter-panel-west",
+          name: "Perimeter Acoustic Felt Absorption Panels (West)",
+          category: "Architecture",
+          archetype: "acoustic_felt_panel",
+          position: [-7.2, 2.2, 1.0],
+          rotation: [0, Math.PI / 2, 0],
+          dimensions: [6.8, 2.8, 0.12],
+          materialId: "acoustic_felt",
+          colorHex: "#3A3E48",
+          provenanceId: "prov-llm-panels",
+          designNote: "Standard acoustic absorption treatment for 0.48s speech RT60 target.",
+        },
+        {
+          id: "obj-perimeter-panel-east",
+          name: "Perimeter Acoustic Felt Absorption Panels (East)",
+          category: "Architecture",
+          archetype: "acoustic_felt_panel",
+          position: [7.2, 2.2, 1.0],
+          rotation: [0, -Math.PI / 2, 0],
+          dimensions: [6.8, 2.8, 0.12],
+          materialId: "acoustic_felt",
+          colorHex: "#3A3E48",
+          provenanceId: "prov-llm-panels",
+          designNote: "Standard acoustic absorption treatment for 0.48s speech RT60 target.",
+        },
+        {
+          id: "obj-theatre-lighting-truss",
+          name: "Suspended Linear Stage Wash Lighting Truss",
+          category: "Lighting",
+          archetype: "suspended_box_truss",
+          position: [0, 4.6, -3.4],
+          rotation: [0, 0, 0],
+          dimensions: [8.2, 0.45, 1.2],
+          materialId: "anodized_aluminum",
+          colorHex: "#1A1D24",
+          accentColorHex: "#CBD5E1",
+          provenanceId: "prov-llm-lighting",
+          designNote: "Overhead lighting rig providing uniform 3200K halogen stage wash.",
+        }
+      );
+    }
   } else {
     roomDimensions = scaleDimensionsToCapacity(
       { width: 14.0, height: 4.2, depth: 12.0, ridgeHeight: 4.6, wallThickness: 0.3 },

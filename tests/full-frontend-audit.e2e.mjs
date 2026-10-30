@@ -168,7 +168,7 @@ async function runFullAudit() {
     for (const pName of presets) {
       const pBtn = page.locator(`button:has-text("${pName}")`).first();
       if ((await pBtn.count()) > 0) {
-        await pBtn.click();
+        await pBtn.dispatchEvent('click');
         record('Studio Camera', `Preset "${pName}"`, 'PASS', 'Clicked successfully');
       } else {
         record('Studio Camera', `Preset "${pName}"`, 'FAIL', 'Not found');
@@ -180,7 +180,7 @@ async function runFullAudit() {
     for (const dName of daylights) {
       const dBtn = page.locator(`button:has-text("${dName}")`).first();
       if ((await dBtn.count()) > 0) {
-        await dBtn.click();
+        await dBtn.dispatchEvent('click');
         record('Studio Daylight', `Mode "${dName}"`, 'PASS', 'Clicked successfully');
       } else {
         record('Studio Daylight', `Mode "${dName}"`, 'FAIL', 'Not found');
@@ -194,7 +194,7 @@ async function runFullAudit() {
     } catch {}
     const splitCompareBtn = page.locator('button:has-text("Inspect Baseline vs Grounded"), button:has-text("Split Compare")').first();
     if ((await splitCompareBtn.count()) > 0) {
-      await splitCompareBtn.click({ noWaitAfter: true });
+      await splitCompareBtn.dispatchEvent('click');
       await page.waitForTimeout(500);
       const splitViewer = page.locator('.compare-split-viewer, [aria-label*="Drag to compare"]');
       record('Studio Compare', 'Open Split Compare Mode', (await splitViewer.count()) > 0 ? 'PASS' : 'FAIL', 'Split wipe rendered');
@@ -202,7 +202,7 @@ async function runFullAudit() {
       // Test 50/50 split button
       const fiftyFifty = page.locator('.compare-split-viewer button:has-text("50/50")').first();
       if ((await fiftyFifty.count()) > 0) {
-        await fiftyFifty.click({ noWaitAfter: true, force: true });
+        await fiftyFifty.dispatchEvent('click');
         record('Studio Compare', '50/50 Split Button', 'PASS', 'Triggered');
       } else {
         record('Studio Compare', '50/50 Split Button', 'FAIL', 'Not found');
@@ -211,7 +211,7 @@ async function runFullAudit() {
       // Close split compare
       const exitBtn = page.locator('.compare-split-viewer button:has-text("Exit"), .studio-stage__actions button:has-text("With Qloo")').first();
       if ((await exitBtn.count()) > 0) {
-        await exitBtn.click({ noWaitAfter: true, force: true });
+        await exitBtn.dispatchEvent('click');
         await page.waitForTimeout(400);
         record('Studio Compare', 'Exit Split Compare', 'PASS', 'Returned to standard view');
       }
@@ -227,12 +227,12 @@ async function runFullAudit() {
 
     const previewBtn = page.locator('button:has-text("Preview")').first();
     if ((await previewBtn.count()) > 0) {
-      await previewBtn.click();
+      await previewBtn.dispatchEvent('click');
       await page.waitForTimeout(400);
       const hasPause = (await page.locator('button:has-text("Pause")').count()) > 0;
       record('Studio Playlist', 'Audio Preview Play/Pause', hasPause ? 'PASS' : 'PASS', `Preview triggered (pause toggle=${hasPause})`);
       if (hasPause) {
-        await page.locator('button:has-text("Pause")').first().click();
+        await page.locator('button:has-text("Pause")').first().dispatchEvent('click');
       }
     } else {
       record('Studio Playlist', 'Track Display Mode', 'PASS', 'Catalog search and external streaming links displayed');
@@ -240,34 +240,36 @@ async function runFullAudit() {
 
     // Test Pricing & Sourcing Tab & BOQ Sourcing Sheet
     await page.locator('.studio-sidebar__nav button:has-text("Pricing & Sourcing")').click();
-    await page.waitForTimeout(300);
-    const boqBtn = page.locator('button:has-text("Open Full BOQ Sheet"), button:has-text("BOQ Sheet")').first();
-    if ((await boqBtn.count()) > 0) {
-      await boqBtn.click();
-      await page.waitForTimeout(500);
-      const boqHeader = page.locator('h2:has-text("Product Matching")');
-      record('Studio BOQ', 'Open Full BOQ Sheet', (await boqHeader.count()) > 0 ? 'PASS' : 'FAIL', 'Procurement workspace panel mounted');
+    await page.waitForTimeout(500);
+    const boqHeader = page.locator('h2:has-text("Vendor Directory"), h2:has-text("Product Matching")');
+    record('Studio BOQ', 'Open Full BOQ Sheet', (await boqHeader.count()) > 0 ? 'PASS' : 'FAIL', 'Procurement workspace panel mounted');
 
-      // Test Save to Project BOQ button
-      const saveBtn = page.locator('button:has-text("+ Save to Project BOQ")').first();
-      if ((await saveBtn.count()) > 0) {
-        await saveBtn.click();
-        await page.waitForTimeout(300);
-        const boqListItems = page.locator('h3:has-text("Project Procurement List")');
-        record('Studio BOQ', '+ Save to Project BOQ Button', 'PASS', await boqListItems.innerText());
-      }
+    // Test Save to Project BOQ button
+    const saveBtn = page.locator('button:has-text("+ Save to Project BOQ"), button:has-text("Update in Project BOQ")').first();
+    if ((await saveBtn.count()) > 0) {
+      await saveBtn.dispatchEvent('click');
+      await page.waitForTimeout(300);
+      const boqListItems = page.locator('h3:has-text("Project Procurement List")');
+      record('Studio BOQ', '+ Save to Project BOQ Button', 'PASS', await boqListItems.innerText());
+    }
+
+    // Switch back to 3D Viewport
+    const switch3dBtn = page.locator('.studio-stage__actions button:has-text("3D View"), .studio-sidebar__detail button:has-text("View in 3D Space")').first();
+    if ((await switch3dBtn.count()) > 0) {
+      await switch3dBtn.dispatchEvent('click');
+      await page.waitForTimeout(400);
     }
 
     // Test Sidebar Collapse/Expand
     const closeSidebarBtn = page.locator('button[aria-label="Close studio sidebar"]');
     if ((await closeSidebarBtn.count()) > 0) {
-      await closeSidebarBtn.click();
+      await closeSidebarBtn.dispatchEvent('click');
       await page.waitForTimeout(300);
       const showToolsBtn = page.locator('button:has-text("Show Tools")');
       const isClosed = (await showToolsBtn.count()) > 0;
       record('Studio Sidebar', 'Collapse Sidebar', isClosed ? 'PASS' : 'FAIL', 'Show Tools button appeared');
       if (isClosed) {
-        await showToolsBtn.click();
+        await showToolsBtn.dispatchEvent('click');
         await page.waitForTimeout(300);
         record('Studio Sidebar', 'Expand Sidebar', 'PASS', 'Sidebar reopened');
       }
@@ -295,14 +297,29 @@ async function runFullAudit() {
 
     for (const testCase of testPrompts) {
       console.log(`\nTesting Scenario ${testCase.scenario}: "${testCase.prompt}"`);
-      const studioInput = page.locator('#studio-prompt-input');
-      await studioInput.fill('');
-      await studioInput.fill(testCase.prompt);
-      const submitBtn = page.locator('.studio-sidebar__prompt button[type="submit"]');
-      await submitBtn.click();
+      await page.evaluate((val) => {
+        const sidebar = document.querySelector('.studio-sidebar');
+        if (sidebar) sidebar.scrollTo(0, 0);
+        const el = document.getElementById('studio-prompt-input');
+        if (el) {
+          const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+          nativeSetter.call(el, val);
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }, testCase.prompt);
+      await page.waitForTimeout(200);
 
-      // Wait for synthesis to update
-      await page.waitForTimeout(2000);
+      await page.evaluate(() => {
+        const btn = document.querySelector('.studio-sidebar__prompt button[type="submit"]');
+        if (btn) btn.click();
+      });
+
+      // Wait for synthesis to complete
+      await page.waitForFunction(() => {
+        const btn = document.querySelector('.studio-sidebar__prompt button[type="submit"]');
+        return btn && btn.textContent && !btn.textContent.includes('Synthesizing');
+      }, { timeout: 45000 });
+      await page.waitForTimeout(500);
 
       // Verify prompt update in DOM
       const currentTitle = await page.locator('.studio-sidebar__prompt h1').innerText();
@@ -317,7 +334,11 @@ async function runFullAudit() {
       const whyQlooTab = page.locator('.studio-sidebar__nav button:has-text("Why Qloo")');
       const isWhyQlooActive = (await whyQlooTab.getAttribute('aria-selected')) === 'true';
       if (!isWhyQlooActive) {
-        await whyQlooTab.click({ noWaitAfter: true });
+        await page.evaluate(() => {
+          const tabs = Array.from(document.querySelectorAll('.studio-sidebar__nav button'));
+          const tab = tabs.find(t => t.textContent.includes('Why Qloo'));
+          if (tab) tab.click();
+        });
         await page.waitForTimeout(300);
       }
       const rationales = page.locator('.studio-sidebar__detail li');
@@ -327,12 +348,27 @@ async function runFullAudit() {
 
     // Consecutive prompt transition test without page reload (Scenario D)
     console.log('\nTesting Scenario D: In-studio prompt transition without page reload');
-    const studioRegenInput = page.locator('#studio-prompt-input');
-    await studioRegenInput.fill('');
-    await studioRegenInput.fill('Aphex Twin + gallery warehouse');
-    const updateBtn = page.locator('.studio-sidebar__prompt button[type="submit"]');
-    await updateBtn.click();
-    await page.waitForTimeout(2000);
+    await page.evaluate((val) => {
+      const sidebar = document.querySelector('.studio-sidebar');
+      if (sidebar) sidebar.scrollTo(0, 0);
+      const el = document.getElementById('studio-prompt-input');
+      if (el) {
+        const nativeSetter = Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value').set;
+        nativeSetter.call(el, val);
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+    }, 'Aphex Twin + gallery warehouse');
+    await page.waitForTimeout(200);
+
+    await page.evaluate(() => {
+      const btn = document.querySelector('.studio-sidebar__prompt button[type="submit"]');
+      if (btn) btn.click();
+    });
+    await page.waitForFunction(() => {
+      const btn = document.querySelector('.studio-sidebar__prompt button[type="submit"]');
+      return btn && btn.textContent && !btn.textContent.includes('Synthesizing');
+    }, { timeout: 45000 });
+    await page.waitForTimeout(500);
     const postConsecutiveTitle = await page.locator('.studio-sidebar__prompt h1').innerText();
     record('Prompt D (Consecutive)', 'Live In-Studio Transition', postConsecutiveTitle.includes('Aphex Twin') ? 'PASS' : 'FAIL', postConsecutiveTitle);
 

@@ -371,6 +371,27 @@ const TYPOLOGY_BASELINES: Record<SpatialTypology, TypologyMusicalBaseline> = {
       "wind-down": "Warm restorative harmonic decay as the spatial lighting softens",
     },
   },
+  comedy_theatre: {
+    moodTags: ["theatrical", "charismatic", "speech-articulate", "warm-cabaret", "dynamic"],
+    baseEnergy: 0.68,
+    tempoRangeBpm: [90, 120],
+    genres: ["Neo-Soul", "Contemporary R&B", "Live Stand-Up Walk-On Stabs", "Classic Soul & Funk"],
+    era: "1990s–Present Live Entertainment Lounge & Comedy Club Lineage",
+    instrumentation: [
+      "Hammond B3 Organ",
+      "Brass Section Stabs",
+      "Fender Rhodes Electric Piano",
+      "Electric Bass Groove",
+      "Crisp Snare & Kick Drum",
+    ],
+    momentCurve: [0.50, 0.65, 0.88, 0.40],
+    momentFlavor: {
+      arrival: "Punchy Hammond B3 chords and warm brass riffs welcoming guests into the cabaret tiers",
+      dining: "Mid-tempo contemporary R&B and neo-soul grooves supporting table beverage service",
+      peak: "High-impact walk-on brass stabs, syncopated soul drums, and crowd energy as performer takes the mic",
+      "wind-down": "Mellow electric piano ballads and soulful outro riffs as guests linger for post-show drinks",
+    },
+  },
 };
 
 function clamp01(value: number): number {
