@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**"]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-and-build:
+    name: Build & Test Verification Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify Next.js production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: 1
+
+      - name: Run Core Acceptance Benchmarks
+        run: npm test
+
+      - name: Run Dynamic Baseline Differentiation Suite
+        run: npm run test:baseline
+
+      - name: Run Truthful Sentences & Generalisation Suite
+        run: npm run test:judges
+
+      - name: Run System Reliability Suite
+        run: npm run test:reliability
+
+      - name: Run Procurement & Visual Grounding Suite
+        run: npm run test:procurement
+
+      - name: Run Release Readiness Grounding Suite
+        run: npm run test:readiness
+
+      - name: Run Cedric Comedy Theatre Verification
+        run: node --test tests/cedric-comedy-theatre.test.mjs
