@@ -363,6 +363,10 @@ export function computeSabineAcoustics(
     targetRT60 = 1.15;
     alpha = 0.22;
     nc = 28;
+  } else if (typology === "gallery_pavilion") {
+    targetRT60 = 0.48;
+    alpha = 0.40;
+    nc = 18;
   } else if (isOpenAir) {
     targetRT60 = 0.28;
     alpha = 0.65;
@@ -398,7 +402,7 @@ export function buildLightingForTypology(
   };
 
   const tm = timeMultipliers[timeOfDay] || timeMultipliers.midnight;
-  const effectiveTempK = Math.max(1800, Math.min(6500, baseTempK + tm.tempOffset));
+  const canonicalTempK = Math.max(1800, Math.min(6500, Math.round(baseTempK)));
 
   const tempToHex = (k: number) => {
     if (k <= 2300) return "#FFB46B";
@@ -408,7 +412,7 @@ export function buildLightingForTypology(
     return "#D6ECFF";
   };
 
-  const primaryLightHex = tempToHex(effectiveTempK);
+  const primaryLightHex = tempToHex(canonicalTempK);
   const sources: LightSourceSpec[] = [
     {
       id: "light-ambient-core",
@@ -416,7 +420,7 @@ export function buildLightingForTypology(
       type: "ambient",
       position: [0, dims.height * 0.8, 0],
       colorHex: primaryLightHex,
-      temperatureK: effectiveTempK,
+      temperatureK: canonicalTempK,
       intensity: tm.ambient,
       castShadow: false,
     },
@@ -427,7 +431,7 @@ export function buildLightingForTypology(
       position: [dims.width * 0.6, dims.height * 1.35, dims.depth * 0.5],
       target: [0, 0, 0],
       colorHex: timeOfDay === "sunset" ? "#FF9E5E" : primaryLightHex,
-      temperatureK: effectiveTempK,
+      temperatureK: canonicalTempK,
       intensity: timeOfDay === "midnight" ? 0.55 : 1.35,
       castShadow: true,
     },
@@ -438,7 +442,7 @@ export function buildLightingForTypology(
       position: [0, dims.height - 0.3, -dims.depth * 0.15],
       target: [0, 0.8, -dims.depth * 0.32],
       colorHex: typology === "underground_club" ? "#EF4444" : primaryLightHex,
-      temperatureK: effectiveTempK,
+      temperatureK: canonicalTempK,
       intensity: 2.2,
       angleRad: 0.58,
       penumbra: 0.65,
@@ -449,8 +453,8 @@ export function buildLightingForTypology(
       name: "West Perimeter Grazing Sconce Array",
       type: "point",
       position: [-dims.width * 0.38, dims.height * 0.55, 0],
-      colorHex: "#FFAD60",
-      temperatureK: 2400,
+      colorHex: primaryLightHex,
+      temperatureK: canonicalTempK,
       intensity: 1.15,
       distance: dims.width * 0.9,
       castShadow: false,
@@ -460,8 +464,8 @@ export function buildLightingForTypology(
       name: "East Perimeter Grazing Sconce Array",
       type: "point",
       position: [dims.width * 0.38, dims.height * 0.55, 0],
-      colorHex: "#FFAD60",
-      temperatureK: 2400,
+      colorHex: primaryLightHex,
+      temperatureK: canonicalTempK,
       intensity: 1.15,
       distance: dims.width * 0.9,
       castShadow: false,
@@ -469,7 +473,7 @@ export function buildLightingForTypology(
   ];
 
   return {
-    temperatureK: effectiveTempK,
+    temperatureK: canonicalTempK,
     ambientIntensity: tm.ambient,
     sunAzimuthDeg: tm.sunAzimuth,
     sunElevationDeg: tm.sunElev,
@@ -2021,7 +2025,116 @@ export function buildSceneSpecFromPayload(
         designNote: "Layered cotton-batting floor cushion arranged around the chabudai table.",
       });
     });
-  } else {
+  } else if (typology === "gallery_pavilion") {
+    roomDimensions = scaleDimensionsToCapacity(
+      { width: 15.0, height: 4.2, depth: 11.0, ridgeHeight: 4.5, wallThickness: 0.3 },
+      interp,
+      2.4
+    );
+    title = "Auteur Cine-Lounge — Intimate Cinematic Screening Pavilion & Archival Gallery";
+    subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Acoustic Screen Baffles, Walnut Curator Deck & Linen Lounge`;
+    layoutMode = "lounge";
+    focalPoint = {
+      name: "Curated 4K Cinema Projection Screen & Acoustic Baffle Backdrop",
+      position: [0, 1.8, -4.2],
+      description: "Micro-perforated tensioned cinema screen flanked by acoustic walnut absorption baffles and low-voltage perimeter grazing.",
+    };
+
+    zones.push(
+      {
+        id: "zone-cinema-stage",
+        name: "Cinematic Projection Screen & Audio Baffle Stage",
+        role: "focal",
+        bounds: { x: 0, z: -4.0, width: 8.5, depth: 2.8 },
+        clearanceMeters: 1.6,
+        colorHex: "#1E293B",
+        description: "Primary screening axis with reference audio playback.",
+      },
+      {
+        id: "zone-gallery-lounge",
+        name: "Low-Slung Archival Screening Lounge",
+        role: "seating",
+        bounds: { x: 0, z: 0.8, width: 10.0, depth: 5.5 },
+        clearanceMeters: 1.4,
+        colorHex: "#334155",
+        description: "Low-profile acoustic lounge seating aligned with cinema sweet spot.",
+      }
+    );
+
+    objects.push(
+      {
+        id: "obj-cinema-screen",
+        name: "Matte-White Tensioned Cinema Screen & Acoustic Baffles",
+        category: "Event Installations",
+        archetype: "cinema_projection_screen",
+        position: [0, 2.0, -4.4],
+        rotation: [0, 0, 0],
+        dimensions: [6.4, 3.2, 0.4],
+        materialId: "washi_screen",
+        colorHex: "#F8FAFC",
+        accentColorHex: "#38BDF8",
+        provenanceId: "prov-qloo-1",
+        designNote: "Tensioned 4K projection surface with integrated rear acoustic absorption.",
+      },
+      {
+        id: "obj-curator-plinth",
+        name: "Sculpted American Walnut Curator & Projection Plinth",
+        category: "Furniture",
+        archetype: "curator_projection_plinth",
+        position: [0, 0.5, 3.8],
+        rotation: [0, 0, 0],
+        dimensions: [2.2, 0.95, 1.1],
+        materialId: "warm_oak",
+        secondaryMaterialId: "brushed_brass",
+        colorHex: "#452A18",
+        accentColorHex: "#D4A359",
+        provenanceId: "prov-inf-1",
+        designNote: "Houses projection control hardware and physical film archive.",
+      },
+      {
+        id: "obj-cinema-lounge-west",
+        name: "Low-Profile Archival Wool Felt Screening Lounge (West)",
+        category: "Furniture",
+        archetype: "cinema_lounge_seat",
+        position: [-2.6, 0.38, 0.6],
+        rotation: [0, 0.2, 0],
+        dimensions: [2.8, 0.76, 1.05],
+        materialId: "acoustic_felt",
+        colorHex: "#2C313A",
+        accentColorHex: "#A0AEC0",
+        provenanceId: "prov-llm-1",
+        designNote: "Low-profile acoustic seating maintaining clean projection sightlines.",
+      },
+      {
+        id: "obj-cinema-lounge-east",
+        name: "Low-Profile Archival Wool Felt Screening Lounge (East)",
+        category: "Furniture",
+        archetype: "cinema_lounge_seat",
+        position: [2.6, 0.38, 0.6],
+        rotation: [0, -0.2, 0],
+        dimensions: [2.8, 0.76, 1.05],
+        materialId: "acoustic_felt",
+        colorHex: "#2C313A",
+        accentColorHex: "#A0AEC0",
+        provenanceId: "prov-llm-1",
+        designNote: "Low-profile acoustic seating maintaining clean projection sightlines.",
+      },
+      {
+        id: "obj-perimeter-light-blade",
+        name: "Linear 2800K Architectural Perimeter Grazing Blade",
+        category: "Lighting",
+        archetype: "linear_light_blade",
+        position: [0, 4.0, 0],
+        rotation: [0, 0, 0],
+        dimensions: [0.35, 0.15, 10.0],
+        materialId: "anodized_aluminum",
+        colorHex: "#FFE6C2",
+        accentColorHex: "#FFAA44",
+        provenanceId: "prov-inf-1",
+        designNote: "Low-glare indirect architectural grazing along screening room perimeter.",
+      }
+    );
+  } else if (typology === "grunge_loft") {
     roomDimensions = scaleDimensionsToCapacity(
       { width: 14.0, height: 4.6, depth: 12.0, ridgeHeight: 4.9, wallThickness: 0.35 },
       interp,
@@ -2113,6 +2226,100 @@ export function buildSceneSpecFromPayload(
         accentColorHex: "#E84A8A",
         provenanceId: "prov-llm-1",
         designNote: "Paired with mirror-chrome drum tables.",
+      }
+    );
+  } else {
+    roomDimensions = scaleDimensionsToCapacity(
+      { width: 14.0, height: 4.2, depth: 12.0, ridgeHeight: 4.6, wallThickness: 0.3 },
+      interp,
+      2.4
+    );
+    title = "Apex — Contemporary Multi-Disciplinary Acoustic Studio & Gallery";
+    subtitle = `${roomDimensions.width}m × ${roomDimensions.depth}m × ${roomDimensions.height}m • Engineered Hardwood, Recessed Acoustic Slats & Architectural Lighting`;
+    layoutMode = "lounge";
+    focalPoint = {
+      name: "Monolithic Presentation Plinth & Acoustic Baffle Installation",
+      position: [0, 1.2, -3.8],
+      description: "Honed stone presentation dais with integrated architectural acoustic baffle wall.",
+    };
+
+    zones.push(
+      {
+        id: "zone-presentation-focal",
+        name: "Primary Presentation Stage & Acoustic Baffle Wall",
+        role: "focal",
+        bounds: { x: 0, z: -3.6, width: 8.0, depth: 3.0 },
+        clearanceMeters: 1.5,
+        colorHex: "#334155",
+        description: "Flexible performance and architectural presentation focal zone.",
+      },
+      {
+        id: "zone-studio-lounge",
+        name: "Modular Architectural Discussion Lounge",
+        role: "seating",
+        bounds: { x: 0, z: 1.2, width: 9.0, depth: 5.0 },
+        clearanceMeters: 1.4,
+        colorHex: "#64748B",
+        description: "Architectural modular bench seating and low discussion tables.",
+      }
+    );
+
+    objects.push(
+      {
+        id: "obj-studio-plinth",
+        name: "Monolithic Honed Stone Presentation Plinth",
+        category: "Event Installations",
+        archetype: "ev_product_plinth",
+        position: [0, 0.45, -3.8],
+        rotation: [0, 0, 0],
+        dimensions: [3.6, 0.45, 1.8],
+        materialId: "honed_limestone",
+        colorHex: "#CBD5E1",
+        accentColorHex: "#0EA5E9",
+        provenanceId: "prov-llm-1",
+        designNote: "Architectural presentation platform for multi-disciplinary exhibitions.",
+      },
+      {
+        id: "obj-acoustic-wall-slats",
+        name: "Vertical Architectural Acoustic Slat Array",
+        category: "Architecture",
+        archetype: "acoustic_wall_panel",
+        position: [0, 2.4, -4.8],
+        rotation: [0, 0, 0],
+        dimensions: [6.4, 3.2, 0.15],
+        materialId: "acoustic_slats",
+        colorHex: "#475569",
+        accentColorHex: "#94A3B8",
+        provenanceId: "prov-llm-1",
+        designNote: "Calibrated absorption blades tuning room acoustics.",
+      },
+      {
+        id: "obj-modular-bench-west",
+        name: "Sculptural Low Architectural Lounge Bench (West)",
+        category: "Furniture",
+        archetype: "sculptural_concrete_bench",
+        position: [-2.5, 0.35, 1.2],
+        rotation: [0, 0.15, 0],
+        dimensions: [2.6, 0.45, 0.95],
+        materialId: "warm_oak",
+        colorHex: "#334155",
+        accentColorHex: "#64748B",
+        provenanceId: "prov-llm-1",
+        designNote: "Modular architectural bench seating for gallery guests.",
+      },
+      {
+        id: "obj-modular-bench-east",
+        name: "Sculptural Low Architectural Lounge Bench (East)",
+        category: "Furniture",
+        archetype: "sculptural_concrete_bench",
+        position: [2.5, 0.35, 1.2],
+        rotation: [0, -0.15, 0],
+        dimensions: [2.6, 0.45, 0.95],
+        materialId: "warm_oak",
+        colorHex: "#334155",
+        accentColorHex: "#64748B",
+        provenanceId: "prov-llm-1",
+        designNote: "Modular architectural bench seating for gallery guests.",
       }
     );
   }

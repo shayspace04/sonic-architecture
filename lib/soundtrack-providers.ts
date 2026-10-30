@@ -24,6 +24,8 @@ import type { ResolvedTrack } from "./types";
 export interface MusicProvider {
   readonly id: "itunes" | "spotify-embed" | "deezer";
   search(artist: string, title: string): Promise<ResolvedTrack | null>;
+  searchArtistTopTracks?(artist: string, limit?: number): Promise<ResolvedTrack[]>;
+  searchGenreTracks?(genre: string, limit?: number): Promise<ResolvedTrack[]>;
   embedUrl?(track: ResolvedTrack): string;
   previewUrl?(track: ResolvedTrack): string | null;
 }
@@ -340,6 +342,132 @@ export class ITunesPreviewProvider implements MusicProvider {
       clearTimeout(timer);
     }
   }
+
+  public async searchArtistTopTracks(
+    artist: string,
+    limit: number = 4
+  ): Promise<ResolvedTrack[]> {
+    const cleanArtist = artist.trim();
+    if (!cleanArtist) return [];
+
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
+      cleanArtist
+    )}&media=music&entity=song&limit=${Math.max(limit * 2, 8)}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
+      if (!response.ok) return [];
+
+      const data = (await response.json()) as ITunesSearchResponse;
+      const results = data.results ?? [];
+      const tracks: ResolvedTrack[] = [];
+
+      for (const item of results) {
+        const tId = item.trackId ? String(item.trackId) : "";
+        const tName = item.trackName?.trim() ?? "";
+        const aName = item.artistName?.trim() ?? "";
+        if (!tId || !tName || !aName) continue;
+
+        if (tokensOverlap(cleanArtist, aName)) {
+          const highResCover = item.artworkUrl100
+            ? item.artworkUrl100.replace(/100x100bb/g, "300x300bb")
+            : undefined;
+          const releaseYear = item.releaseDate
+            ? Number.parseInt(item.releaseDate.slice(0, 4), 10)
+            : undefined;
+
+          tracks.push({
+            providerId: "itunes",
+            trackId: tId,
+            title: tName,
+            artist: aName,
+            album: item.collectionName,
+            coverUrl: highResCover,
+            previewUrl: item.previewUrl ?? null,
+            externalSearchUrl: buildExternalMusicSearchUrl(aName, tName),
+            storeUrl: item.trackViewUrl,
+            durationMs: item.trackTimeMillis,
+            releaseYear: Number.isFinite(releaseYear) ? releaseYear : undefined,
+            genreName: item.primaryGenreName,
+          });
+
+          if (tracks.length >= limit) break;
+        }
+      }
+      return tracks;
+    } catch {
+      return [];
+    } finally {
+      clearTimeout(timer);
+    }
+  }
+
+  public async searchGenreTracks(
+    genre: string,
+    limit: number = 4
+  ): Promise<ResolvedTrack[]> {
+    const cleanGenre = genre.trim();
+    if (!cleanGenre) return [];
+
+    const url = `https://itunes.apple.com/search?term=${encodeURIComponent(
+      cleanGenre
+    )}&media=music&entity=song&limit=${limit}`;
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), this.timeoutMs);
+    try {
+      const response = await fetch(url, {
+        headers: { Accept: "application/json" },
+        signal: controller.signal,
+      });
+      if (!response.ok) return [];
+
+      const data = (await response.json()) as ITunesSearchResponse;
+      const results = data.results ?? [];
+      const tracks: ResolvedTrack[] = [];
+
+      for (const item of results) {
+        const tId = item.trackId ? String(item.trackId) : "";
+        const tName = item.trackName?.trim() ?? "";
+        const aName = item.artistName?.trim() ?? "";
+        if (!tId || !tName || !aName) continue;
+
+        const highResCover = item.artworkUrl100
+          ? item.artworkUrl100.replace(/100x100bb/g, "300x300bb")
+          : undefined;
+        const releaseYear = item.releaseDate
+          ? Number.parseInt(item.releaseDate.slice(0, 4), 10)
+          : undefined;
+
+        tracks.push({
+          providerId: "itunes",
+          trackId: tId,
+          title: tName,
+          artist: aName,
+          album: item.collectionName,
+          coverUrl: highResCover,
+          previewUrl: item.previewUrl ?? null,
+          externalSearchUrl: buildExternalMusicSearchUrl(aName, tName),
+          storeUrl: item.trackViewUrl,
+          durationMs: item.trackTimeMillis,
+          releaseYear: Number.isFinite(releaseYear) ? releaseYear : undefined,
+          genreName: item.primaryGenreName,
+        });
+
+        if (tracks.length >= limit) break;
+      }
+      return tracks;
+    } catch {
+      return [];
+    } finally {
+      clearTimeout(timer);
+    }
+  }
 }
 
 // ============================================================================
@@ -402,5 +530,19 @@ export class CompositeMusicProvider implements MusicProvider {
     }
 
     return spotifyResult ?? itunesResult;
+  }
+
+  public async searchArtistTopTracks(
+    artist: string,
+    limit: number = 4
+  ): Promise<ResolvedTrack[]> {
+    return this.itunesProvider.searchArtistTopTracks(artist, limit);
+  }
+
+  public async searchGenreTracks(
+    genre: string,
+    limit: number = 4
+  ): Promise<ResolvedTrack[]> {
+    return this.itunesProvider.searchGenreTracks(genre, limit);
   }
 }

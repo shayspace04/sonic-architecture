@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SonicMark } from '@/components/brand/SonicMark';
 import { STARTER_PROMPTS, buildStudioHref } from '@/lib/design-tokens';
 
 export const metadata: Metadata = {
@@ -59,7 +60,7 @@ export default function ArchivePage() {
       {/* Navigation */}
       <nav className="site-nav" aria-label="Primary navigation">
         <Link className="wordmark" href="/">
-          <span className="wordmark-mark" aria-hidden="true" />
+          <SonicMark height={24} aria-hidden="true" className="wordmark-mark" />
           SONIC / ARCHITECTURE
         </Link>
         <div className="nav-links">

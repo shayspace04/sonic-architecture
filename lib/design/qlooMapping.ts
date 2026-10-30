@@ -11,7 +11,7 @@
  * Default generic grey is strictly forbidden when valid Qloo data exists.
  */
 
-import { WallFinish, FloorFinish, CeilingStructure, MaterialFamily, QlooContextEntity, SpatialTypology } from "@/lib/types";
+import { WallFinish, FloorFinish, CeilingStructure, MaterialFamily, QlooContextEntity, SpatialTypology, AcousticTarget } from "@/lib/types";
 import { RealQlooEvidenceBundle, ResolvedTagEvidence } from "@/lib/qloo/types";
 
 export interface PaletteFamily {
@@ -392,7 +392,7 @@ export const ARCHITECTURAL_MAPPING_RULES: ArchitecturalMappingRule[] = [
     ceilingStructure: "draped_textile_canopy",
     seatingFabric: "boucle_wool",
     lightingTemperatureK: 4000,
-    acousticRT60Target: 0.85,
+    acousticRT60Target: 0.38,
   },
 
   // --- Generic Global Cultural Rules ---
@@ -939,9 +939,22 @@ export function generateBecauseSentences(
   bundle?: RealQlooEvidenceBundle,
   entities?: QlooContextEntity[],
   derived?: DerivedArchitecturalDesign,
-  sceneTypology?: string
+  sceneTypology?: string,
+  acousticTarget?: AcousticTarget
 ): BecauseSentence[] {
-  const subject = entities?.[0]?.name || bundle?.resolvedTags?.[0]?.name || prompt.trim();
+  const eligibleEntities = (entities || []).filter(
+    (e: any) =>
+      e.provenance !== "sample-fixture" &&
+      e.source !== "fixture" &&
+      !e.name?.includes("(Sample fixture)")
+  );
+  const eligibleTagsList = (bundle?.resolvedTags || []).filter(
+    (t: any) =>
+      t.provenance !== "sample-fixture" &&
+      t.source !== "fixture" &&
+      !t.name?.includes("(Sample fixture)")
+  );
+  const subject = eligibleEntities[0]?.name || eligibleTagsList[0]?.name || prompt.trim();
   const sentences: BecauseSentence[] = [];
 
   // Filter out any fixture or sample items!
@@ -1021,15 +1034,19 @@ export function generateBecauseSentences(
   const moodDesc =
     kelvin >= 5000 ? "cold industrial daylight" : kelvin <= 2800 ? "warm incandescent amber" : "diffuse neutral";
   const lightingChoice = derived?.appliedChoices.find((c) => c.element === "lighting");
-  const rawLightingTrigger = lightingChoice?.triggeredBy || eligibleTags[0]?.name || subject;
-  const safeLightingTrigger = rawLightingTrigger.includes("(Sample fixture)") ? subject : rawLightingTrigger;
+  const rawLightingTrigger = lightingChoice?.triggeredBy || eligibleTags[0]?.name;
+  const isRealQlooLightingSignal =
+    Boolean(rawLightingTrigger &&
+    rawLightingTrigger !== subject &&
+    !rawLightingTrigger.includes("(Sample fixture)") &&
+    eligibleTags.some((t: any) => t.name && t.name.toLowerCase().includes(rawLightingTrigger.toLowerCase())));
 
-  if (eligibleTags.length > 0 || (bundle && (bundle.source === "live" || bundle.source === "cache"))) {
+  if (isRealQlooLightingSignal && rawLightingTrigger) {
     sentences.push({
       decision: "lighting",
       headline: "Atmospheric Lighting & Color Temperature",
-      sentence: `Qloo affinity signals for ${subject} highlight "${safeLightingTrigger}". Our lighting rule maps this aesthetic to ${kelvin}K ${moodDesc} illumination.`,
-      citedEntities: [subject, safeLightingTrigger],
+      sentence: `Qloo affinity signals for ${subject} highlight "${rawLightingTrigger}". Our lighting rule maps this aesthetic to ${kelvin}K ${moodDesc} illumination.`,
+      citedEntities: [subject, rawLightingTrigger],
     });
   } else {
     sentences.push({
@@ -1045,23 +1062,32 @@ export function generateBecauseSentences(
   // --------------------------------------------------------------------------
   const wallMat = (derived?.materials.wallMaterial || "acoustic_slats").replace(/_/g, " ");
   const floorMat = (derived?.materials.flooringMaterial || "warm_oak").replace(/_/g, " ");
-  const rt60 = derived?.materials.acousticRT60Target || 0.42;
-  const matChoice = derived?.appliedChoices.find((c) => c.element === "wallMaterial");
-  const rawMatTrigger = matChoice?.triggeredBy || subject;
-  const safeMatTrigger = rawMatTrigger.includes("(Sample fixture)") ? subject : rawMatTrigger;
+  const targetRT60 = acousticTarget?.targetRT60Seconds ?? derived?.materials.acousticRT60Target ?? 0.42;
+  const calcRT60 = acousticTarget?.calculatedRT60Seconds;
+  const acousticText = calcRT60 !== undefined && calcRT60 !== targetRT60
+    ? `an RT60 target of ${targetRT60.toFixed(2)}s (calculated Sabine RT60 ${calcRT60.toFixed(2)}s)`
+    : `an RT60 target of ${targetRT60.toFixed(2)}s`;
 
-  if (eligibleTags.length > 0 || (bundle && (bundle.source === "live" || bundle.source === "cache"))) {
+  const matChoice = derived?.appliedChoices.find((c) => c.element === "wallMaterial");
+  const rawMatTrigger = matChoice?.triggeredBy || eligibleTags[0]?.name;
+  const isRealQlooMatSignal =
+    Boolean(rawMatTrigger &&
+    rawMatTrigger !== subject &&
+    !rawMatTrigger.includes("(Sample fixture)") &&
+    eligibleTags.some((t: any) => t.name && t.name.toLowerCase().includes(rawMatTrigger.toLowerCase())));
+
+  if (isRealQlooMatSignal && rawMatTrigger) {
     sentences.push({
       decision: "materiality",
       headline: "Surface Materials & Acoustic Calibration",
-      sentence: `Qloo taste coordinates for ${subject} indicate "${safeMatTrigger}". Our acoustic rule specifies ${wallMat} walls and ${floorMat} flooring calibrated to an RT60 target of ${rt60}s.`,
-      citedEntities: [subject, safeMatTrigger],
+      sentence: `Qloo taste coordinates for ${subject} indicate "${rawMatTrigger}". Our acoustic rule specifies ${wallMat} walls and ${floorMat} flooring calibrated to ${acousticText}.`,
+      citedEntities: [subject, rawMatTrigger],
     });
   } else {
     sentences.push({
       decision: "materiality",
       headline: "Surface Materials & Acoustic Calibration",
-      sentence: `Inferred acoustic specification of ${wallMat} walls and ${floorMat} flooring calibrated to an RT60 target of ${rt60}s for ${subject}.`,
+      sentence: `Inferred acoustic specification of ${wallMat} walls and ${floorMat} flooring calibrated to ${acousticText} for ${subject}.`,
       citedEntities: [subject],
     });
   }

@@ -4,6 +4,7 @@ import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } fr
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
+import { SonicMark } from '@/components/brand/SonicMark';
 import type {
   DiffCategory,
   ProcurementLineItem,
@@ -76,6 +77,8 @@ function StudioEditorialWorkspaceInner() {
   const [stageViewMode, setStageViewMode] = useState<'viewport' | 'procurement'>('viewport');
   const [health, setHealth] = useState<QlooHealthState | null>(null);
   const [isPlayingSoundtrack, setIsPlayingSoundtrack] = useState(false);
+  const [liveSoundtrack, setLiveSoundtrack] = useState<SoundtrackPlaylist | null>(null);
+  const [isLoadingSoundtrack, setIsLoadingSoundtrack] = useState(false);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [traceSteps, setTraceSteps] = useState<Array<{ endpoint: string; count: number; latencyMs: number; status: number }>>([]);
 
@@ -122,6 +125,16 @@ function StudioEditorialWorkspaceInner() {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }, [scene, procurementList, budgetConfig]);
+
+  // Prevent stale procurement items from previous scenes when a new scene is generated
+  useEffect(() => {
+    if (!scene) return;
+    const currentObjectIds = new Set(scene.objects.map((o) => o.id));
+    setProcurementList((prev) => {
+      const filtered = prev.filter((item) => currentObjectIds.has(item.objectId));
+      return filtered.length === prev.length ? prev : filtered;
+    });
+  }, [scene]);
 
   // Sync state if URL prompt changes
   useEffect(() => {
@@ -190,6 +203,7 @@ function StudioEditorialWorkspaceInner() {
   const synthesize = useCallback(async (promptText: string) => {
     setIsGenerating(true);
     setTraceSteps([]);
+    setLiveSoundtrack(null);
     try {
       const res = await fetch('/api/vibe?stream=true', {
         method: 'POST',
@@ -286,7 +300,7 @@ function StudioEditorialWorkspaceInner() {
 
   const handlePromptSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputPrompt.trim() || isGenerating) return;
+    if (!inputPrompt.trim()) return;
     setCurrentPrompt(inputPrompt.trim());
     router.replace(`/studio?prompt=${encodeURIComponent(inputPrompt.trim())}`);
   };
@@ -311,12 +325,43 @@ function StudioEditorialWorkspaceInner() {
     URL.revokeObjectURL(url);
   };
 
-  // Derive playlist from scene
+  // Fetch live verified soundtrack with real audio previews from /api/soundtrack
+  useEffect(() => {
+    if (!scene) return;
+    if (scene.soundtrack) {
+      setLiveSoundtrack(scene.soundtrack);
+      return;
+    }
+    let cancelled = false;
+    setIsLoadingSoundtrack(true);
+    fetch('/api/soundtrack', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sceneSpec: scene }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data: SoundtrackPlaylist | null) => {
+        if (!cancelled && data && Array.isArray(data.tracks) && data.tracks.length > 0) {
+          setLiveSoundtrack(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setIsLoadingSoundtrack(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [scene]);
+
+  // Derive playlist from live soundtrack fetch or scene fallback
   const playlist: SoundtrackPlaylist = useMemo(() => {
+    if (liveSoundtrack) return liveSoundtrack;
     if (scene?.soundtrack) return scene.soundtrack;
     const activeScene = scene || generateSceneFromPrompt(currentPrompt);
     return buildLabeledFallbackPlaylist(activeScene);
-  }, [scene, currentPrompt]);
+  }, [liveSoundtrack, scene, currentPrompt]);
 
   // Derived "Because" rationale sentences from Qloo evidence
   const becauseSentences = useMemo(() => {
@@ -327,7 +372,7 @@ function StudioEditorialWorkspaceInner() {
     const sentences: string[] = [];
 
     const wallName = scene.materials?.wall?.name || 'Raw Concrete';
-    const rt60 = scene.acousticTarget?.targetRT60Seconds ?? 0.85;
+    const rt60 = scene.acousticTarget?.targetRT60Seconds ?? 0.42;
     const height = scene.roomDimensions?.height ?? 3.4;
     const width = scene.roomDimensions?.width ?? 14;
     const depth = scene.roomDimensions?.depth ?? 10;
@@ -365,7 +410,7 @@ function StudioEditorialWorkspaceInner() {
       <aside className="studio-sidebar" aria-label="Studio workbench sidebar">
         <div className="studio-sidebar__top">
           <Link className="wordmark" href="/">
-            <span className="wordmark-mark" aria-hidden="true" />
+            <SonicMark height={24} aria-hidden="true" className="wordmark-mark" />
             SONIC / ARCHITECTURE
           </Link>
           <button
@@ -396,7 +441,7 @@ function StudioEditorialWorkspaceInner() {
             <button
               suppressHydrationWarning
               type="submit"
-              disabled={isGenerating || !inputPrompt.trim()}
+              disabled={!inputPrompt.trim()}
               className="signal-button"
             >
               <span>{isGenerating ? 'Synthesizing...' : 'Update World'}</span>
@@ -450,7 +495,10 @@ function StudioEditorialWorkspaceInner() {
             role="tab"
             aria-selected={activeTab === 'scene'}
             className={activeTab === 'scene' ? 'active' : ''}
-            onClick={() => setActiveTab('scene')}
+            onClick={() => {
+              setActiveTab('scene');
+              setStageViewMode('viewport');
+            }}
           >
             <span>01</span>
             <strong>Scene</strong>
@@ -463,7 +511,10 @@ function StudioEditorialWorkspaceInner() {
             role="tab"
             aria-selected={activeTab === 'why-qloo'}
             className={activeTab === 'why-qloo' ? 'active' : ''}
-            onClick={() => setActiveTab('why-qloo')}
+            onClick={() => {
+              setActiveTab('why-qloo');
+              setStageViewMode('viewport');
+            }}
           >
             <span>02</span>
             <strong>Why Qloo</strong>
@@ -476,7 +527,10 @@ function StudioEditorialWorkspaceInner() {
             role="tab"
             aria-selected={activeTab === 'playlist'}
             className={activeTab === 'playlist' ? 'active' : ''}
-            onClick={() => setActiveTab('playlist')}
+            onClick={() => {
+              setActiveTab('playlist');
+              setStageViewMode('viewport');
+            }}
           >
             <span>03</span>
             <strong>Playlist</strong>
@@ -489,7 +543,10 @@ function StudioEditorialWorkspaceInner() {
             role="tab"
             aria-selected={activeTab === 'brief'}
             className={activeTab === 'brief' ? 'active' : ''}
-            onClick={() => setActiveTab('brief')}
+            onClick={() => {
+              setActiveTab('brief');
+              setStageViewMode('viewport');
+            }}
           >
             <span>04</span>
             <strong>Export brief</strong>
@@ -568,7 +625,10 @@ function StudioEditorialWorkspaceInner() {
 
               <div style={{ marginTop: '16px', fontSize: '12px', lineHeight: '1.6' }}>
                 <div>
-                  <strong>RT60 Reverberation:</strong> {scene?.acousticTarget?.targetRT60Seconds ?? 0.85}s
+                  <strong>Target RT60:</strong> {scene?.acousticTarget?.targetRT60Seconds ? `${scene.acousticTarget.targetRT60Seconds}s` : '—'}
+                </div>
+                <div>
+                  <strong>Calculated Sabine RT60:</strong> {scene?.acousticTarget?.calculatedRT60Seconds ? `${scene.acousticTarget.calculatedRT60Seconds}s` : '—'}
                 </div>
                 <div>
                   <strong>Ceiling Height:</strong> {scene?.roomDimensions?.height ?? 3.4}m
@@ -608,11 +668,17 @@ function StudioEditorialWorkspaceInner() {
                 <span className="provenance-badge provenance-badge--inferred">● Agent Inferred</span>
               </div>
 
-              {scene?.palette?.isFallback && (
-                <div style={{ margin: '8px 0', padding: '6px 10px', background: 'rgba(217, 83, 79, 0.1)', border: '1px solid rgba(217, 83, 79, 0.3)', borderRadius: '2px', fontSize: '11px', color: '#b94a48' }}>
-                  no Qloo-derived palette for this reference
+              {scene?.palette?.isFallback ? (
+                <div style={{ margin: '8px 0', padding: '6px 10px', background: 'rgba(217, 83, 79, 0.08)', border: '1px solid rgba(217, 83, 79, 0.25)', borderRadius: '2px', fontSize: '11px', color: '#b94a48', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>◌</span>
+                  <span><strong>Neutral Fallback Palette:</strong> No Qloo-derived palette for this reference (standard architectural neutral applied)</span>
                 </div>
-              )}
+              ) : scene?.palette ? (
+                <div style={{ margin: '8px 0', padding: '6px 10px', background: 'rgba(47, 90, 76, 0.08)', border: '1px solid rgba(47, 90, 76, 0.25)', borderRadius: '2px', fontSize: '11px', color: '#2F5A4C', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>●</span>
+                  <span><strong>{scene?.palette?.provenance === 'qloo-evidence' ? 'Qloo-Grounded Palette:' : scene?.palette?.provenance === 'rule-based' ? 'Rule-Based Palette:' : 'Inferred Cultural Palette:'}</strong> {scene?.palette?.paletteName || 'Culturally Calibrated Palette'}</span>
+                </div>
+              ) : null}
 
               <div style={{ marginTop: '14px' }}>
                 <span className="eyebrow">Design Decisions</span>
@@ -630,7 +696,10 @@ function StudioEditorialWorkspaceInner() {
                   <button
                     suppressHydrationWarning
                     type="button"
-                    onClick={() => setSceneViewMode(sceneViewMode === 'split' ? 'grounded' : 'split')}
+                    onClick={() => {
+                      setSceneViewMode(sceneViewMode === 'split' ? 'grounded' : 'split');
+                      setStageViewMode('viewport');
+                    }}
                     style={{
                       width: '100%',
                       padding: '8px 12px',
@@ -656,7 +725,14 @@ function StudioEditorialWorkspaceInner() {
 
           {activeTab === 'playlist' && (
             <div>
-              <span className="eyebrow">Spatial Soundtrack & Listening Links</span>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="eyebrow">Spatial Soundtrack & Listening Links</span>
+                {isLoadingSoundtrack && (
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', color: 'var(--blue)' }}>
+                    Loading verified audio…
+                  </span>
+                )}
+              </div>
               <div style={{ margin: '12px 0 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {playlist.tracks.map((track, idx) => {
                   const links = buildHonestTrackSearchLinks(
@@ -680,7 +756,7 @@ function StudioEditorialWorkspaceInner() {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                         <div style={{ fontWeight: 600, color: 'var(--ink)' }}>{track.title}</div>
-                        {track.previewUrl && (
+                        {track.previewUrl ? (
                           <button
                             suppressHydrationWarning
                             type="button"
@@ -699,6 +775,19 @@ function StudioEditorialWorkspaceInner() {
                           >
                             {isTrackActive ? '⏸ Pause' : '▶ Preview'}
                           </button>
+                        ) : (
+                          <span
+                            style={{
+                              fontSize: '10px',
+                              fontFamily: 'var(--mono)',
+                              color: 'var(--quiet)',
+                              padding: '2px 6px',
+                              background: 'var(--paper-deep)',
+                              borderRadius: '2px',
+                            }}
+                          >
+                            Catalog search only
+                          </span>
                         )}
                       </div>
 
@@ -958,8 +1047,9 @@ function StudioEditorialWorkspaceInner() {
           <div>
             <span className="eyebrow">Spatial Stage / 3D Viewport</span>
             <p>
-              {currentPrompt} · {scene?.roomDimensions?.width ?? 14}m × {scene?.roomDimensions?.depth ?? 10}m · RT60{' '}
-              {scene?.acousticTarget?.targetRT60Seconds ?? 0.85}s
+              {currentPrompt} · {scene?.roomDimensions?.width ?? 14}m × {scene?.roomDimensions?.depth ?? 10}m · Target RT60{' '}
+              {scene?.acousticTarget?.targetRT60Seconds ?? 0.42}s · Sabine{' '}
+              {scene?.acousticTarget?.calculatedRT60Seconds ?? scene?.acousticTarget?.targetRT60Seconds ?? 0.42}s
             </p>
           </div>
           <div className="studio-stage__actions">
@@ -1069,24 +1159,7 @@ function StudioEditorialWorkspaceInner() {
 
         {/* Viewport Frame with hairline border */}
         <div className="studio-stage__viewport-frame">
-          {stageViewMode === 'procurement' && scene ? (
-            <div className="w-full h-full overflow-y-auto bg-[#EEE8DC]">
-              <ProcurementWorkspacePanel
-                sceneSpec={scene}
-                selectedObjectId={selectedObjectId}
-                onSelectObject={setSelectedObjectId}
-                budgetConfig={budgetConfig}
-                onUpdateBudgetConfig={setBudgetConfig}
-                procurementList={procurementList}
-                onUpdateProcurementList={setProcurementList}
-              />
-            </div>
-          ) : isGenerating ? (
-            <div className="w-full h-full flex flex-col items-center justify-center bg-[#0b0b0e] text-[#aaa9a2] font-mono text-xs uppercase tracking-widest gap-3">
-              <div className="w-8 h-8 rounded-full border border-[var(--blue)] border-t-transparent animate-spin" />
-              <span>Grounding taste signals & rendering space…</span>
-            </div>
-          ) : sceneViewMode === 'split' && comparison ? (
+          {sceneViewMode === 'split' && comparison ? (
             <CompareSplitViewer
               baselineSpec={comparison.baseline}
               groundedSpec={comparison.grounded}
@@ -1096,6 +1169,24 @@ function StudioEditorialWorkspaceInner() {
               cameraPreset={cameraPreset}
               onCloseCompare={() => setSceneViewMode('grounded')}
             />
+          ) : stageViewMode === 'procurement' && scene ? (
+            <div className="w-full h-full overflow-y-auto bg-[#EEE8DC]">
+              <ProcurementWorkspacePanel
+                sceneSpec={scene}
+                selectedObjectId={selectedObjectId}
+                onSelectObject={setSelectedObjectId}
+                budgetConfig={budgetConfig}
+                onUpdateBudgetConfig={setBudgetConfig}
+                procurementList={procurementList}
+                onUpdateProcurementList={setProcurementList}
+                onSwitchTo3D={() => setStageViewMode('viewport')}
+              />
+            </div>
+          ) : isGenerating ? (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-[#0b0b0e] text-[#aaa9a2] font-mono text-xs uppercase tracking-widest gap-3">
+              <div className="w-8 h-8 rounded-full border border-[var(--blue)] border-t-transparent animate-spin" />
+              <span>Grounding taste signals & rendering space…</span>
+            </div>
           ) : scene ? (
             <div className="relative w-full h-full">
               <DynamicVenue3D

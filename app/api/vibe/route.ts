@@ -63,23 +63,29 @@ function assembleFinalResponse(
   if (bundle) {
     if (bundle.places.length > 0) {
       const topPlace = bundle.places[0];
-      liveEntities.push({
-        id: topPlace.entity_id,
-        name: topPlace.name,
-        type: "venue",
-        signals: [topPlace.properties?.description?.slice(0, 60) || "spatial_venue_reference"],
-        provenance: bundle.source === "live" || bundle.source === "cache" ? "qloo-evidence" : "sample-fixture",
-      });
+      const isLivePlace = (topPlace.source === "live" || topPlace.source === "cache") && !topPlace.name?.includes("(Sample fixture)");
+      if (isLivePlace) {
+        liveEntities.push({
+          id: topPlace.entity_id,
+          name: topPlace.name,
+          type: "venue",
+          signals: [topPlace.properties?.description?.slice(0, 60) || "spatial_venue_reference"],
+          provenance: "qloo-evidence",
+        });
+      }
     }
     if (bundle.brands.length > 0) {
       const topBrand = bundle.brands[0];
-      liveEntities.push({
-        id: topBrand.entity_id,
-        name: topBrand.name,
-        type: "brand",
-        signals: ["material_and_equipment_standard"],
-        provenance: bundle.source === "live" || bundle.source === "cache" ? "qloo-evidence" : "sample-fixture",
-      });
+      const isLiveBrand = (topBrand.source === "live" || topBrand.source === "cache") && !topBrand.name?.includes("(Sample fixture)");
+      if (isLiveBrand) {
+        liveEntities.push({
+          id: topBrand.entity_id,
+          name: topBrand.name,
+          type: "brand",
+          signals: ["material_and_equipment_standard"],
+          provenance: "qloo-evidence",
+        });
+      }
     }
   }
 

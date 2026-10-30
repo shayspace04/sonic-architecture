@@ -521,7 +521,16 @@ export async function executeCrossDomainPipeline(
 
   const isLiveSuccess = places.length > 0 || relatedArtists.length > 0 || movies.length > 0 || brands.length > 0;
   if (!isLiveSuccess) {
-    return createSampleFixtureBundle(primaryEntity, resolution, inputParsed, "fallback");
+    const fallbackBundle = createSampleFixtureBundle(
+      primaryEntity,
+      resolution,
+      inputParsed,
+      resolution.source === "live" || resolution.source === "cache" ? "fallback" : "fixture"
+    );
+    fallbackBundle.domainStatus = domainStatus;
+    fallbackBundle.latencyMs = totalLatencyMs;
+    fallbackBundle.traceMetrics = traceMetrics;
+    return fallbackBundle;
   }
 
   // Stamp every evidence item with its concrete source
@@ -601,37 +610,88 @@ function createSampleFixtureBundle(
   inputParsed: string,
   source: "fixture" | "fallback"
 ): RealQlooEvidenceBundle {
+  const fixture = getQlooFixture(inputParsed);
+
+  // If running in fixture mode and a specific fixture exists for this starter prompt, use it
+  if (source === "fixture" && fixture) {
+    const fixturePlaces = fixture.entities.filter((e) => (e.type || "").includes("venue") || (e.type || "").includes("place"));
+    const fixtureArtists = fixture.entities.filter((e) => (e.type || "").includes("musician") || (e.type || "").includes("artist") || (e.type || "").includes("composer"));
+    const fixtureBrands = fixture.entities.filter((e) => (e.type || "").includes("brand"));
+
+    return {
+      source: "fixture",
+      inputParsed,
+      resolvedEntity: primaryEntity ? { ...primaryEntity, source: "fixture" } : null,
+      resolvedEntities: fixture.entities.map((e) => ({
+        entity_id: e.id,
+        name: e.name,
+        type: e.type,
+        source: "fixture",
+      })),
+      resolvedTags: resolution.matchedTags.map((t) => ({ ...t, source: "fixture" })),
+      unmatchedConcepts: resolution.unmatchedConcepts,
+      unresolved: resolution.unresolved,
+      places: fixturePlaces.map((p) => ({
+        entity_id: p.id,
+        name: p.name,
+        type: "urn:entity:place",
+        source: "fixture",
+        properties: { description: p.drivenChoice || p.signals?.join(", ") || "" },
+      })),
+      relatedArtists: fixtureArtists.map((a) => ({
+        entity_id: a.id,
+        name: a.name,
+        type: "urn:entity:artist",
+        source: "fixture",
+      })),
+      movies: [],
+      brands: fixtureBrands.map((b) => ({
+        entity_id: b.id,
+        name: b.name,
+        type: "urn:entity:brand",
+        source: "fixture",
+      })),
+      tasteTags: (fixture.culturalEvidence?.genreTags || []).map((gt) => ({
+        tag_id: `tag:${gt.toLowerCase().replace(/\s+/g, "-")}`,
+        name: gt,
+        tag_value: gt,
+        source: "fixture",
+      })),
+      demographics: null,
+      explainabilityScores: {},
+      surfaceExplainability: {},
+      domainStatus: {
+        places: fixturePlaces.length > 0 ? "ok" : "empty",
+        artists: fixtureArtists.length > 0 ? "ok" : "empty",
+        movies: "empty",
+        brands: fixtureBrands.length > 0 ? "ok" : "empty",
+        tags: (fixture.culturalEvidence?.genreTags || []).length > 0 ? "ok" : "empty",
+        demographics: "empty",
+      },
+      latencyMs: 15,
+      timestamp: Date.now(),
+    };
+  }
+
+  // Otherwise, return an honest fallback bundle reflecting only what was actually resolved
   return {
-    source,
+    source: "fallback",
     inputParsed,
-    resolvedEntity: primaryEntity ? { ...primaryEntity, source } : null,
-    resolvedEntities: resolution.resolved.map((r) => ({ ...r, source })),
-    resolvedTags: resolution.matchedTags.map((t) => ({ ...t, source })),
+    resolvedEntity: primaryEntity ? { ...primaryEntity, source: resolution.source } : null,
+    resolvedEntities: resolution.resolved.map((r) => ({ ...r, source: resolution.source })),
+    resolvedTags: resolution.matchedTags.map((t) => ({ ...t, source: resolution.source })),
     unmatchedConcepts: resolution.unmatchedConcepts,
     unresolved: resolution.unresolved,
-    places: [
-      {
-        entity_id: "venue:village-vanguard",
-        name: "Village Vanguard (Sample fixture)",
-        type: "urn:entity:place",
-        source,
-        properties: { description: "Historic subterranean Greenwich Village jazz cellar with triangular acoustic stage." },
-      },
-    ],
-    relatedArtists: [
-      { entity_id: "artist:coltrane", name: "John Coltrane (Sample fixture)", type: "urn:entity:artist", source },
-      { entity_id: "artist:thelonious-monk", name: "Thelonious Monk (Sample fixture)", type: "urn:entity:artist", source },
-    ],
-    movies: [
-      { entity_id: "movie:round-midnight", name: "Round Midnight (Sample fixture)", type: "urn:entity:movie", source },
-    ],
-    brands: [
-      { entity_id: "brand:blue-note", name: "Blue Note (Sample fixture)", type: "urn:entity:brand", source },
-    ],
-    tasteTags: [
-      { tag_id: "tag:modal-jazz", name: "Modal Jazz", tag_value: "sample-tag", source },
-      { tag_id: "tag:hard-bop", name: "Hard Bop", tag_value: "sample-tag", source },
-    ],
+    places: [],
+    relatedArtists: [],
+    movies: [],
+    brands: [],
+    tasteTags: resolution.matchedTags.map((t) => ({
+      tag_id: t.id,
+      name: t.name,
+      tag_value: t.conceptTerm,
+      source: resolution.source,
+    })),
     demographics: null,
     explainabilityScores: {},
     surfaceExplainability: {},
@@ -640,7 +700,7 @@ function createSampleFixtureBundle(
       artists: "empty",
       movies: "empty",
       brands: "empty",
-      tags: "empty",
+      tags: resolution.matchedTags.length > 0 ? "ok" : "empty",
       demographics: "empty",
     },
     latencyMs: 15,

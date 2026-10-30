@@ -3,6 +3,7 @@
 import { motion, useReducedMotion } from 'framer-motion';
 import Link from 'next/link';
 import { useState } from 'react';
+import { SonicMark } from '@/components/brand/SonicMark';
 import { InteractiveSignal } from './InteractiveSignal';
 import { PromptComposer, STARTER_PROMPTS, buildStudioHref } from './PromptComposer';
 import { SpatialWorld } from './SpatialWorld';
@@ -31,7 +32,7 @@ export function LandingPage() {
       {/* Site Navigation */}
       <nav className="site-nav" aria-label="Primary navigation">
         <Link className="wordmark" href="/">
-          <span className="wordmark-mark" aria-hidden="true" />
+          <SonicMark height={24} aria-hidden="true" className="wordmark-mark" />
           SONIC / ARCHITECTURE
         </Link>
         <div className="nav-links">
@@ -305,7 +306,7 @@ export function LandingPage() {
           </div>
           <div className="contact-bottom">
             <p>
-              Sonic Architecture is open-source software built for the Qloo Hackathon. Designed for spatial identities, sound installations, and cultural spaces.
+              Sonic Architecture is open-source software designed for spatial identities, acoustic environments, sound installations, and cultural spaces.
             </p>
             <a
               className="contact-link"

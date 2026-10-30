@@ -33,8 +33,12 @@ export const CURRENCY_SYMBOLS: Record<CurrencyCode, string> = {
   JPY: "¥",
 };
 
+export const CURRENCY_CONVERSION_SOURCE =
+  "Application-defined fixed benchmark assumptions for preliminary regional cost estimation (not live FX spot rates or official bank feeds)";
+export const CURRENCY_CONVERSION_TIMESTAMP = "2026-10-01T00:00:00Z";
+
 export const MANDATORY_PROCUREMENT_DISCLAIMER =
-  "Preliminary Estimate Notice: Estimated totals exclude unknown delivery, freight, rigging/installation labor, local taxes (GST/VAT/Sales Tax), security deposits, damage waivers, and other supplier charges. Reference catalogue benchmarks are clearly labeled as mock estimates until confirmed via a verified vendor quote.";
+  "Preliminary Trade Estimate Notice: Estimated totals exclude unknown delivery, freight, shipping/logistics, rigging/installation labor, site fees, local taxes (GST/VAT/Sales Tax), security deposits, damage waivers, and custom crating charges. Currency conversion uses fixed application-defined benchmark assumptions (Base: USD, dated Oct 2026; not live FX spot rates). All prices and vendor search links reflect reference trade catalogues and directory queries, not live vendor quotes or verified stock availability.";
 
 export function convertFromUSD(amountUSD: number, currency: CurrencyCode): number {
   const rate = CURRENCY_RATES_FROM_USD[currency] || 1;
@@ -543,6 +547,69 @@ const ARCHETYPE_PROFILES: Record<string, ArchetypeSourcingProfile> = {
     installationRequirement: "Ballasted deck footings + 4-person structural carpentry crew",
     minimumOrderQuantity: 1,
   },
+  cinema_projection_screen: {
+    subtype: "tensioned_microperforated_cinema_screen",
+    intendedFunction: "High-contrast acoustically transparent 4K projection surface with integrated rear absorption baffles",
+    defaultQuantity: 1,
+    essentialAttributes: [
+      "Micro-perforated 1.3 gain cinema projection fabric",
+      "Extruded black velvet border frame",
+      "Acoustically transparent rear sub-bass baffles",
+    ],
+    optionalAttributes: ["Motorized aspect-ratio masking", "Curved widescreen frame"],
+    suggestedMethods: ["rent", "buy", "custom"],
+    baseUnitBuyUSD: 7500,
+    baseUnitRentPerDayUSD: 480,
+    baseCustomCommissionUSD: 11200,
+    pricingUnitLabel: "lump_sum",
+    buyDescriptor: "Commercial 16:9 Micro-Perforated Acoustic Cinema Projection Screen",
+    rentDescriptor: "Pro-AV 6m Fast-Fold Front/Rear Projection Screen & Rigging Truss",
+    customDescriptor: "Custom Architectural Tensioned Cinema Screen & Slat Baffle Frame",
+    installationRequirement: "2 AV technicians; ceiling truss rigging or wall-cleat mounting",
+    minimumOrderQuantity: 1,
+  },
+  curator_projection_plinth: {
+    subtype: "architectural_av_curator_console",
+    intendedFunction: "Vibration-damped laser projector & media server control housing",
+    defaultQuantity: 1,
+    essentialAttributes: [
+      "Solid American walnut housing with brass shadow gaps",
+      "Silent forced-air exhaust ventilation louvers",
+      "Cable management raceway & lockable rack unit",
+    ],
+    optionalAttributes: ["Honed slate top plate", "Integrated touch control panel cutout"],
+    suggestedMethods: ["buy", "custom", "rent"],
+    baseUnitBuyUSD: 4200,
+    baseUnitRentPerDayUSD: 210,
+    baseCustomCommissionUSD: 6400,
+    pricingUnitLabel: "per_unit",
+    buyDescriptor: "Solid Walnut Commercial AV Media Console & Equipment Rack",
+    rentDescriptor: "Modern Exhibition AV Console & Display Pedestal Rental",
+    customDescriptor: "Bespoke Millwork Walnut & Brass Projector Plinth Console",
+    installationRequirement: "White-glove delivery; levelers adjusted on-site",
+    minimumOrderQuantity: 1,
+  },
+  cinema_lounge_seat: {
+    subtype: "acoustic_low_profile_screening_lounge",
+    intendedFunction: "Low-height absorptive screening seating preserving sightlines & acoustic clarity",
+    defaultQuantity: 2,
+    essentialAttributes: [
+      "Acoustic wool felt / mohair velvet upholstery",
+      "Low 74cm backrest preserving projector beam clearance",
+      "High-resilience foam core on recessed plinth",
+    ],
+    optionalAttributes: ["Integrated drink holder shelf", "Contrast bolster cushion"],
+    suggestedMethods: ["buy", "rent", "custom"],
+    baseUnitBuyUSD: 2400,
+    baseUnitRentPerDayUSD: 120,
+    baseCustomCommissionUSD: 3600,
+    pricingUnitLabel: "per_unit",
+    buyDescriptor: "Low-Profile Archival Wool Felt 2-Seater Screening Lounge",
+    rentDescriptor: "VIP Exhibition Lounge Bench / Settee Rental Unit",
+    customDescriptor: "Custom-Upholstered Acoustic Wool Felt Screening Banquette",
+    installationRequirement: "2-person delivery crew; positioned in acoustic sweet spot",
+    minimumOrderQuantity: 1,
+  },
 };
 
 export function deriveObjectProcurementMetadata(
@@ -602,6 +669,39 @@ interface SupplierDirectoryEntry {
   buildUrl: (query: string) => string;
 }
 
+export interface LocationPreset {
+  id: string;
+  name: string;
+  city: string;
+  region: string;
+  country: string;
+  defaultCurrency: CurrencyCode;
+}
+
+export const GLOBAL_LOCATION_PRESETS: LocationPreset[] = [
+  { id: "bhubaneswar", name: "Bhubaneswar, Odisha, India", city: "Bhubaneswar", region: "Odisha", country: "India", defaultCurrency: "INR" },
+  { id: "mumbai", name: "Mumbai, Maharashtra, India", city: "Mumbai", region: "Maharashtra", country: "India", defaultCurrency: "INR" },
+  { id: "new_york", name: "New York, NY, USA", city: "New York", region: "NY", country: "USA", defaultCurrency: "USD" },
+  { id: "los_angeles", name: "Los Angeles, CA, USA", city: "Los Angeles", region: "CA", country: "USA", defaultCurrency: "USD" },
+  { id: "london", name: "London, Greater London, UK", city: "London", region: "Greater London", country: "UK", defaultCurrency: "GBP" },
+  { id: "paris", name: "Paris, Île-de-France, France", city: "Paris", region: "Île-de-France", country: "France", defaultCurrency: "EUR" },
+  { id: "berlin", name: "Berlin, Germany", city: "Berlin", region: "Berlin", country: "Germany", defaultCurrency: "EUR" },
+  { id: "tokyo", name: "Tokyo, Kanto, Japan", city: "Tokyo", region: "Kanto", country: "Japan", defaultCurrency: "JPY" },
+  { id: "sydney", name: "Sydney, NSW, Australia", city: "Sydney", region: "NSW", country: "Australia", defaultCurrency: "USD" },
+  { id: "toronto", name: "Toronto, ON, Canada", city: "Toronto", region: "ON", country: "Canada", defaultCurrency: "USD" },
+];
+
+export function parseLocationString(loc: string): { city: string; region: string; country: string } {
+  const parts = (loc || "").split(",").map((s) => s.trim()).filter(Boolean);
+  if (parts.length >= 3) {
+    return { city: parts[0], region: parts[1], country: parts[2] };
+  }
+  if (parts.length === 2) {
+    return { city: parts[0], region: "", country: parts[1] };
+  }
+  return { city: parts[0] || "Global", region: "", country: parts[0] || "Global" };
+}
+
 function resolveSuppliersForCategoryAndLocation(
   category: ObjectCategory,
   archetype: string,
@@ -618,6 +718,28 @@ function resolveSuppliersForCategoryAndLocation(
     locLower.includes("bengaluru") ||
     locLower.includes("kolkata");
 
+  const isUS =
+    locLower.includes("usa") ||
+    locLower.includes("united states") ||
+    locLower.includes("new york") ||
+    locLower.includes("los angeles") ||
+    locLower.includes("chicago") ||
+    locLower.includes("austin") ||
+    locLower.includes("san francisco");
+
+  const isUK =
+    locLower.includes("uk") ||
+    locLower.includes("united kingdom") ||
+    locLower.includes("london") ||
+    locLower.includes("manchester") ||
+    locLower.includes("scotland");
+
+  const isJapan =
+    locLower.includes("japan") ||
+    locLower.includes("tokyo") ||
+    locLower.includes("osaka") ||
+    locLower.includes("kyoto");
+
   const isAudioOrTech =
     archetype.includes("speaker") ||
     archetype.includes("turntable") ||
@@ -626,7 +748,11 @@ function resolveSuppliersForCategoryAndLocation(
     archetype.includes("dj") ||
     archetype.includes("led") ||
     archetype.includes("light") ||
-    archetype.includes("truss");
+    archetype.includes("truss") ||
+    archetype.includes("screen") ||
+    archetype.includes("projection");
+
+  const searchItemName = archetype.replace(/_/g, " ");
 
   if (isIndia) {
     if (method === "rent") {
@@ -640,7 +766,7 @@ function resolveSuppliersForCategoryAndLocation(
           buildUrl: (q: string) =>
             `https://dir.indiamart.com/search.mp?ss=${encodeURIComponent(q + " rental " + (location.split(",")[0] || "India"))}`,
         },
-        searchUrl: `https://www.google.com/search?q=${encodeURIComponent(archetype.replace(/_/g, " ") + " event rental supplier " + location)}`,
+        searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchItemName + " event rental supplier " + location)}`,
       };
     }
     if (method === "custom") {
@@ -652,7 +778,7 @@ function resolveSuppliersForCategoryAndLocation(
           buildUrl: (q: string) =>
             `https://dir.indiamart.com/search.mp?ss=${encodeURIComponent("custom fabrication " + q)}`,
         },
-        searchUrl: `https://www.google.com/search?q=${encodeURIComponent("custom architectural fabrication " + archetype.replace(/_/g, " ") + " " + location)}`,
+        searchUrl: `https://www.google.com/search?q=${encodeURIComponent("custom architectural fabrication " + searchItemName + " " + location)}`,
       };
     }
     // Buy in India
@@ -665,7 +791,7 @@ function resolveSuppliersForCategoryAndLocation(
           buildUrl: (q: string) =>
             `https://www.pepperfry.com/site_product/search?q=${encodeURIComponent(q)}`,
         },
-        searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(archetype.replace(/_/g, " ") + " " + location)}`,
+        searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchItemName + " " + location)}`,
       };
     }
     return {
@@ -675,11 +801,143 @@ function resolveSuppliersForCategoryAndLocation(
         isIndiaLocal: true,
         buildUrl: (q: string) => `https://dir.indiamart.com/search.mp?ss=${encodeURIComponent(q)}`,
       },
-      searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(archetype.replace(/_/g, " ") + " " + location)}`,
+      searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchItemName + " " + location)}`,
     };
   }
 
-  // Global / US / EU / UK Suppliers
+  if (isUS) {
+    if (method === "rent") {
+      return {
+        primary: {
+          name: isAudioOrTech
+            ? "PRG North America / 4Wall Entertainment Pro-AV Rentals"
+            : "CORT Event Furnishings & Peak Event Services (US)",
+          region: location || "United States",
+          isIndiaLocal: false,
+          buildUrl: (q: string) =>
+            isAudioOrTech
+              ? `https://www.prg.com/en/search?q=${encodeURIComponent(q)}`
+              : `https://www.cortevents.com/search?q=${encodeURIComponent(q)}`,
+        },
+        searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchItemName + " pro audio event rental " + location)}`,
+      };
+    }
+    if (method === "custom") {
+      return {
+        primary: {
+          name: "ThomasNet Commercial Architectural Millwork & Metal Fabricators",
+          region: location || "United States",
+          isIndiaLocal: false,
+          buildUrl: (q: string) =>
+            `https://www.thomasnet.com/search.html?cov=NA&what=${encodeURIComponent(q)}`,
+        },
+        searchUrl: `https://www.google.com/search?q=${encodeURIComponent("custom architectural fabrication " + searchItemName + " " + location)}`,
+      };
+    }
+    if (isAudioOrTech) {
+      return {
+        primary: {
+          name: "Sweetwater Pro-Audio & B&H Commercial AV",
+          region: location || "United States",
+          isIndiaLocal: false,
+          buildUrl: (q: string) =>
+            `https://www.sweetwater.com/store/search?s=${encodeURIComponent(q)}`,
+        },
+        searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchItemName + " " + location)}`,
+      };
+    }
+    return {
+      primary: {
+        name: "Design Within Reach & Herman Miller Commercial Trade",
+        region: location || "United States",
+        isIndiaLocal: false,
+        buildUrl: (q: string) =>
+          `https://www.dwr.com/search?q=${encodeURIComponent(q)}`,
+      },
+      searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchItemName + " " + location)}`,
+    };
+  }
+
+  if (isUK) {
+    if (method === "rent") {
+      return {
+        primary: {
+          name: isAudioOrTech
+            ? "Solotech UK / PRG UK Production Hire"
+            : "Event Prop Hire & Spaceworks Furniture Rental (UK)",
+          region: location || "United Kingdom",
+          isIndiaLocal: false,
+          buildUrl: (q: string) => `https://www.prg.com/en/search?q=${encodeURIComponent(q)}`,
+        },
+        searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchItemName + " event rental hire " + location)}`,
+      };
+    }
+    if (method === "custom") {
+      return {
+        primary: {
+          name: "Archiproducts UK Bespoke Architectural Fabrication",
+          region: location || "United Kingdom",
+          isIndiaLocal: false,
+          buildUrl: (q: string) =>
+            `https://www.archiproducts.com/en/products/search?q=${encodeURIComponent(q)}`,
+        },
+        searchUrl: `https://www.google.com/search?q=${encodeURIComponent("bespoke architectural joinery " + searchItemName + " " + location)}`,
+      };
+    }
+    return {
+      primary: {
+        name: isAudioOrTech ? "Thomann UK Pro-Audio" : "Archiproducts UK Architectural Trade",
+        region: location || "United Kingdom",
+        isIndiaLocal: false,
+        buildUrl: (q: string) =>
+          isAudioOrTech
+            ? `https://www.thomann.co.uk/search_dir.html?sw=${encodeURIComponent(q)}`
+            : `https://www.archiproducts.com/en/products/search?q=${encodeURIComponent(q)}`,
+      },
+      searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchItemName + " " + location)}`,
+    };
+  }
+
+  if (isJapan) {
+    if (method === "rent") {
+      return {
+        primary: {
+          name: isAudioOrTech
+            ? "Sound Crew Tokyo Pro-AV & PA Equipment Rental"
+            : "Actio Event Engineering & Space Rentals (Japan)",
+          region: location || "Tokyo, Japan",
+          isIndiaLocal: false,
+          buildUrl: (q: string) => `https://www.google.com/search?q=${encodeURIComponent(q + " レンタル " + location)}`,
+        },
+        searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchItemName + " 機材レンタル " + location)}`,
+      };
+    }
+    if (method === "custom") {
+      return {
+        primary: {
+          name: "Tokyo Architectural Joinery & Custom Metalwork Workshop",
+          region: location || "Japan",
+          isIndiaLocal: false,
+          buildUrl: (q: string) => `https://www.google.com/search?q=${encodeURIComponent(q + " 特注製作 " + location)}`,
+        },
+        searchUrl: `https://www.google.com/search?q=${encodeURIComponent("店舗什器 特注家具 " + searchItemName + " " + location)}`,
+      };
+    }
+    return {
+      primary: {
+        name: isAudioOrTech ? "Sound House Japan Pro-Audio" : "MonotaRO Architectural Trade Catalogue",
+        region: location || "Japan",
+        isIndiaLocal: false,
+        buildUrl: (q: string) =>
+          isAudioOrTech
+            ? `https://www.soundhouse.co.jp/search/index?s_maker_cd=&s_mid=&s_category_cd=&s_item_nm=${encodeURIComponent(q)}`
+            : `https://www.monotaro.com/s/q-${encodeURIComponent(q)}/`,
+      },
+      searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchItemName + " " + location)}`,
+    };
+  }
+
+  // Global / General International Suppliers
   if (method === "rent") {
     return {
       primary: {
@@ -693,7 +951,7 @@ function resolveSuppliersForCategoryAndLocation(
             ? `https://www.prg.com/en/search?q=${encodeURIComponent(q)}`
             : `https://www.cortevents.com/search?q=${encodeURIComponent(q)}`,
       },
-      searchUrl: `https://www.google.com/search?q=${encodeURIComponent(archetype.replace(/_/g, " ") + " event rental " + location)}`,
+      searchUrl: `https://www.google.com/search?q=${encodeURIComponent(searchItemName + " event rental " + location)}`,
     };
   }
 
@@ -706,7 +964,7 @@ function resolveSuppliersForCategoryAndLocation(
         buildUrl: (q: string) =>
           `https://www.thomasnet.com/search.html?cov=NA&what=${encodeURIComponent(q)}`,
       },
-      searchUrl: `https://www.google.com/search?q=${encodeURIComponent("custom architectural fabrication " + archetype.replace(/_/g, " ") + " " + location)}`,
+      searchUrl: `https://www.google.com/search?q=${encodeURIComponent("custom architectural fabrication " + searchItemName + " " + location)}`,
     };
   }
 
@@ -720,7 +978,7 @@ function resolveSuppliersForCategoryAndLocation(
         buildUrl: (q: string) =>
           `https://www.thomann.de/intl/search_dir.html?sw=${encodeURIComponent(q)}`,
       },
-      searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(archetype.replace(/_/g, " "))}`,
+      searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchItemName)}`,
     };
   }
 
@@ -732,7 +990,7 @@ function resolveSuppliersForCategoryAndLocation(
       buildUrl: (q: string) =>
         `https://www.archiproducts.com/en/products/search?q=${encodeURIComponent(q)}`,
     },
-    searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(archetype.replace(/_/g, " "))}`,
+    searchUrl: `https://www.google.com/search?tbm=shop&q=${encodeURIComponent(searchItemName)}`,
   };
 }
 
@@ -1058,6 +1316,8 @@ export function calculateProcurementSummary(
     budgetUtilizationPct,
     categoryBreakdown,
     disclaimer: MANDATORY_PROCUREMENT_DISCLAIMER,
+    currencyConversionSource: CURRENCY_CONVERSION_SOURCE,
+    currencyConversionTimestamp: CURRENCY_CONVERSION_TIMESTAMP,
   };
 }
 
@@ -1070,6 +1330,8 @@ export function exportProcurementBriefMarkdown(
     `**Project:** ${sceneSpec.title}`,
     `**Typology:** ${sceneSpec.typology} | **Dimensions:** ${sceneSpec.roomDimensions.width}m × ${sceneSpec.roomDimensions.depth}m × ${sceneSpec.roomDimensions.height}m`,
     `**Project Location:** ${summary.location} | **Currency:** ${summary.currency} | **Rental Duration:** ${summary.rentalDurationDays} Days`,
+    `**FX Conversion:** Application-defined benchmark assumptions (Base: USD, effective ${summary.currencyConversionTimestamp?.slice(0, 7) || "2026-10"})`,
+    `**FX Benchmark Source:** ${summary.currencyConversionSource || "Application-defined benchmark assumptions (non-live FX spot rate)"}`,
     `**Total Budget:** ${formatCurrency(summary.totalBudget, summary.currency)} | **Estimated Total:** ${formatCurrency(summary.grandTotalEstimated, summary.currency)} (${summary.budgetUtilizationPct}%) | **Remaining:** ${formatCurrency(summary.remainingBudget, summary.currency)}`,
     ``,
     `> **${summary.disclaimer}**`,
@@ -1092,4 +1354,55 @@ export function exportProcurementBriefMarkdown(
   });
 
   return lines.join("\n");
+}
+
+export function exportProcurementCSV(summary: ProjectProcurementSummary): string {
+  const headers = [
+    "Object ID",
+    "Scene Assembly",
+    "Selected Option",
+    "Category",
+    "Method",
+    "Tier",
+    "Quantity",
+    "Rental Duration (Days)",
+    "Unit Price",
+    "Period",
+    "Line Total",
+    "Currency",
+    "Supplier Name",
+    "Supplier Link",
+    "Price Status",
+    "Availability Status",
+    "Match Score (%)",
+    "FX Benchmark Source",
+    "FX Benchmark Date",
+  ];
+  const rows = summary.items.map((item) => [
+    `"${item.objectId}"`,
+    `"${item.sceneObjectName.replace(/"/g, '""')}"`,
+    `"${item.selectedOption.title.replace(/"/g, '""')}"`,
+    `"${item.category}"`,
+    `"${item.sourcingMethod.toUpperCase()}"`,
+    `"${item.tier}"`,
+    item.quantity,
+    item.rentalDurationDays,
+    item.unitPriceInCurrency,
+    `"${item.pricingPeriod}"`,
+    item.lineTotalInCurrency,
+    `"${summary.currency}"`,
+    `"${item.supplierName.replace(/"/g, '""')}"`,
+    `"${item.sourceUrl}"`,
+    `"${item.priceStatus}"`,
+    `"${item.availabilityStatus.replace(/"/g, '""')}"`,
+    item.matchScorePct,
+    `"${(summary.currencyConversionSource || "Application-defined fixed benchmark assumptions").replace(/"/g, '""')}"`,
+    `"${summary.currencyConversionTimestamp?.slice(0, 10) || "2026-10-01"}"`,
+  ]);
+
+  return [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+}
+
+export function exportProcurementJSON(summary: ProjectProcurementSummary): string {
+  return JSON.stringify(summary, null, 2);
 }

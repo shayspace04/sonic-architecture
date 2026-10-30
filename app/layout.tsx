@@ -58,12 +58,49 @@ const dmMono = DM_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(
+    process.env.NEXT_PUBLIC_SITE_URL || "https://sonicarchitecture.vercel.app"
+  ),
   title: {
     default: "Sonic Architecture — Cultural Intelligence to Spatial Form",
     template: "%s | Sonic Architecture",
   },
   description:
     "Translate music, cinema, and cultural signals into inhabitable 3D architectural spaces, acoustic telemetry, and spatial soundtracks.",
+  icons: {
+    icon: [
+      { url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/brand/sonic-mark.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/brand/apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: "/brand/favicon-32.png",
+  },
+  openGraph: {
+    title: "Sonic Architecture — Cultural Intelligence to Spatial Form",
+    description:
+      "Translate music, cinema, and cultural signals into inhabitable 3D architectural spaces, acoustic telemetry, and spatial soundtracks.",
+    url: "https://sonicarchitecture.vercel.app",
+    siteName: "Sonic Architecture",
+    images: [
+      {
+        url: "/brand/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Sonic Architecture mark on architectural paper with title and spatial telemetry",
+      },
+    ],
+    locale: "en_US",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sonic Architecture — Cultural Intelligence to Spatial Form",
+    description:
+      "Translate music, cinema, and cultural signals into inhabitable 3D architectural spaces, acoustic telemetry, and spatial soundtracks.",
+    images: ["/brand/og-image.png"],
+  },
 };
 
 export const viewport: Viewport = {

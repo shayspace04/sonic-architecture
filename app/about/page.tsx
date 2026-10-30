@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { SonicMark } from '@/components/brand/SonicMark';
 
 export const metadata: Metadata = {
   title: 'About the Methodology — Sonic Architecture',
@@ -13,7 +14,7 @@ export default function AboutPage() {
       {/* Navigation */}
       <nav className="site-nav" aria-label="Primary navigation">
         <Link className="wordmark" href="/">
-          <span className="wordmark-mark" aria-hidden="true" />
+          <SonicMark height={24} aria-hidden="true" className="wordmark-mark" />
           SONIC / ARCHITECTURE
         </Link>
         <div className="nav-links">
@@ -85,6 +86,12 @@ export default function AboutPage() {
                 </span>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <span className="provenance-badge provenance-badge--rule">● Rule-Based Decision</span>
+                <span style={{ fontSize: '14px', color: 'var(--quiet)' }}>
+                  Spatial massing, structural geometry, and material allocations determined by deterministic acoustic rules.
+                </span>
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                 <span className="provenance-badge provenance-badge--inferred">● Agent Inferred</span>
                 <span style={{ fontSize: '14px', color: 'var(--quiet)' }}>
                   Geometric massing and structural engineering computed to satisfy acoustic RT60 constraints.
@@ -108,7 +115,7 @@ export default function AboutPage() {
           <section id="license">
             <h2>Open Source & License</h2>
             <p>
-              Sonic Architecture is open-source software released under the <strong>MIT License</strong>. Built for artists, acoustic engineers, architects, and hackathon judges to study how cultural data can inform spatial environments.
+              Sonic Architecture is open-source software released under the <strong>MIT License</strong>. Built for artists, acoustic engineers, architects, and spatial designers to study how cultural data can inform physical environments.
             </p>
             <div className="judge-links" style={{ marginTop: '20px' }}>
               <a
