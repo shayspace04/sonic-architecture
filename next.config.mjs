@@ -10,6 +10,8 @@ const nextConfig = {
     minimumCacheTTL: 31536000,
   },
   experimental: {
+    // Treat undici as external to prevent webpack bundling runtime issues during build
+    serverComponentsExternalPackages: ["undici"],
     // Tree-shake heavy barrel exports to reduce main-thread JS parse/compile cost (TBT / INP)
     optimizePackageImports: ["framer-motion", "three"],
   },

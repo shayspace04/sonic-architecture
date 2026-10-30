@@ -1,5 +1,17 @@
 import dns from "node:dns";
-import { Agent, setGlobalDispatcher } from "undici";
+
+let undiciAgent: any = null;
+let undiciSetGlobalDispatcher: any = null;
+
+try {
+  // Dynamically require undici to prevent webpack bundling runtime issues during build
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const undici = require("undici");
+  undiciAgent = undici?.Agent || null;
+  undiciSetGlobalDispatcher = undici?.setGlobalDispatcher || null;
+} catch {
+  // undici may not be available or needed in all runtimes
+}
 
 // Configure resilient DNS resolution for hackathon.api.qloo.com
 // Host OS resolver intermittently fails getaddrinfo (ENOTFOUND) on cellular/NAT adapters.
@@ -74,18 +86,20 @@ export function ensureQlooNetworkConfigured(): void {
   configured = true;
 
   try {
-    setGlobalDispatcher(
-      new Agent({
-        connect: {
-          lookup: resilientQlooLookup,
-          timeout: 35_000, // 35s connect timeout for slow cellular hops
-        },
-        headersTimeout: 35_000,
-        bodyTimeout: 35_000,
-        keepAliveTimeout: 15_000,
-        keepAliveMaxTimeout: 60_000,
-      })
-    );
+    if (undiciAgent && undiciSetGlobalDispatcher) {
+      undiciSetGlobalDispatcher(
+        new undiciAgent({
+          connect: {
+            lookup: resilientQlooLookup,
+            timeout: 35_000, // 35s connect timeout for slow cellular hops
+          },
+          headersTimeout: 35_000,
+          bodyTimeout: 35_000,
+          keepAliveTimeout: 15_000,
+          keepAliveMaxTimeout: 60_000,
+        })
+      );
+    }
   } catch (err) {
     console.warn("[Qloo Network] Failed to configure custom undici dispatcher:", err);
   }
