@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import * as THREE from "three";
 import type { QualityTier, SceneSpec } from "@/lib/types";
 import type { AudioReactiveBands } from "@/lib/soundtrack-audio-engine";
@@ -22,6 +22,14 @@ export interface CompareSplitViewerProps {
   audioBandsRef?: React.MutableRefObject<AudioReactiveBands>;
   prefersReducedMotion?: boolean;
   onCloseCompare?: () => void;
+  diffSummary?: {
+    totalElements: number;
+    differingElements: number;
+    qlooTracedElements: number;
+    qlooTraceShare: number;
+  };
+  sparseNotice?: string;
+  showQlooLayer?: boolean;
 }
 
 export function CompareSplitViewer({
@@ -40,7 +48,32 @@ export function CompareSplitViewer({
   audioBandsRef,
   prefersReducedMotion = false,
   onCloseCompare,
+  diffSummary,
+  sparseNotice,
+  showQlooLayer = false,
 }: CompareSplitViewerProps) {
+  const activeSummary = useMemo(() => {
+    if (diffSummary) return diffSummary;
+    const bObjs = baselineSpec.objects || [];
+    const gObjs = groundedSpec.objects || [];
+    const totalElements = Math.max(bObjs.length, gObjs.length, 1);
+    const qlooTraced = gObjs.filter((o) => o.provenance === "qloo-evidence" || o.provenanceId === "qloo-evidence").length;
+    let differing = Math.abs(gObjs.length - bObjs.length);
+    const bMap = new Map(bObjs.map((o) => [o.archetype || o.id, o]));
+    for (const g of gObjs) {
+      const match = bMap.get(g.archetype || g.id);
+      if (!match || match.materialId !== g.materialId || JSON.stringify(match.position) !== JSON.stringify(g.position)) {
+        differing++;
+      }
+    }
+    const boundedDiffering = Math.min(differing, totalElements);
+    return {
+      totalElements,
+      differingElements: boundedDiffering,
+      qlooTracedElements: qlooTraced,
+      qlooTraceShare: qlooTraced / Math.max(boundedDiffering, 1),
+    };
+  }, [diffSummary, baselineSpec, groundedSpec]);
   const [sliderPos, setSliderPos] = useState<number>(50); // percentage 0 - 100
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -150,6 +183,7 @@ export function CompareSplitViewer({
           prefersReducedMotion={prefersReducedMotion}
           cameraSyncBus={cameraSyncBus}
           cameraSyncId="baseline"
+          showQlooLayer={showQlooLayer}
         />
 
         {/* Corner Badge: Without Qloo */}
@@ -188,6 +222,7 @@ export function CompareSplitViewer({
             prefersReducedMotion={prefersReducedMotion}
             cameraSyncBus={cameraSyncBus}
             cameraSyncId="grounded"
+            showQlooLayer={showQlooLayer}
           />
         </div>
 
@@ -199,6 +234,28 @@ export function CompareSplitViewer({
           </div>
         </div>
       </div>
+
+      {/* Dynamic Baseline vs Grounded Summary Strip */}
+      {activeSummary && (
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-20 pointer-events-none flex flex-col items-center gap-1.5">
+          <div className="bg-black/90 border border-white/20 text-white font-mono text-[11px] px-3.5 py-1.5 rounded-full shadow-2xl backdrop-blur-md flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-[#2563EB] animate-pulse" />
+            <span>
+              <strong>{activeSummary.differingElements}</strong> of <strong>{activeSummary.totalElements}</strong> elements differ; <strong>{activeSummary.qlooTracedElements}</strong> trace to Qloo data
+            </span>
+            {activeSummary.differingElements > 0 && (
+              <span className="text-[#60A5FA] text-[10px]">
+                ({Math.round(activeSummary.qlooTraceShare * 100)}%)
+              </span>
+            )}
+          </div>
+          {sparseNotice && (
+            <div className="bg-amber-950/90 border border-amber-500/50 text-amber-200 text-[10px] font-sans px-3 py-1 rounded shadow-lg backdrop-blur-md max-w-md text-center">
+              {sparseNotice}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* =================================================================== */}
       {/* DRAGGABLE WIPE SLIDER LINE & HANDLE */}

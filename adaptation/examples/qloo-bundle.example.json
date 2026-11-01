@@ -1,0 +1,14 @@
+{
+  "bundleHash": "runtime-only-example-001",
+  "entities": [
+    { "id": "example:artist:001", "name": "Returned Artist Name", "type": "artist", "tags": ["example-tag"] },
+    { "id": "example:style:001", "name": "Returned Style Name", "type": "style", "tags": ["example-material-tag"] }
+  ],
+  "relatedVenues": [
+    { "id": "example:venue:001", "name": "Returned Venue", "categories": ["listening room"], "tags": ["intimate", "acoustic"] }
+  ],
+  "relatedArtists": [],
+  "relatedFilms": [],
+  "relatedBrands": [],
+  "demographics": {}
+}

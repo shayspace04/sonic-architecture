@@ -19,7 +19,9 @@
     "prewarm": "node scripts/prewarm-kv.mjs",
     "verify:deployed": "node scripts/verify-deployed.mjs",
     "shoot:contrast": "node scripts/shoot-contrast.mjs",
-    "encode:hero-media": "bash scripts/encode-hero-media.sh"
+    "encode:hero-media": "bash scripts/encode-hero-media.sh",
+    "test:adaptation": "npx tsx --test tests/adaptation-pipeline.test.ts",
+    "evaluate:truthful": "npx tsx scripts/evaluate-truthful-diff.ts"
   },
   "dependencies": {
     "@react-three/drei": "^9.105.0",

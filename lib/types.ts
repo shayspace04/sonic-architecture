@@ -573,6 +573,11 @@ export interface SpatialObject {
   /** Optional Step 3 per-object AO contact shadow decal opacity (default 0.62) */
   contactShadowOpacity?: number;
   procurement?: ObjectProcurementMetadata;
+  /** Adaptation layer provenance & lineage */
+  provenance?: "qloo-evidence" | "inferred" | "fallback" | string;
+  sourceIds?: string[];
+  because?: string;
+  sceneElementId?: string;
 }
 
 export interface ValidationReport {
@@ -894,6 +899,15 @@ export interface SceneComparison {
   baselineMode?: "Without Qloo (prompt-only design)" | "prompt-only design" | "llm-prompt-only";
   unresolvedCandidates?: { name: string; reason: string }[];
   matchedTags?: any[];
+  /** Adaptation layer diff & summary */
+  sceneDiff?: any;
+  diffSummary?: {
+    totalElements: number;
+    differingElements: number;
+    qlooTracedElements: number;
+    qlooTraceShare: number;
+  };
+  sparseNotice?: string;
 }
 
 export interface QlooContextEntity {

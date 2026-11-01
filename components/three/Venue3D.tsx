@@ -74,6 +74,7 @@ export interface Venue3DProps {
     updated: boolean;
   }>;
   cameraSyncId?: string;
+  showQlooLayer?: boolean;
 }
 
 function AudioReactiveSceneRig({
@@ -718,6 +719,8 @@ function ProceduralArchObject({
   onSelect,
   defaultContactShadowOpacity,
   paletteAccentHex,
+  showQlooLayer = false,
+  onHoverObject,
 }: {
   obj: SpatialObject;
   isSelected: boolean;
@@ -725,6 +728,8 @@ function ProceduralArchObject({
   onSelect: (id: string) => void;
   defaultContactShadowOpacity: number;
   paletteAccentHex?: string;
+  showQlooLayer?: boolean;
+  onHoverObject?: (info: any) => void;
 }) {
   const [w, h, d] = obj.dimensions;
   const shadowOpacity =
@@ -746,12 +751,16 @@ function ProceduralArchObject({
       Math.max(h, d),
       matSpec.tileSizeMeters
     );
-    const pMat = getPhotographicOrProceduralMaterial(
-      obj.materialId,
-      Math.max(w, d),
-      Math.max(h, d),
-      obj.colorHex || obj.accentColorHex || paletteAccentHex
-    );
+    const provenance = obj.provenance || (obj.provenanceId === "qloo-evidence" ? "qloo-evidence" : (obj.provenanceId === "sample-fixture" || obj.provenanceId === "rule-based" ? "inferred" : "fallback"));
+    const qlooColor = provenance === "qloo-evidence" ? "#2563EB" : provenance === "inferred" ? "#D97706" : "#6B7280";
+    const pMat = showQlooLayer
+      ? new THREE.MeshStandardMaterial({ color: new THREE.Color(qlooColor), roughness: 0.45, metalness: 0.15 })
+      : getPhotographicOrProceduralMaterial(
+          obj.materialId,
+          Math.max(w, d),
+          Math.max(h, d),
+          obj.colorHex || obj.accentColorHex || paletteAccentHex
+        );
     const aMat = getPhotographicOrProceduralMaterial(
       obj.secondaryMaterialId || "brushed_brass",
       1,
@@ -783,9 +792,38 @@ function ProceduralArchObject({
     <group
       position={obj.position}
       rotation={obj.rotation}
+      userData={{
+        sceneElementId: obj.sceneElementId || obj.id,
+        provenance: obj.provenance || (obj.provenanceId === "qloo-evidence" ? "qloo-evidence" : (obj.provenanceId === "sample-fixture" || obj.provenanceId === "rule-based" ? "inferred" : "fallback")),
+        sourceIds: obj.sourceIds || [],
+        because: obj.because || obj.designNote || "",
+      }}
       onClick={(e) => {
         e.stopPropagation();
         onSelect(obj.id);
+      }}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        if (onHoverObject && showQlooLayer) {
+          const prov = obj.provenance || (obj.provenanceId === "qloo-evidence" ? "qloo-evidence" : (obj.provenanceId === "sample-fixture" || obj.provenanceId === "rule-based" ? "inferred" : "fallback"));
+          const sourceName = obj.sourceIds?.length ? obj.sourceIds.join(", ") : (prov === "qloo-evidence" ? "Qloo Taste Profile" : "Prompt Context");
+          const because = obj.because || obj.designNote || "Architectural feature calibrated to cultural context.";
+          onHoverObject({
+            id: obj.id,
+            name: obj.name,
+            provenance: prov,
+            sourceName,
+            because,
+            clientX: e.clientX,
+            clientY: e.clientY,
+          });
+        }
+      }}
+      onPointerOut={(e) => {
+        e.stopPropagation();
+        if (onHoverObject && showQlooLayer) {
+          onHoverObject(null);
+        }
       }}
     >
       {isFloorGrounded && (
@@ -1513,7 +1551,17 @@ export function Venue3D({
   prefersReducedMotion = false,
   cameraSyncBus,
   cameraSyncId,
+  showQlooLayer = false,
 }: Venue3DProps) {
+  const [hoveredObject, setHoveredObject] = useState<{
+    id: string;
+    name: string;
+    provenance: string;
+    sourceName: string;
+    because: string;
+    clientX: number;
+    clientY: number;
+  } | null>(null);
   const { width, height, depth } = sceneSpec.roomDimensions;
   const safeTier: "low" | "medium" | "high" = qualityTier === "ultra" ? "high" : qualityTier;
   const [exposureTelemetry, setExposureTelemetry] =
@@ -1683,9 +1731,79 @@ export function Venue3D({
               sceneSpec.contactShadowOpacity ?? 0.64
             }
             paletteAccentHex={sceneSpec.palette?.accentHex}
+            showQlooLayer={showQlooLayer}
+            onHoverObject={setHoveredObject}
           />
         ))}
       </Canvas>
+
+      {/* Qloo Provenance Hover Tooltip Overlay */}
+      {showQlooLayer && hoveredObject && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-md bg-[#0B0E14]/95 border border-white/20 p-3 shadow-2xl backdrop-blur-md text-xs font-mono max-w-sm text-white transition-opacity duration-150"
+          style={{
+            left: `${hoveredObject.clientX + 16}px`,
+            top: `${hoveredObject.clientY - 20}px`,
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1.5 pb-1 border-b border-white/10">
+            <span
+              className="w-2.5 h-2.5 rounded-full inline-block shadow-sm"
+              style={{
+                backgroundColor:
+                  hoveredObject.provenance === "qloo-evidence"
+                    ? "#2563EB"
+                    : hoveredObject.provenance === "inferred"
+                    ? "#D97706"
+                    : "#6B7280",
+              }}
+            />
+            <span className="font-mono text-[10px] tracking-wider uppercase font-semibold text-neutral-300">
+              {hoveredObject.provenance}
+            </span>
+          </div>
+          <div className="font-sans font-semibold text-white text-sm mb-1">
+            {hoveredObject.name}
+          </div>
+          <div className="text-neutral-300 text-[11px] leading-relaxed">
+            Added because Qloo returned <strong className="text-white font-medium">{hoveredObject.sourceName}</strong>. {hoveredObject.because}
+          </div>
+        </div>
+      )}
+
+      {/* Qloo Provenance Hover Tooltip Overlay */}
+      {showQlooLayer && hoveredObject && (
+        <div
+          className="pointer-events-none fixed z-50 rounded-md bg-[#0B0E14]/95 border border-white/20 p-3 shadow-2xl backdrop-blur-md text-xs font-mono max-w-sm text-white transition-opacity duration-150"
+          style={{
+            left: `${hoveredObject.clientX + 16}px`,
+            top: `${hoveredObject.clientY - 20}px`,
+          }}
+        >
+          <div className="flex items-center gap-2 mb-1.5 pb-1 border-b border-white/10">
+            <span
+              className="w-2.5 h-2.5 rounded-full inline-block shadow-sm"
+              style={{
+                backgroundColor:
+                  hoveredObject.provenance === "qloo-evidence"
+                    ? "#2563EB"
+                    : hoveredObject.provenance === "inferred"
+                    ? "#D97706"
+                    : "#6B7280",
+              }}
+            />
+            <span className="font-mono text-[10px] tracking-wider uppercase font-semibold text-neutral-300">
+              {hoveredObject.provenance}
+            </span>
+          </div>
+          <div className="font-sans font-semibold text-white text-sm mb-1">
+            {hoveredObject.name}
+          </div>
+          <div className="text-neutral-300 text-[11px] leading-relaxed">
+            Added because Qloo returned <strong className="text-white font-medium">{hoveredObject.sourceName}</strong>. {hoveredObject.because}
+          </div>
+        </div>
+      )}
 
       {/* Step 4 (H): Optical Vignette & Highlight Roll-off Overlay */}
       <div

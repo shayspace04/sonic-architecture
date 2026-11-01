@@ -1,3 +1,9 @@
+import { contextToBundle } from "../../adaptation/lib/bundleUtils";
+import { defaultSceneDesigner } from "../../adaptation/lib/designer";
+import { validateSceneBrief } from "../../adaptation/lib/provenance";
+import { sceneFromBrief, buildBaselineAndGrounded } from "../../adaptation/lib/pipeline";
+import { compareScenes } from "../../adaptation/lib/diff";
+import type { SceneBrief } from "../../adaptation/lib/types";
 /**
  * Sonic Architecture — Fair-Test Scene Generation & Comparison Coordinator
  * (/lib/compare/sceneGenerator.ts)
@@ -763,6 +769,76 @@ export const generateScene = designScene;
  * Generates Baseline (no Qloo) and Grounded (with Qloo), then computes
  * mathematical diffs with exact provenance tracing.
  */
+
+function enrichSceneSpecWithAdaptation(spec: SceneSpec, brief: SceneBrief, mode: "baseline" | "grounded"): void {
+  const f = brief.fields;
+  if (!f) return;
+
+  // Massing & dimensions
+  if (f.massing?.value) {
+    spec.roomDimensions = {
+      ...spec.roomDimensions,
+      width: f.massing.value.width,
+      height: f.massing.value.height,
+      depth: f.massing.value.depth,
+    };
+  }
+
+  // Tag existing objects with provenance & userData
+  spec.objects.forEach((obj, idx) => {
+    obj.sceneElementId = obj.sceneElementId || obj.id || `obj-${mode}-${idx}`;
+    if (mode === "baseline") {
+      obj.provenance = "fallback";
+      obj.sourceIds = [];
+      obj.because = obj.designNote || "Prompt-only baseline design without cultural grounding.";
+    } else {
+      const isEvidence = obj.provenanceId === "qloo-evidence";
+      obj.provenance = isEvidence ? "qloo-evidence" : (obj.provenanceId === "sample-fixture" || obj.provenanceId === "rule-based" ? "inferred" : "fallback");
+      obj.sourceIds = isEvidence ? [(spec.qloo_evidence as any)?.entities?.[0]?.name || (spec.qloo_evidence as any)?.entity?.name || "Qloo Entity"] : [];
+      obj.because = obj.designNote || "Architectural feature derived from cultural parameters.";
+    }
+  });
+
+  // If grounded, add real cultural artifacts derived from Qloo entities
+  if (mode === "grounded" && f.culturalArtifacts?.value?.length) {
+    const depth = spec.roomDimensions.depth;
+    f.culturalArtifacts.value.forEach((artString, idx) => {
+      const [kind, label] = artString.includes(":") ? artString.split(":").map((s) => s.trim()) : ["cultural_signage", artString];
+      const xPos = (idx - (f.culturalArtifacts.value.length - 1) / 2) * 2.2;
+      const zPos = -depth / 2 + 0.35;
+
+      let archType: any = "vinyl_record_shelf";
+      if (kind.includes("artist")) archType = "vinyl_record_shelf";
+      else if (kind.includes("film") || kind.includes("poster")) archType = "curved_led_backdrop";
+      else if (kind.includes("venue")) archType = "modular_stage_riser";
+      else if (kind.includes("brand")) archType = "analog_turntable_console";
+
+      const exists = spec.objects.some((o) => o.name.includes(label || kind));
+      if (!exists) {
+        spec.objects.push({
+          id: `obj-cult-qloo-${idx}`,
+          name: label ? `${label} (${kind.replace(/_/g, " ")})` : kind,
+          category: "Decoration",
+          archetype: archType,
+          position: [xPos, 1.8, zPos],
+          rotation: [0, 0, 0],
+          dimensions: [1.8, 1.4, 0.15],
+          materialId: ((spec.materials as any)?.wall?.materialId || "vertical_timber_slats") as any,
+          secondaryMaterialId: "brushed_brass",
+          colorHex: f.palette?.value?.accent || spec.palette?.accentHex || "#C59B4E",
+          accentColorHex: f.palette?.value?.emissive || "#FEF08A",
+          provenanceId: f.culturalArtifacts.provenance,
+          designNote: `${f.culturalArtifacts.because} Displaying runtime Qloo reference "${label || kind}".`,
+          provenance: f.culturalArtifacts.provenance,
+          sourceIds: f.culturalArtifacts.derivedFrom || [],
+          because: f.culturalArtifacts.because,
+          sceneElementId: `cultural-artifacts-${idx}`,
+        });
+      }
+    });
+  }
+}
+
 export function generateSceneComparison({
   prompt,
   seed = 42,
@@ -805,13 +881,48 @@ export function generateSceneComparison({
   // 4. Compute pure algorithmic diffs
   const diff = diffScenes(baseline, grounded, qlooContext);
 
+  // 4. Adaptation Layer Integration: Run truthful 14-dimension comparison
+  const qlooBundle = contextToBundle(qlooContext);
+  const baselineBrief = validateSceneBrief(
+    defaultSceneDesigner.designBriefSync({ prompt: cleanPrompt, seed }),
+    undefined
+  );
+  const groundedBrief = validateSceneBrief(
+    defaultSceneDesigner.designBriefSync({ prompt: cleanPrompt, seed, qlooBundle }),
+    qlooBundle
+  );
+
+  const baselineRenderable = sceneFromBrief(baselineBrief, "baseline");
+  const groundedRenderable = sceneFromBrief(groundedBrief, "grounded");
+  const sceneDiff = compareScenes(baselineRenderable, groundedRenderable);
+
+  // Enrich native SceneSpecs with adaptation objects and metadata
+  enrichSceneSpecWithAdaptation(baseline, baselineBrief, "baseline");
+  enrichSceneSpecWithAdaptation(grounded, groundedBrief, "grounded");
+
+  const hasUsefulQloo = Boolean(qlooBundle && qlooBundle.entities && qlooBundle.entities.length > 0);
+  const sparseNotice =
+    !hasUsefulQloo || sceneDiff.summary.qlooTracedChanges === 0
+      ? "Qloo returned little for this reference; showing honest baseline design without cultural grounding"
+      : undefined;
+
+  const diffSummary = {
+    totalElements: sceneDiff.summary.totalCompared,
+    differingElements: sceneDiff.summary.differing,
+    qlooTracedElements: sceneDiff.summary.qlooTracedChanges,
+    qlooTraceShare: sceneDiff.summary.qlooTraceShare,
+  };
+
   const comparison: SceneComparison = {
     prompt: cleanPrompt,
     seed,
     baseline,
-    grounded, // plain copy of the scene, no back-reference
+    grounded,
     qlooCallsUsed,
     diff,
+    sceneDiff,
+    diffSummary,
+    sparseNotice,
     isSampleFixture,
     source,
     baselineMode: "Without Qloo (prompt-only design)",

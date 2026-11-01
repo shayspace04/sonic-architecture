@@ -80,6 +80,7 @@ function StudioEditorialWorkspaceInner() {
   const [liveSoundtrack, setLiveSoundtrack] = useState<SoundtrackPlaylist | null>(null);
   const [isLoadingSoundtrack, setIsLoadingSoundtrack] = useState(false);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
+  const [showQlooLayer, setShowQlooLayer] = useState<boolean>(false);
   const [traceSteps, setTraceSteps] = useState<Array<{ endpoint: string; count: number; latencyMs: number; status: number }>>([]);
 
   // Procurement & Sourcing State
@@ -1191,6 +1192,25 @@ function StudioEditorialWorkspaceInner() {
                 >
                   Split Compare
                 </button>
+                <button
+                  suppressHydrationWarning
+                  type="button"
+                  onClick={() => setShowQlooLayer(!showQlooLayer)}
+                  style={{
+                    padding: '3px 8px',
+                    fontSize: '10px',
+                    fontFamily: 'var(--mono)',
+                    textTransform: 'uppercase',
+                    border: showQlooLayer ? '1px solid #2563EB' : '1px solid var(--line)',
+                    cursor: 'pointer',
+                    background: showQlooLayer ? '#2563EB' : 'transparent',
+                    color: showQlooLayer ? '#fff' : 'inherit',
+                    borderRadius: '2px',
+                  }}
+                  title="Toggle Qloo Provenance Layer (Cobalt = qloo-evidence, Ochre = inferred, Grey = fallback)"
+                >
+                  Qloo Layer {showQlooLayer ? 'ON' : 'OFF'}
+                </button>
               </div>
             )}
             <Link href="/">Exit Studio ↗</Link>
@@ -1208,6 +1228,9 @@ function StudioEditorialWorkspaceInner() {
               showCeiling={true}
               cameraPreset={cameraPreset}
               onCloseCompare={() => setSceneViewMode('grounded')}
+              diffSummary={comparison.diffSummary}
+              sparseNotice={comparison.sparseNotice}
+              showQlooLayer={showQlooLayer}
             />
           ) : stageViewMode === 'procurement' && scene ? (
             <div className="w-full h-full overflow-y-auto bg-[#EEE8DC]">
@@ -1238,6 +1261,7 @@ function StudioEditorialWorkspaceInner() {
                 onSelectObject={setSelectedObjectId}
                 showCeiling={true}
                 cameraPreset={cameraPreset}
+                showQlooLayer={showQlooLayer}
               />
               {/* Scene View Mode Badge Indicator */}
               <div className="absolute top-3 left-3 pointer-events-none z-10">
