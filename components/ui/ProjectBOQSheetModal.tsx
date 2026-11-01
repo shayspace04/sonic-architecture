@@ -20,7 +20,6 @@ import {
   matchRealWorldProductsForObject,
   upsertProcurementLineItem,
 } from "@/lib/procurement";
-import { generateSceneComparison } from "@/lib/compare/sceneGenerator";
 
 export interface ProjectBOQSheetModalProps {
   isOpen: boolean;
@@ -85,10 +84,7 @@ export function ProjectBOQSheetModal({
     };
   }, [isOpen]);
 
-  const safeSceneSpec: SceneSpec = useMemo(() => {
-    if (sceneSpec) return sceneSpec;
-    return generateSceneComparison({ prompt: "Sonic Architecture Spatial World", seed: 42 }).grounded;
-  }, [sceneSpec]);
+  const hasActiveScene = Boolean(sceneSpec && Array.isArray(sceneSpec.objects) && sceneSpec.objects.length > 0);
 
   const summary = useMemo(
     () => calculateProcurementSummary(procurementList, budgetConfig),
@@ -96,8 +92,8 @@ export function ProjectBOQSheetModal({
   );
 
   const sourceableObjects = useMemo(
-    () => (safeSceneSpec.objects || []).filter((o) => o && o.name),
-    [safeSceneSpec.objects]
+    () => (sceneSpec?.objects || []).filter((o) => o && o.name),
+    [sceneSpec?.objects]
   );
 
   // Objects not yet in BOQ for quick addition
@@ -149,13 +145,14 @@ export function ProjectBOQSheetModal({
   };
 
   const handleSwitchMethod = (objectId: string, newMethod: SourcingMethod) => {
+    if (!sceneSpec) return;
     const targetObj = sourceableObjects.find((o) => o.id === objectId);
     if (!targetObj) return;
-    const matches = matchRealWorldProductsForObject(targetObj, safeSceneSpec, budgetConfig, procurementList);
+    const matches = matchRealWorldProductsForObject(targetObj, sceneSpec, budgetConfig, procurementList);
     const bestInMethod = matches.find((m) => m.sourcingMethod === newMethod) || matches[0];
     if (!bestInMethod) return;
 
-    const meta = deriveObjectProcurementMetadata(targetObj, safeSceneSpec);
+    const meta = deriveObjectProcurementMetadata(targetObj, sceneSpec);
     onUpdateProcurementList(
       upsertProcurementLineItem(
         procurementList,
@@ -172,14 +169,15 @@ export function ProjectBOQSheetModal({
   };
 
   const handleQuickAdd = () => {
+    if (!sceneSpec) return;
     const targetObj = uncommittedObjects.find((o) => o.id === selectedQuickAddId) || uncommittedObjects[0];
     if (!targetObj) return;
 
-    const matches = matchRealWorldProductsForObject(targetObj, safeSceneSpec, budgetConfig, procurementList);
+    const matches = matchRealWorldProductsForObject(targetObj, sceneSpec, budgetConfig, procurementList);
     const best = matches[0];
     if (!best) return;
 
-    const meta = deriveObjectProcurementMetadata(targetObj, safeSceneSpec);
+    const meta = deriveObjectProcurementMetadata(targetObj, sceneSpec);
     onUpdateProcurementList(
       upsertProcurementLineItem(
         procurementList,
@@ -193,7 +191,8 @@ export function ProjectBOQSheetModal({
   };
 
   const handleCopyBrief = () => {
-    const md = exportProcurementBriefMarkdown(summary, safeSceneSpec);
+    if (!sceneSpec) return;
+    const md = exportProcurementBriefMarkdown(summary, sceneSpec);
     if (typeof navigator !== "undefined" && navigator.clipboard?.writeText) {
       navigator.clipboard
         .writeText(md)
@@ -221,19 +220,20 @@ export function ProjectBOQSheetModal({
 
   const handleDownloadCSV = () => {
     const csv = exportProcurementCSV(summary);
-    const cleanTitle = (safeSceneSpec.title || "sonic-architecture").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const cleanTitle = (sceneSpec?.title || sceneSpec?.promptText || "sonic-architecture").toLowerCase().replace(/[^a-z0-9]+/g, "-");
     downloadFile(csv, `${cleanTitle}-procurement-boq.csv`, "text/csv;charset=utf-8;");
   };
 
   const handleDownloadJSON = () => {
     const json = exportProcurementJSON(summary);
-    const cleanTitle = (safeSceneSpec.title || "sonic-architecture").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const cleanTitle = (sceneSpec?.title || sceneSpec?.promptText || "sonic-architecture").toLowerCase().replace(/[^a-z0-9]+/g, "-");
     downloadFile(json, `${cleanTitle}-procurement-boq.json`, "application/json");
   };
 
   const handleDownloadMarkdown = () => {
-    const md = exportProcurementBriefMarkdown(summary, safeSceneSpec);
-    const cleanTitle = (safeSceneSpec.title || "sonic-architecture").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    if (!sceneSpec) return;
+    const md = exportProcurementBriefMarkdown(summary, sceneSpec);
+    const cleanTitle = (sceneSpec.title || sceneSpec.promptText || "sonic-architecture").toLowerCase().replace(/[^a-z0-9]+/g, "-");
     downloadFile(md, `${cleanTitle}-procurement-brief.md`, "text/markdown;charset=utf-8;");
   };
 
@@ -270,7 +270,7 @@ export function ProjectBOQSheetModal({
               Bill of Quantities (BOQ)
             </h2>
             <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#5B5F66] mt-1">
-              <span><strong>Project:</strong> {safeSceneSpec.title || "Sonic Architecture Space"}</span>
+              <span><strong>Project:</strong> {sceneSpec?.title || sceneSpec?.promptText || "Active Architectural World"}</span>
               <span>•</span>
               <span><strong>Location:</strong> {budgetConfig.location}</span>
               <span>•</span>
@@ -318,7 +318,17 @@ export function ProjectBOQSheetModal({
         {/* MODAL BODY (Scrollable area) */}
         {/* =================================================================== */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
-          {/* Summary Metric Cards */}
+          {!hasActiveScene ? (
+            <div className="p-16 text-center text-[#737882] bg-white border border-[#171A1F]/10 rounded-lg font-mono">
+              <div className="text-3xl mb-3">📐</div>
+              <h3 className="font-serif text-lg text-[#171A1F] font-semibold">No Active Project Scene Loaded</h3>
+              <p className="text-xs text-[#737882] mt-1 max-w-sm mx-auto">
+                The Project Bill of Quantities requires an active architectural specification to derive procurement assemblies, material quantities, and local supplier matches. Generate a creative brief in the Studio to populate procurement data.
+              </p>
+            </div>
+          ) : (
+            <>
+              {/* Summary Metric Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 bg-white p-5 rounded-lg border border-[#171A1F]/15 font-mono text-xs shadow-sm">
             <div>
               <div className="text-[10px] uppercase text-[#737882] font-semibold">Purchase (Buy) Total</div>
@@ -476,10 +486,11 @@ export function ProjectBOQSheetModal({
               <button
                 type="button"
                 onClick={handleDownloadMarkdown}
+                data-testid="download-md-btn"
                 className="px-3 py-1.5 bg-[#171A1F] hover:bg-black text-white rounded uppercase text-[10px] font-bold transition-colors shadow-sm"
-                title="Download Markdown brief"
+                title="Download Markdown brief (.md)"
               >
-                Download BOQ (.md)
+                Download Markdown (.md)
               </button>
             </div>
           </div>
@@ -604,7 +615,7 @@ export function ProjectBOQSheetModal({
 
                       {/* Unit Price */}
                       <td className="py-3.5 px-4 text-right">
-                        <div className="font-medium">
+                        <div className="font-medium" data-testid={`boq-unit-price-${item.objectId}`}>
                           {formatCurrency(item.unitPriceInCurrency, summary.currency)}
                         </div>
                         <div className="text-[10px] text-[#737882]">
@@ -622,7 +633,7 @@ export function ProjectBOQSheetModal({
                       </td>
 
                       {/* Line Total */}
-                      <td className="py-3.5 px-4 text-right font-bold text-[#D9532B] text-sm">
+                      <td className="py-3.5 px-4 text-right font-bold text-[#D9532B] text-sm" data-testid={`boq-line-total-${item.objectId}`}>
                         {formatCurrency(item.lineTotalInCurrency, summary.currency)}
                       </td>
 
@@ -687,6 +698,8 @@ export function ProjectBOQSheetModal({
               FX Benchmark: Fixed regional cost estimation (Base: USD, Oct 2026) · Verification Status: Preliminary Trade Reference Quotes.
             </p>
           </div>
+            </>
+          )}
         </div>
 
         {/* =================================================================== */}

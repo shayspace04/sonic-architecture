@@ -83,6 +83,7 @@ function StudioEditorialWorkspaceInner() {
   });
   const [sceneSource, setSceneSource] = useState<'live' | 'cache' | 'partly_sample' | 'sample' | 'fixture' | 'fallback'>('sample');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [generationError, setGenerationError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<StudioTabKey>('scene');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [cameraPreset, setCameraPreset] = useState<CameraPresetKey>('overview');
@@ -93,6 +94,8 @@ function StudioEditorialWorkspaceInner() {
   const [isPlayingSoundtrack, setIsPlayingSoundtrack] = useState(false);
   const [liveSoundtrack, setLiveSoundtrack] = useState<SoundtrackPlaylist | null>(null);
   const [isLoadingSoundtrack, setIsLoadingSoundtrack] = useState(false);
+  const [soundtrackError, setSoundtrackError] = useState<string | null>(null);
+  const [isSoundtrackFallback, setIsSoundtrackFallback] = useState<boolean>(false);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [showQlooLayer, setShowQlooLayer] = useState<boolean>(false);
   const [isBOQSheetOpen, setIsBOQSheetOpen] = useState<boolean>(false);
@@ -102,14 +105,17 @@ function StudioEditorialWorkspaceInner() {
   const [budgetConfig, setBudgetConfig] = useState<ProjectBudgetConfig>(() => createDefaultBudgetConfig());
   const [procurementList, setProcurementList] = useState<ProcurementLineItem[]>([]);
 
-  // Track Audio Preview Player State
+  // Track Audio Preview Player State & Abort Controller
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const [activePreviewUrl, setActivePreviewUrl] = useState<string | null>(null);
   const activeRequestIdRef = useRef(0);
+  const abortControllerRef = useRef<AbortController | null>(null);
 
   const handleToggleTrackPreview = useCallback((previewUrl: string) => {
     if (activePreviewUrl === previewUrl) {
-      previewAudioRef.current?.pause();
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+      }
       setActivePreviewUrl(null);
       return;
     }
@@ -124,7 +130,13 @@ function StudioEditorialWorkspaceInner() {
 
   useEffect(() => {
     return () => {
-      previewAudioRef.current?.pause();
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current.src = '';
+      }
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
     };
   }, []);
 
@@ -219,14 +231,36 @@ function StudioEditorialWorkspaceInner() {
   // Synthesize scene using the real /api/vibe route with live streaming trace steps
   const synthesize = useCallback(async (promptText: string) => {
     const reqId = ++activeRequestIdRef.current;
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
+    const { signal } = abortController;
+
     setIsGenerating(true);
+    setGenerationError(null);
     setTraceSteps([]);
     setLiveSoundtrack(null);
+    setSoundtrackError(null);
+    setIsSoundtrackFallback(false);
+
+    // Stop active audio preview on new synthesis
+    if (previewAudioRef.current) {
+      previewAudioRef.current.pause();
+      previewAudioRef.current.src = '';
+    }
+    setActivePreviewUrl(null);
+
+    let backendError: string | null = null;
+
     try {
+      // 1. Attempt SSE Streaming Mode
       const res = await fetch('/api/vibe?stream=true', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: promptText, seed: 42 }),
+        signal,
       });
 
       if (res.ok && res.body && res.headers.get('content-type')?.includes('text/event-stream')) {
@@ -235,11 +269,53 @@ function StudioEditorialWorkspaceInner() {
         let buffer = '';
         let receivedResult = false;
 
+        const processBlock = (block: string) => {
+          const lines = block.split('\n');
+          let event = '';
+          let dataStr = '';
+          for (const line of lines) {
+            if (line.startsWith('event: ')) event = line.slice(7).trim();
+            if (line.startsWith('data: ')) dataStr = line.slice(6).trim();
+          }
+
+          if (event === 'trace' && dataStr) {
+            try {
+              const step = JSON.parse(dataStr);
+              if (reqId === activeRequestIdRef.current) {
+                setTraceSteps((prev) => [...prev, step]);
+              }
+            } catch {}
+          } else if (event === 'complete' && dataStr) {
+            try {
+              const data = JSON.parse(dataStr);
+              if (reqId !== activeRequestIdRef.current) return;
+              if (data.scene) {
+                setScene(data.scene);
+                setSelectedObjectId(data.scene.objects?.[0]?.id || null);
+                setSceneSource(data.source || (data.scene.qloo_evidence ? 'live' : 'sample'));
+                if (data.comparison) {
+                  setComparison(data.comparison);
+                } else {
+                  setComparison(generateSceneComparison({ prompt: promptText, seed: 42 }));
+                }
+                receivedResult = true;
+              }
+            } catch {}
+          } else if (event === 'error' && dataStr) {
+            try {
+              const errPayload = JSON.parse(dataStr);
+              backendError = errPayload.error || "Generation error from server";
+            } catch {
+              backendError = dataStr || "Generation error from server";
+            }
+          }
+        };
+
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          if (reqId !== activeRequestIdRef.current) {
-            reader.cancel();
+          if (reqId !== activeRequestIdRef.current || signal.aborted) {
+            reader.cancel().catch(() => {});
             return;
           }
           buffer += decoder.decode(value, { stream: true });
@@ -247,53 +323,32 @@ function StudioEditorialWorkspaceInner() {
           buffer = parts.pop() || '';
 
           for (const block of parts) {
-            const lines = block.split('\n');
-            let event = '';
-            let dataStr = '';
-            for (const line of lines) {
-              if (line.startsWith('event: ')) event = line.slice(7).trim();
-              if (line.startsWith('data: ')) dataStr = line.slice(6).trim();
-            }
-
-            if (event === 'trace' && dataStr) {
-              try {
-                const step = JSON.parse(dataStr);
-                if (reqId === activeRequestIdRef.current) {
-                  setTraceSteps((prev) => [...prev, step]);
-                }
-              } catch {}
-            } else if (event === 'complete' && dataStr) {
-              try {
-                const data = JSON.parse(dataStr);
-                if (reqId !== activeRequestIdRef.current) return;
-                if (data.scene) {
-                  setScene(data.scene);
-                  setSelectedObjectId(data.scene.objects?.[0]?.id || null);
-                  setSceneSource(data.source || (data.scene.qloo_evidence ? 'live' : 'sample'));
-                  if (data.comparison) {
-                    setComparison(data.comparison);
-                  } else {
-                    setComparison(generateSceneComparison({ prompt: promptText, seed: 42 }));
-                  }
-                  receivedResult = true;
-                }
-              } catch {}
-            }
+            processBlock(block);
           }
         }
-        if (receivedResult) return;
+
+        // Process any final buffered chunk
+        if (buffer.trim()) {
+          processBlock(buffer.trim());
+        }
+
+        if (receivedResult && reqId === activeRequestIdRef.current) return;
+      } else if (!res.ok) {
+        const errPayload = await res.json().catch(() => ({}));
+        backendError = errPayload.error || `HTTP ${res.status}: ${res.statusText}`;
       }
 
-      if (reqId !== activeRequestIdRef.current) return;
+      if (reqId !== activeRequestIdRef.current || signal.aborted) return;
 
-      // If streaming wasn't available, standard JSON fallback
+      // 2. Controlled Fallback: Standard JSON endpoint
       const jsonRes = await fetch('/api/vibe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ prompt: promptText, seed: 42 }),
+        signal,
       });
 
-      if (reqId !== activeRequestIdRef.current) return;
+      if (reqId !== activeRequestIdRef.current || signal.aborted) return;
 
       if (jsonRes.ok) {
         const data = await jsonRes.json();
@@ -309,18 +364,26 @@ function StudioEditorialWorkspaceInner() {
           }
           return;
         }
+      } else {
+        const errPayload = await jsonRes.json().catch(() => ({}));
+        backendError = errPayload.error || backendError || `HTTP ${jsonRes.status}: Failed to generate scene`;
       }
 
-      if (reqId !== activeRequestIdRef.current) return;
+      if (reqId !== activeRequestIdRef.current || signal.aborted) return;
 
-      // Local fallback generator
+      // 3. If both requests fail: Explicitly label as fallback and present clear failure state
+      const failureNotice = backendError || "Live Qloo streaming and JSON endpoints unavailable.";
+      setGenerationError(failureNotice);
+
       const comp = generateSceneComparison({ prompt: promptText, seed: 42 });
       setScene(comp.grounded);
       setSelectedObjectId(comp.grounded.objects?.[0]?.id || null);
       setComparison(comp);
-      setSceneSource(comp.isSampleFixture ? 'sample' : 'fallback');
-    } catch {
-      if (reqId !== activeRequestIdRef.current) return;
+      setSceneSource('fallback');
+    } catch (err: unknown) {
+      if (reqId !== activeRequestIdRef.current || signal.aborted) return;
+      const message = err instanceof Error ? err.message : "Network error during generation";
+      setGenerationError(backendError || message);
       const comp = generateSceneComparison({ prompt: promptText, seed: 42 });
       setScene(comp.grounded);
       setSelectedObjectId(comp.grounded.objects?.[0]?.id || null);
@@ -365,32 +428,55 @@ function StudioEditorialWorkspaceInner() {
   };
 
   // Fetch live verified soundtrack with real audio previews from /api/soundtrack
+  const fetchSoundtrack = useCallback(async (targetScene: SceneSpec, forceRefresh = false) => {
+    if (!targetScene) return;
+    setIsLoadingSoundtrack(true);
+    setSoundtrackError(null);
+    try {
+      const res = await fetch('/api/soundtrack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sceneSpec: targetScene, forceRefresh }),
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || `HTTP ${res.status}: Failed to fetch verified soundtrack`);
+      }
+      const data: SoundtrackPlaylist = await res.json();
+      if (!data || !Array.isArray(data.tracks) || data.tracks.length === 0) {
+        throw new Error("Soundtrack API returned an empty track list");
+      }
+      setLiveSoundtrack(data);
+      setIsSoundtrackFallback(data.cacheStatus === 'fallback-quota' || data.cacheStatus === 'fallback-offline' || Boolean((data as any).isFallback));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Soundtrack provider unavailable";
+      setSoundtrackError(msg);
+      setIsSoundtrackFallback(true);
+      const fallback = buildLabeledFallbackPlaylist(targetScene);
+      setLiveSoundtrack(fallback);
+    } finally {
+      setIsLoadingSoundtrack(false);
+    }
+  }, []);
+
   useEffect(() => {
     if (!scene) return;
     if (scene.soundtrack) {
       setLiveSoundtrack(scene.soundtrack);
+      setIsSoundtrackFallback(scene.soundtrack.cacheStatus === 'fallback-quota' || scene.soundtrack.cacheStatus === 'fallback-offline' || Boolean((scene.soundtrack as any).isFallback));
       return;
     }
-    let cancelled = false;
-    setIsLoadingSoundtrack(true);
-    fetch('/api/soundtrack', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sceneSpec: scene }),
-    })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data: SoundtrackPlaylist | null) => {
-        if (!cancelled && data && Array.isArray(data.tracks) && data.tracks.length > 0) {
-          setLiveSoundtrack(data);
-        }
-      })
-      .catch(() => {})
-      .finally(() => {
-        if (!cancelled) setIsLoadingSoundtrack(false);
-      });
+    fetchSoundtrack(scene);
+  }, [scene, fetchSoundtrack]);
 
+  // Clean up audio preview when scene or prompt changes
+  useEffect(() => {
     return () => {
-      cancelled = true;
+      if (previewAudioRef.current) {
+        previewAudioRef.current.pause();
+        previewAudioRef.current.src = '';
+      }
+      setActivePreviewUrl(null);
     };
   }, [scene]);
 
@@ -417,14 +503,23 @@ function StudioEditorialWorkspaceInner() {
     const depth = scene.roomDimensions?.depth ?? 10;
     const alpha = scene.acousticTarget?.averageAbsorptionAlpha ?? 0.35;
 
-    if (scene.qloo_evidence?.resolved_entities?.length) {
-      const topEntity = scene.qloo_evidence.resolved_entities[0];
+    const hasRealQlooEntities = Boolean(
+      scene.qloo_evidence?.resolved_entities &&
+      scene.qloo_evidence.resolved_entities.length > 0 &&
+      sceneSource !== 'fallback'
+    );
+
+    if (hasRealQlooEntities) {
+      const topEntity = scene.qloo_evidence!.resolved_entities[0];
       sentences.push(
-        `Fans of ${topEntity.entity_name} show cross-domain cultural affinity for intimate spaces, shaping this room's ${wallName} envelope and ${rt60}s reverberation.`
+        `Cross-domain taste signals from ${topEntity.entity_name} informed this room's ${wallName} envelope and ${rt60}s reverberation target.`
       );
     } else {
       sentences.push(
-        `Cultural taste signals in "${currentPrompt}" modulated the architectural envelope, acoustic RT60 (${rt60}s), and material library.`
+        `Rule-based architectural synthesis: spatial envelope, material schedule, and RT60 target (${rt60}s) derived from standard typology heuristics for ${scene.typology || 'room'}.`
+      );
+      sentences.push(
+        `Agent inference: room dimensions (${width}m × ${depth}m × ${height}m) established by acoustic best-practice ratios without external Qloo cultural calibration.`
       );
     }
 
@@ -441,7 +536,7 @@ function StudioEditorialWorkspaceInner() {
     }
 
     return sentences;
-  }, [scene, currentPrompt]);
+  }, [scene, currentPrompt, sceneSource]);
 
   return (
     <main className={`studio-workspace ${sidebarOpen ? '' : 'studio-workspace--sidebar-closed'}`}>
@@ -487,6 +582,27 @@ function StudioEditorialWorkspaceInner() {
               <span aria-hidden="true">↗</span>
             </button>
           </form>
+
+          {generationError && (
+            <div style={{ marginTop: '12px', padding: '10px 12px', background: 'rgba(217, 83, 43, 0.08)', border: '1px solid rgba(217, 83, 43, 0.3)', borderRadius: '4px', fontSize: '11px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: '#D9532B', fontWeight: 600, marginBottom: '4px' }}>
+                <span>⚠️ Live Synthesis Notice</span>
+                <button
+                  type="button"
+                  onClick={() => synthesize(currentPrompt)}
+                  style={{ textDecoration: 'underline', cursor: 'pointer', background: 'none', border: 'none', color: '#D9532B', fontSize: '10px' }}
+                >
+                  Retry
+                </button>
+              </div>
+              <div style={{ color: 'var(--ink-muted)', lineHeight: '1.4' }}>
+                {generationError}
+              </div>
+              <div style={{ marginTop: '6px', fontSize: '10px', color: 'var(--ink-subtle)', fontStyle: 'italic' }}>
+                Operating in labeled local fallback mode.
+              </div>
+            </div>
+          )}
 
           <div className="prompt-examples" style={{ marginTop: '12px' }}>
             <span className="prompt-examples__label" title="Suggested starter reference collisions">
@@ -789,6 +905,46 @@ function StudioEditorialWorkspaceInner() {
                   </span>
                 )}
               </div>
+
+              {/* Provider Identity & Provenance Status */}
+              <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+                <span className="provenance-badge provenance-badge--live" style={{ fontSize: '10px' }}>
+                  Provider: {playlist.providerUsed || 'iTunes Preview Catalog'}
+                </span>
+                {isSoundtrackFallback || soundtrackError || playlist.cacheStatus === 'fallback-quota' || playlist.cacheStatus === 'fallback-offline' || Boolean((playlist as any).isFallback) ? (
+                  <span className="provenance-badge provenance-badge--fallback" style={{ fontSize: '10px' }}>
+                    ◌ Fallback Offline Playlist
+                  </span>
+                ) : (
+                  <span className="provenance-badge provenance-badge--inferred" style={{ fontSize: '10px' }}>
+                    ● Verified Spatial Curation
+                  </span>
+                )}
+                {playlist.cacheStatus && (
+                  <span style={{ fontSize: '10px', fontFamily: 'var(--mono)', color: 'var(--ink-muted)' }}>
+                    [{playlist.cacheStatus.toUpperCase()}]
+                  </span>
+                )}
+              </div>
+
+              {soundtrackError && (
+                <div style={{ marginTop: '10px', padding: '8px 10px', background: 'rgba(217, 83, 43, 0.08)', border: '1px solid rgba(217, 83, 43, 0.3)', borderRadius: '2px', fontSize: '11px', color: '#D9532B' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontWeight: 600 }}>
+                    <span>⚠️ Live Soundtrack Notice</span>
+                    <button
+                      type="button"
+                      onClick={() => scene && fetchSoundtrack(scene, true)}
+                      style={{ textDecoration: 'underline', background: 'none', border: 'none', color: '#D9532B', fontSize: '10px', cursor: 'pointer' }}
+                    >
+                      Retry Verification
+                    </button>
+                  </div>
+                  <div style={{ color: 'var(--ink-muted)', marginTop: '2px' }}>
+                    {soundtrackError}. Displaying architectural reference tracks.
+                  </div>
+                </div>
+              )}
+
               <div style={{ margin: '12px 0 0', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 {playlist.tracks.map((track, idx) => {
                   const links = buildHonestTrackSearchLinks(

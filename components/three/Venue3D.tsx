@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
+import { Canvas, createPointerEvents, useFrame, useThree } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import * as THREE from "three";
 import type {
@@ -1441,7 +1441,7 @@ function ControlledCameraRig({
   }>;
   cameraSyncId?: string;
 }) {
-  const { camera } = useThree();
+  const { camera, gl } = useThree();
   const controlsRef = useRef<any>(null);
   const lastPresetRef = useRef<string | null>(null);
   const lastSceneIdRef = useRef<string | null>(null);
@@ -1524,6 +1524,7 @@ function ControlledCameraRig({
   return (
     <OrbitControls
       ref={controlsRef}
+      domElement={gl.domElement}
       makeDefault
       enableDamping
       dampingFactor={0.08}
@@ -1609,9 +1610,22 @@ export function Venue3D({
     };
   }, []);
 
+  // Safe pointer events factory guarding against null DOM event targets during rapid scene mounting
+  const safeEvents = useCallback((store: any) => {
+    const pe = createPointerEvents(store);
+    const origConnect = pe.connect;
+    pe.connect = (target?: HTMLElement) => {
+      const validTarget = target || store.getState().gl?.domElement;
+      if (!validTarget || typeof (validTarget as any).addEventListener !== "function") return;
+      if (origConnect) origConnect(validTarget);
+    };
+    return pe;
+  }, []);
+
   return (
     <div className="w-full h-full relative bg-[#0B0E14]">
       <Canvas
+        events={safeEvents}
         shadows="soft"
         dpr={qualityTier === "low" ? [1, 1] : [1, 2]}
         gl={{

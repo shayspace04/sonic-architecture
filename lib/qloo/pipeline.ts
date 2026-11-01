@@ -263,51 +263,62 @@ export async function executeCrossDomainPipeline(
   // - Fall-through single-tag place queries (run in parallel with the first attempt!)
   // - Fall-through candidate place search queries (run in parallel with the first attempt!)
 
+  let placesRes: any = null;
+  let artistsRes: any = null;
+  let moviesRes: any = null;
+  let brandsRes: any = null;
+  let tagsRes: any = null;
+  let demoRes: any = null;
+  let singleTagResList: any[] = [];
+  let placeSearchResList: any[] = [];
+
   const placesPromise = fetchInsightsEndpoint<QlooInsightsResponse>(
     `/v2/insights?${signalsQuery}&filter.type=urn:entity:place&take=4&feature.explainability=true`,
     apiKey,
     "place",
     onTraceStep
-  );
+  ).then((res) => { placesRes = res; return res; });
 
   const artistsPromise = fetchInsightsEndpoint<QlooInsightsResponse>(
     `/v2/insights?${signalsQuery}&filter.type=urn:entity:artist&take=4&feature.explainability=true`,
     apiKey,
     "artist",
     onTraceStep
-  );
+  ).then((res) => { artistsRes = res; return res; });
 
   const moviesPromise = fetchInsightsEndpoint<QlooInsightsResponse>(
     `/v2/insights?${signalsQuery}&filter.type=urn:entity:movie&take=4&feature.explainability=true`,
     apiKey,
     "movie",
     onTraceStep
-  );
+  ).then((res) => { moviesRes = res; return res; });
 
   const brandsPromise = fetchInsightsEndpoint<QlooInsightsResponse>(
     `/v2/insights?${signalsQuery}&filter.type=urn:entity:brand&take=4&feature.explainability=true`,
     apiKey,
     "brand",
     onTraceStep
-  );
+  ).then((res) => { brandsRes = res; return res; });
 
-  const tagsPromise = primaryEntity
+  const tagsPromise = (primaryEntity
     ? fetchInsightsEndpoint<QlooTasteTagsResponse>(
         `/v2/insights?signal.interests.entities=${encodeURIComponent(primaryEntity.entity_id)}&filter.type=urn:tag&take=8`,
         apiKey,
         "taste_tags",
         onTraceStep
       )
-    : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 });
+    : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 })
+  ).then((res) => { tagsRes = res; return res; });
 
-  const demoPromise = primaryEntity
+  const demoPromise = (primaryEntity
     ? fetchInsightsEndpoint<QlooDemographicsResponse>(
         `/v2/insights?signal.interests.entities=${encodeURIComponent(primaryEntity.entity_id)}&filter.type=urn:demographics`,
         apiKey,
         "demographics",
         onTraceStep
       )
-    : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 });
+    : Promise.resolve({ ok: true, status: 200, data: null, latencyMs: 0 })
+  ).then((res) => { demoRes = res; return res; });
 
   // Speculative fall-through: single-tag queries in parallel
   const singleTagPromises = tagIds.slice(0, 2).map((tid) =>
@@ -375,30 +386,17 @@ export async function executeCrossDomainPipeline(
   await Promise.race([allQueries, budgetDeadline]);
 
   // Extract completed results safely
-  let placesRes: any = null;
-  let artistsRes: any = null;
-  let moviesRes: any = null;
-  let brandsRes: any = null;
-  let tagsRes: any = null;
-  let demoRes: any = null;
-  let singleTagResList: any[] = [];
-  let placeSearchResList: any[] = [];
-
   try {
-    const settled = await Promise.race([
-      allQueries,
-      Promise.resolve(null),
-    ]);
-
-    if (Array.isArray(settled)) {
-      if (settled[0].status === "fulfilled") placesRes = settled[0].value;
-      if (settled[1].status === "fulfilled") artistsRes = settled[1].value;
-      if (settled[2].status === "fulfilled") moviesRes = settled[2].value;
-      if (settled[3].status === "fulfilled") brandsRes = settled[3].value;
-      if (settled[4].status === "fulfilled") tagsRes = settled[4].value;
-      if (settled[5].status === "fulfilled") demoRes = settled[5].value;
-      if (settled[6].status === "fulfilled") singleTagResList = settled[6].value;
-      if (settled[7].status === "fulfilled") placeSearchResList = settled[7].value;
+    const winner = await Promise.race([allQueries, budgetDeadline]);
+    if (winner && Array.isArray(winner)) {
+      if (winner[0]?.status === "fulfilled" && !placesRes) placesRes = winner[0].value;
+      if (winner[1]?.status === "fulfilled" && !artistsRes) artistsRes = winner[1].value;
+      if (winner[2]?.status === "fulfilled" && !moviesRes) moviesRes = winner[2].value;
+      if (winner[3]?.status === "fulfilled" && !brandsRes) brandsRes = winner[3].value;
+      if (winner[4]?.status === "fulfilled" && !tagsRes) tagsRes = winner[4].value;
+      if (winner[5]?.status === "fulfilled" && !demoRes) demoRes = winner[5].value;
+      if (winner[6]?.status === "fulfilled" && singleTagResList.length === 0) singleTagResList = winner[6].value;
+      if (winner[7]?.status === "fulfilled" && placeSearchResList.length === 0) placeSearchResList = winner[7].value;
     }
   } catch {
     // If extraction fails, continue with whatever exists
