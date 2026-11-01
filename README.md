@@ -288,47 +288,65 @@ Live calculation of the total project procurement budget with interactive quanti
 
 ---
 
-## Application Screenshots
+## Product Screenshots <a id="application-screenshots"></a>
 
-### 1. Homepage & Natural-Language Brief Intake
-*Clean editorial landing page where users craft custom architectural briefs or select curated cultural presets.*
-
-![Sonic Architecture Homepage](./assets/screenshots/01-homepage-editorial-brief.png)
+All screenshots below are captured directly from the live running application using automated Playwright browser capture for the creative brief **"A24 films + indie music"** at 1440 × 960 resolution. View the full [Screenshot Manifest](./assets/screenshots/github/SCREENSHOT_MANIFEST.md) and [4×2 Contact Sheet](./assets/screenshots/github/contact-sheet.png).
 
 ---
 
-### 2. Interactive 3D Architectural Studio
-*Real-time Three.js viewport rendering procedural spatial geometry, materials, lighting arrays, and architectural assemblies.*
+### 1. The Sonic Architecture Experience (Cultural Inspiration)
+*Clean architectural editorial landing interface with natural-language prompt composer, starter reference collisions, and official vector brand identity.*
 
-![Interactive 3D Architectural Studio](./assets/screenshots/02-interactive-3d-studio.png)
-
----
-
-### 3. Qloo Cultural Provenance & Evidence Panel
-*Slide-out inspector showing resolved Qloo entities, cross-domain taste tags, and traceable architectural rationale sentences.*
-
-![Qloo Cultural Provenance Panel](./assets/screenshots/03-qloo-provenance-and-evidence.png)
+![The Sonic Architecture Experience](./assets/screenshots/github/01-homepage.png)
 
 ---
 
-### 4. Baseline vs. Grounded Fair-Test Comparison Wipe
-*Split-screen wipe comparing the prompt-specific dynamic baseline (Without Qloo) against the culturally grounded scene (With Qloo).*
+### 2. From Cultural Taste to Creative Brief (Intake)
+*Natural-language creative brief intake with collision presets and starter chips, translating abstract cultural affinities into concrete design inputs.*
 
-![Baseline vs Grounded Fair-Test Comparison](./assets/screenshots/04-baseline-vs-grounded-compare.png)
-
----
-
-### 5. Procurement Workspace & Project Bill of Quantities (BOQ)
-*Location-aware sourcing panel supporting BUY / RENT / CUSTOM modes, regional vendor search links, multi-currency conversion, and BOQ export.*
-
-![Procurement Workspace & Project BOQ](./assets/screenshots/05-procurement-and-project-boq.png)
+![Cultural Creative Brief Intake](./assets/screenshots/github/02-creative-brief.png)
 
 ---
 
-### 6. Curated 4-Moment Soundtrack with Audio Player
-*Programmed musical narrative across Arrival, Dining, Peak, and Wind-Down moments with in-browser audio preview streaming.*
+### 3. Interactive 3D Spatial Studio (Architectural Generation)
+*Real-time Three.js viewport rendering procedural spatial geometry, acoustic dark velvet surfaces, limewash plaster, warm lighting arrays, and architectural assemblies.*
 
-![Curated 4-Moment Soundtrack](./assets/screenshots/06-soundtrack-discovery-and-audio.png)
+![Interactive 3D Architectural Studio](./assets/screenshots/github/03-interactive-3d-studio.png)
+
+---
+
+### 4. Cultural Intelligence & Provenance (Evidence)
+*Live provenance panel showing retrieved cultural entities from Qloo, extracted taste tags, What Qloo Changed diffs, and traceable rationale sentences.*
+
+![Cultural Intelligence & Provenance Panel](./assets/screenshots/github/04-cultural-evidence.png)
+
+---
+
+### 5. Baseline vs. Grounded Comparison (Fair-Test Split Wipe)
+*Interactive split-screen wipe comparing the prompt-only procedural baseline (Without Qloo) against the culturally grounded scene (With Qloo).*
+
+![Baseline vs Grounded Fair-Test Comparison](./assets/screenshots/github/05-grounded-comparison.png)
+
+---
+
+### 6. Spatial Soundtrack Experience (Audio Narrative)
+*Curated 4-moment musical narrative across Arrival, Dining, Peak, and Wind-Down moments with real audio preview streaming and multi-platform catalog links.*
+
+![Curated 4-Moment Spatial Soundtrack](./assets/screenshots/github/06-soundtrack-experience.png)
+
+---
+
+### 7. Location-Aware Pricing & Sourcing Workspace (Procurement)
+*Location-aware sourcing panel supporting BUY / RENT / CUSTOM modes, regional vendor search links, multi-currency conversion, and prominent BOQ access.*
+
+![Location-Aware Pricing & Sourcing Workspace](./assets/screenshots/github/07-pricing-and-sourcing.png)
+
+---
+
+### 8. Project Bill of Quantities (BOQ) Modal (Budget Rollup)
+*Dedicated interactive full-width BOQ sheet modal displaying real-time financial rollups, live quantity adjustments, and one-click Markdown, CSV, and JSON exports.*
+
+![Project Bill of Quantities BOQ Sheet Modal](./assets/screenshots/github/08-project-boq.png)
 
 ---
 
