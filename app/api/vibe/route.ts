@@ -182,19 +182,22 @@ export async function POST(req: Request) {
       const responseStream = new TransformStream();
       const writer = responseStream.writable.getWriter();
       const encoder = new TextEncoder();
+      let isClosed = false;
 
       const emitEvent = async (event: string, data: any) => {
+        if (isClosed) return;
         try {
           await writer.write(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
         } catch {
-          // Reader disconnected
+          // Reader disconnected or stream aborted
+          isClosed = true;
         }
       };
 
       (async () => {
         try {
           const { resolution, bundle } = await getCrossDomainEvidenceForPrompt(prompt, (step: TraceStep) => {
-            emitEvent("trace", step);
+            void emitEvent("trace", step);
           });
           const result = assembleFinalResponse(prompt, resolution, bundle);
           await emitEvent("complete", result);
@@ -202,7 +205,14 @@ export async function POST(req: Request) {
           const message = err instanceof Error ? err.message : "Unexpected generation error";
           await emitEvent("error", { error: message });
         } finally {
-          await writer.close();
+          if (!isClosed) {
+            isClosed = true;
+            try {
+              await writer.close();
+            } catch {
+              // Ignore if already closed or aborted
+            }
+          }
         }
       })();
 
