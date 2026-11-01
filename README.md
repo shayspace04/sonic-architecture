@@ -290,12 +290,12 @@ Live calculation of the total project procurement budget with interactive quanti
 
 ## Product Screenshots <a id="application-screenshots"></a>
 
-All screenshots below are captured directly from the live running application using automated Playwright browser capture for the creative brief **"A24 films + indie music"** at 1440 × 960 resolution. View the full [Screenshot Manifest](./assets/screenshots/github/SCREENSHOT_MANIFEST.md) and [4×2 Contact Sheet](./assets/screenshots/github/contact-sheet.png).
+All screenshots below are captured directly from the live running application using automated Playwright browser capture for the creative brief **"Japanese Gardens + ambient"** at 1440 × 960 resolution. View the full [Screenshot Manifest](./assets/screenshots/github/SCREENSHOT_MANIFEST.md) and [4×2 Contact Sheet](./assets/screenshots/github/contact-sheet.png).
 
 ---
 
 ### 1. The Sonic Architecture Experience (Cultural Inspiration)
-*Clean architectural editorial landing interface with natural-language prompt composer, starter reference collisions, and official vector brand identity.*
+*Clean architectural editorial landing interface with natural-language prompt composer, starter reference collisions including "Japanese Gardens + ambient", and official vector brand identity.*
 
 ![The Sonic Architecture Experience](./assets/screenshots/github/01-homepage.png)
 
@@ -309,42 +309,42 @@ All screenshots below are captured directly from the live running application us
 ---
 
 ### 3. Interactive 3D Spatial Studio (Architectural Generation)
-*Real-time Three.js viewport rendering procedural spatial geometry, acoustic dark velvet surfaces, limewash plaster, warm lighting arrays, and architectural assemblies.*
+*Real-time Three.js viewport rendering procedural spatial geometry, authentic Hinoki cypress timber framing, Tatami matting, basalt stepping stones, bonsai flora, and afternoon ambient daylight.*
 
 ![Interactive 3D Architectural Studio](./assets/screenshots/github/03-interactive-3d-studio.png)
 
 ---
 
 ### 4. Cultural Intelligence & Provenance (Evidence)
-*Live provenance panel showing retrieved cultural entities from Qloo, extracted taste tags, What Qloo Changed diffs, and traceable rationale sentences.*
+*Live provenance panel showing retrieved cultural entities from Qloo (Chisen-Kaiyūshiki Strolling Garden, Hiroshi Yoshimura, Brian Eno ambient works), extracted taste tags, What Qloo Changed diffs, and traceable rationale sentences.*
 
 ![Cultural Intelligence & Provenance Panel](./assets/screenshots/github/04-cultural-evidence.png)
 
 ---
 
 ### 5. Baseline vs. Grounded Comparison (Fair-Test Split Wipe)
-*Interactive split-screen wipe comparing the prompt-only procedural baseline (Without Qloo) against the culturally grounded scene (With Qloo).*
+*Interactive split-screen wipe comparing the prompt-only procedural baseline (Without Qloo) against the culturally grounded Japanese garden sound sanctuary (With Qloo).*
 
 ![Baseline vs Grounded Fair-Test Comparison](./assets/screenshots/github/05-grounded-comparison.png)
 
 ---
 
 ### 6. Spatial Soundtrack Experience (Audio Narrative)
-*Curated 4-moment musical narrative across Arrival, Dining, Peak, and Wind-Down moments with real audio preview streaming and multi-platform catalog links.*
+*Curated 4-moment musical narrative across Arrival, Dining, Peak, and Wind-Down moments with real audio preview streaming and multi-platform catalog links for ambient Japanese soundscapes.*
 
 ![Curated 4-Moment Spatial Soundtrack](./assets/screenshots/github/06-soundtrack-experience.png)
 
 ---
 
 ### 7. Location-Aware Pricing & Sourcing Workspace (Procurement)
-*Location-aware sourcing panel supporting BUY / RENT / CUSTOM modes, regional vendor search links, multi-currency conversion, and prominent BOQ access.*
+*Location-aware sourcing panel configured for Tokyo (JPY / ¥), supporting BUY / RENT / CUSTOM modes, regional artisan timber and stone search links, and prominent BOQ access.*
 
 ![Location-Aware Pricing & Sourcing Workspace](./assets/screenshots/github/07-pricing-and-sourcing.png)
 
 ---
 
 ### 8. Project Bill of Quantities (BOQ) Modal (Budget Rollup)
-*Dedicated interactive full-width BOQ sheet modal displaying real-time financial rollups, live quantity adjustments, and one-click Markdown, CSV, and JSON exports.*
+*Dedicated interactive full-width BOQ sheet modal displaying real-time financial rollups, live quantity adjustments for architectural assemblies, and one-click Markdown, CSV, and JSON exports.*
 
 ![Project Bill of Quantities BOQ Sheet Modal](./assets/screenshots/github/08-project-boq.png)
 

@@ -5,7 +5,7 @@ import fs from "node:fs";
 const ARTIFACTS_DIR = "C:/Users/SHAYEL/.gemini/antigravity/brain/d8c6c346-40c6-43e5-adcd-48e01da87700";
 const GITHUB_DIR = path.resolve("assets/screenshots/github");
 const BASE_URL = "http://localhost:3000";
-const TARGET_PROMPT = "A24 films + indie music";
+const TARGET_PROMPT = "Japanese Gardens + ambient";
 
 if (!fs.existsSync(GITHUB_DIR)) {
   fs.mkdirSync(GITHUB_DIR, { recursive: true });
@@ -134,7 +134,7 @@ async function runAuditAndCapture() {
     console.log(`  ✓ Saved: ${shot2} (${(shot2Size / 1024).toFixed(1)} KB)`);
 
     // ========================================================================
-    // PART 2: STUDIO WORKBENCH AUDIT WITH "A24 films + indie music"
+    // PART 2: STUDIO WORKBENCH AUDIT WITH "Japanese Gardens + ambient"
     // ========================================================================
     console.log(`\n[AUDIT 2/4] Navigating to Studio for "${TARGET_PROMPT}"...`);
     await page.goto(`${BASE_URL}/studio?prompt=${encodeURIComponent(TARGET_PROMPT)}`, {
@@ -182,10 +182,10 @@ async function runAuditAndCapture() {
         await page.waitForTimeout(400);
       }
     }
-    // Set midnight lighting for cinematic atmosphere
-    const midnightBtn = page.locator("button:has-text('midnight')").first();
-    if (await midnightBtn.isVisible()) {
-      await midnightBtn.click({ force: true });
+    // Set afternoon lighting for tranquil garden atmosphere
+    const afternoonBtn = page.locator("button:has-text('afternoon')").first();
+    if (await afternoonBtn.isVisible()) {
+      await afternoonBtn.click({ force: true });
       await page.waitForTimeout(1000);
     }
     auditLog.testedSections.push("Studio: 4 Daylight lighting regimes (morning, afternoon, sunset, midnight)");
@@ -294,12 +294,12 @@ async function runAuditAndCapture() {
     await sourcingTab.click({ force: true });
     await page.waitForTimeout(2000);
 
-    // Switch location hub to New York (USD)
+    // Switch location hub to Tokyo (JPY) for authentic Japanese craft sourcing
     const locSelect = page.locator("#procurement-location-select");
     if (await locSelect.isVisible()) {
-      await locSelect.selectOption("new_york");
+      await locSelect.selectOption("tokyo");
       await page.waitForTimeout(1000);
-      auditLog.testedSections.push("Sourcing: Location Hub selection (New York / USD)");
+      auditLog.testedSections.push("Sourcing: Location Hub selection (Tokyo / JPY)");
     }
 
     // Commit items to BOQ across modes
