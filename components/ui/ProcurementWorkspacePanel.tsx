@@ -1,5 +1,7 @@
 "use client";
 
+import ProjectBOQSheetModal from "./ProjectBOQSheetModal";
+
 import React, { useMemo, useState } from "react";
 import type {
   CurrencyCode,
@@ -33,6 +35,7 @@ export interface ProcurementWorkspacePanelProps {
   procurementList: ProcurementLineItem[];
   onUpdateProcurementList: (next: ProcurementLineItem[]) => void;
   onSwitchTo3D?: () => void;
+  onOpenBOQSheet?: () => void;
 }
 
 function downloadFile(content: string, filename: string, mimeType: string) {
@@ -58,7 +61,10 @@ export default function ProcurementWorkspacePanel({
   procurementList,
   onUpdateProcurementList,
   onSwitchTo3D,
+  onOpenBOQSheet,
 }: ProcurementWorkspacePanelProps) {
+  const [internalBOQOpen, setInternalBOQOpen] = useState(false);
+  const handleOpenBOQ = onOpenBOQSheet || (() => setInternalBOQOpen(true));
   const [activeMethod, setActiveMethod] = useState<SourcingMethod>("rent");
   const [categoryFilter, setCategoryFilter] = useState<AssemblyCategoryFilter>("all");
   const [copyFeedback, setCopyFeedback] = useState<string | null>(null);
@@ -261,10 +267,33 @@ export default function ProcurementWorkspacePanel({
             </p>
           </div>
 
-          <div className="font-mono text-xs text-right hidden lg:block">
-            <div className="text-[10px] uppercase text-[#737882]">Sourcing Status</div>
-            <div className="text-emerald-700 font-bold mt-0.5">
-              ● Active Hub: {parsedLoc.city}, {parsedLoc.country}
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={handleOpenBOQ}
+              className="px-5 py-2.5 bg-[#D9532B] hover:bg-[#C2441F] text-white font-mono text-xs uppercase font-bold rounded shadow-md flex items-center gap-2 transition-all hover:scale-[1.02] active:scale-[0.98]"
+              data-testid="view-project-boq-top-btn"
+              title="Open full Project Bill of Quantities sheet"
+            >
+              <span>VIEW PROJECT BOQ →</span>
+              <span className="px-1.5 py-0.5 rounded-full bg-black/25 text-[10px]">
+                {summary.items.length}
+              </span>
+            </button>
+            {onSwitchTo3D && (
+              <button
+                type="button"
+                onClick={onSwitchTo3D}
+                className="px-3.5 py-2.5 bg-[#EEE8DC] hover:bg-[#E4DDD0] border border-[#171A1F]/20 text-[#171A1F] font-mono text-xs uppercase font-bold rounded transition-colors"
+              >
+                3D View ↗
+              </button>
+            )}
+            <div className="font-mono text-xs text-right hidden xl:block">
+              <div className="text-[10px] uppercase text-[#737882]">Sourcing Status</div>
+              <div className="text-emerald-700 font-bold mt-0.5">
+                ● Active Hub: {parsedLoc.city}, {parsedLoc.country}
+              </div>
             </div>
           </div>
         </div>
@@ -970,6 +999,20 @@ export default function ProcurementWorkspacePanel({
           </p>
         </div>
       </section>
+
+      {/* Standalone Fallback BOQ Sheet Modal */}
+      {!onOpenBOQSheet && (
+        <ProjectBOQSheetModal
+          isOpen={internalBOQOpen}
+          onClose={() => setInternalBOQOpen(false)}
+          sceneSpec={sceneSpec}
+          budgetConfig={budgetConfig}
+          onUpdateBudgetConfig={onUpdateBudgetConfig}
+          procurementList={procurementList}
+          onUpdateProcurementList={onUpdateProcurementList}
+          onSelectObject={onSelectObject}
+        />
+      )}
     </div>
   );
 }

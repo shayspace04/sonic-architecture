@@ -1,5 +1,7 @@
 'use client';
 
+import ProjectBOQSheetModal from "@/components/ui/ProjectBOQSheetModal";
+
 import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import dynamic from 'next/dynamic';
 import Link from 'next/link';
@@ -65,8 +67,20 @@ function StudioEditorialWorkspaceInner() {
 
   const [currentPrompt, setCurrentPrompt] = useState(queryPrompt);
   const [inputPrompt, setInputPrompt] = useState(queryPrompt);
-  const [scene, setScene] = useState<SceneSpec | null>(null);
-  const [comparison, setComparison] = useState<SceneComparison | null>(null);
+  const [scene, setScene] = useState<SceneSpec | null>(() => {
+    try {
+      return generateSceneComparison({ prompt: queryPrompt, seed: 42 }).grounded;
+    } catch {
+      return null;
+    }
+  });
+  const [comparison, setComparison] = useState<SceneComparison | null>(() => {
+    try {
+      return generateSceneComparison({ prompt: queryPrompt, seed: 42 });
+    } catch {
+      return null;
+    }
+  });
   const [sceneSource, setSceneSource] = useState<'live' | 'cache' | 'partly_sample' | 'sample' | 'fixture' | 'fallback'>('sample');
   const [isGenerating, setIsGenerating] = useState(false);
   const [activeTab, setActiveTab] = useState<StudioTabKey>('scene');
@@ -81,6 +95,7 @@ function StudioEditorialWorkspaceInner() {
   const [isLoadingSoundtrack, setIsLoadingSoundtrack] = useState(false);
   const [selectedObjectId, setSelectedObjectId] = useState<string | null>(null);
   const [showQlooLayer, setShowQlooLayer] = useState<boolean>(false);
+  const [isBOQSheetOpen, setIsBOQSheetOpen] = useState<boolean>(false);
   const [traceSteps, setTraceSteps] = useState<Array<{ endpoint: string; count: number; latencyMs: number; status: number }>>([]);
 
   // Procurement & Sourcing State
@@ -950,6 +965,39 @@ function StudioEditorialWorkspaceInner() {
           {activeTab === 'sourcing' && (
             <div>
               <span className="eyebrow">Pricing & Sourcing (BOQ)</span>
+              <button
+                suppressHydrationWarning
+                type="button"
+                onClick={() => setIsBOQSheetOpen(true)}
+                style={{
+                  width: '100%',
+                  padding: '10px 14px',
+                  margin: '10px 0 12px 0',
+                  border: 'none',
+                  background: 'var(--red, #D9532B)',
+                  color: '#fff',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  fontFamily: 'var(--mono)',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.05em',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  boxShadow: '0 2px 8px rgba(217, 83, 43, 0.25)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '8px',
+                }}
+                data-testid="view-project-boq-sidebar-btn"
+                title="Open full Project Bill of Quantities sheet"
+              >
+                <span>VIEW PROJECT BOQ →</span>
+                <span style={{ fontSize: '10px', background: 'rgba(0,0,0,0.25)', padding: '2px 6px', borderRadius: '10px' }}>
+                  {procurementList.length} Items
+                </span>
+              </button>
+              
               <p style={{ fontSize: '12px', lineHeight: '1.6', margin: '8px 0' }}>
                 Object-level purchase, rental, and custom-fabrication options with vendor catalog matching and bill-of-quantities budget rollup.
               </p>
@@ -1007,20 +1055,22 @@ function StudioEditorialWorkspaceInner() {
                 <button
                   suppressHydrationWarning
                   type="button"
-                  onClick={() => setStageViewMode(stageViewMode === 'procurement' ? 'viewport' : 'procurement')}
+                  onClick={() => setIsBOQSheetOpen(true)}
                   style={{
                     width: '100%',
                     padding: '8px 12px',
                     border: '1px solid var(--line)',
-                    background: stageViewMode === 'procurement' ? 'var(--blue)' : 'var(--paper)',
-                    color: stageViewMode === 'procurement' ? '#fff' : 'inherit',
+                    background: 'var(--paper)',
+                    color: 'inherit',
                     fontSize: '11px',
                     fontFamily: 'var(--mono)',
                     textTransform: 'uppercase',
                     cursor: 'pointer',
                   }}
+                  data-testid="open-full-boq-sidebar-btn"
+                  title="Open full Project Bill of Quantities sheet"
                 >
-                  {stageViewMode === 'procurement' ? 'View in 3D Space' : 'Open Full BOQ Sheet'}
+                  Open Full BOQ Sheet
                 </button>
 
                 <button
@@ -1243,6 +1293,7 @@ function StudioEditorialWorkspaceInner() {
                 procurementList={procurementList}
                 onUpdateProcurementList={setProcurementList}
                 onSwitchTo3D={() => setStageViewMode('viewport')}
+                onOpenBOQSheet={() => setIsBOQSheetOpen(true)}
               />
             </div>
           ) : isGenerating ? (
@@ -1289,6 +1340,21 @@ function StudioEditorialWorkspaceInner() {
           </span>
         </div>
       </section>
+      {/* Project BOQ Sheet Modal */}
+      <ProjectBOQSheetModal
+        isOpen={isBOQSheetOpen}
+        onClose={() => setIsBOQSheetOpen(false)}
+        sceneSpec={scene}
+        budgetConfig={budgetConfig}
+        onUpdateBudgetConfig={setBudgetConfig}
+        procurementList={procurementList}
+        onUpdateProcurementList={setProcurementList}
+        onSelectObject={setSelectedObjectId}
+        onSwitchToSourcingCatalog={() => {
+          setStageViewMode('procurement');
+          setActiveTab('sourcing');
+        }}
+      />
     </main>
   );
 }
