@@ -10,6 +10,7 @@
 
 import type { QlooContext, Provenance } from "@/lib/types";
 import { STARTER_PROMPTS, type StarterPrompt } from "@/lib/starters";
+import { HELDOUT_SAMPLE_FIXTURES } from "./heldOutSamples";
 
 export { STARTER_PROMPTS };
 export type { StarterPrompt };
@@ -141,6 +142,26 @@ export const QLOO_SAMPLE_FIXTURES: Record<string, QlooContext> = {
         provenance: "inferred",
       },
     ],
+    crossDomainBundle: {
+      places: [
+        { id: "venue:blue-note-nyc", name: "Blue Note Jazz Club New York", type: "jazz_club", subtype: "acoustic_lounge", tags: [{ name: "modal_jazz" }, { name: "intimate_acoustics" }] },
+        { id: "venue:village-vanguard", name: "Village Vanguard NYC", type: "jazz_cellar", subtype: "listening_room", tags: [{ name: "hard_bop" }, { name: "historic_cellar" }] },
+      ],
+      relatedArtists: [
+        { id: "artist:miles-davis", name: "Miles Davis", tags: [{ name: "modal_jazz" }, { name: "muted_trumpet" }] },
+        { id: "artist:john-coltrane", name: "John Coltrane", tags: [{ name: "modal_jazz" }] },
+        { id: "artist:bill-evans", name: "Bill Evans", tags: [{ name: "cool_jazz" }, { name: "piano_harmony" }] },
+      ],
+      movies: [
+        { id: "film:round-midnight", name: "'Round Midnight", tags: [{ name: "jazz_cinema" }] },
+        { id: "film:miles-ahead", name: "Miles Ahead", tags: [{ name: "biopic" }] },
+      ],
+      brands: [
+        { id: "brand:blue-note", name: "Blue Note Records", type: "record_label", tags: [{ name: "audiophile_vinyl" }] },
+        { id: "brand:martin-trumpets", name: "Martin Committee Trumpets", type: "musical_instrument", tags: [{ name: "brass_craft" }] },
+        { id: "brand:jbl-speakers", name: "JBL 4320 Studio Monitors", type: "audio_hardware", tags: [{ name: "horn_loaded" }] },
+      ],
+    },
   },
 
   // ==========================================================================
@@ -242,6 +263,26 @@ export const QLOO_SAMPLE_FIXTURES: Record<string, QlooContext> = {
         provenance: "inferred",
       },
     ],
+    crossDomainBundle: {
+      places: [
+        { id: "venue:nitehawk-cinema", name: "Nitehawk Cinema Brooklyn", type: "cinema_screening_room", subtype: "gallery_pavilion", tags: [{ name: "indie_film" }] },
+        { id: "venue:metrograph-nyc", name: "Metrograph NYC", type: "indie_cinema_lounge", subtype: "art_pavilion", tags: [{ name: "curatorial" }] },
+      ],
+      relatedArtists: [
+        { id: "artist:phoebe-bridgers", name: "Phoebe Bridgers", tags: [{ name: "indie_folk" }] },
+        { id: "artist:boygenius", name: "Boygenius", tags: [{ name: "indie_rock" }] },
+        { id: "artist:mitski", name: "Mitski", tags: [{ name: "chamber_pop" }] },
+      ],
+      movies: [
+        { id: "film:aftersun", name: "Aftersun (Charlotte Wells)", tags: [{ name: "a24_drama" }] },
+        { id: "film:past-lives", name: "Past Lives (Celine Song)", tags: [{ name: "a24_romance" }] },
+      ],
+      brands: [
+        { id: "brand:a24-films", name: "A24 Films", type: "film_studio", tags: [{ name: "indie_aesthetic" }] },
+        { id: "brand:kodak-vision3", name: "Kodak Vision3 35mm Film Stock", type: "film_hardware", tags: [{ name: "celluloid_grain" }] },
+        { id: "brand:teenage-engineering", name: "Teenage Engineering Audio Tools", type: "audio_hardware", tags: [{ name: "minimalism" }] },
+      ],
+    },
   },
 
   // ==========================================================================
@@ -344,6 +385,25 @@ export const QLOO_SAMPLE_FIXTURES: Record<string, QlooContext> = {
         provenance: "inferred",
       },
     ],
+    crossDomainBundle: {
+      places: [
+        { id: "venue:ryoanji-temple", name: "Ryōan-ji Zen Temple Kyoto", type: "tea_room", subtype: "zen_garden_pavilion", tags: [{ name: "shakkei" }, { name: "rock_garden" }] },
+        { id: "venue:nezu-museum-garden", name: "Nezu Museum Garden Pavilion Tokyo", type: "contemplative_pavilion", subtype: "tea_room", tags: [{ name: "tea_architecture" }] },
+      ],
+      relatedArtists: [
+        { id: "artist:hiroshi-yoshimura", name: "Hiroshi Yoshimura", tags: [{ name: "kankyo_ongaku" }] },
+        { id: "artist:brian-eno", name: "Brian Eno", tags: [{ name: "ambient" }] },
+        { id: "artist:satoshi-ashikawa", name: "Satoshi Ashikawa", tags: [{ name: "wave_notation" }] },
+      ],
+      movies: [
+        { id: "film:tokyo-story", name: "Tokyo Story (Yasujirō Ozu)", tags: [{ name: "tatami_shot" }] },
+        { id: "film:ran-kurosawa", name: "Ran (Akira Kurosawa)", tags: [{ name: "japanese_cinema" }] },
+      ],
+      brands: [
+        { id: "brand:muji-japan", name: "Muji Japan", type: "lifestyle_design", tags: [{ name: "simplicity" }] },
+        { id: "brand:yamaha-acoustics", name: "Yamaha Natural Sound", type: "audio_hardware", tags: [{ name: "hi_fi" }] },
+      ],
+    },
   },
 
   // ==========================================================================
@@ -446,6 +506,26 @@ export const QLOO_SAMPLE_FIXTURES: Record<string, QlooContext> = {
         provenance: "fallback",
       },
     ],
+    crossDomainBundle: {
+      places: [
+        { id: "venue:berghain-berlin", name: "Berghain / Panorama Bar Berlin", type: "industrial_warehouse", subtype: "electronic_club", tags: [{ name: "techno" }] },
+        { id: "venue:tresor-berlin", name: "Tresor Berlin Powerhouse Vault", type: "underground_club", subtype: "industrial_vault", tags: [{ name: "vault" }] },
+      ],
+      relatedArtists: [
+        { id: "artist:aphex-twin", name: "Aphex Twin / Richard D. James", tags: [{ name: "idm" }, { name: "acid" }] },
+        { id: "artist:autechre", name: "Autechre (Rob Brown & Sean Booth)", tags: [{ name: "generative_dsp" }] },
+        { id: "artist:squarepusher", name: "Squarepusher (Tom Jenkinson)", tags: [{ name: "drill_n_bass" }] },
+      ],
+      movies: [
+        { id: "film:pi-aronofsky", name: "Pi (Darren Aronofsky)", tags: [{ name: "cyberpunk" }] },
+        { id: "film:berlin-calling", name: "Berlin Calling (Hannes Stöhr)", tags: [{ name: "club_culture" }] },
+      ],
+      brands: [
+        { id: "brand:warp-records", name: "Warp Records Sheffield", type: "record_label", tags: [{ name: "electronic" }] },
+        { id: "brand:roland-tb303", name: "Roland TB-303 Bass Line", type: "electronic_hardware", tags: [{ name: "acid_synth" }] },
+        { id: "brand:funktion-one", name: "Funktion-One Sound Systems", type: "loudspeaker_systems", tags: [{ name: "point_source" }] },
+      ],
+    },
   },
   // ==========================================================================
   // 5. PINK GRUNGE EDITORIAL LOFT & FLASH STUDIO
@@ -528,6 +608,25 @@ export const QLOO_SAMPLE_FIXTURES: Record<string, QlooContext> = {
         provenance: "inferred",
       },
     ],
+    crossDomainBundle: {
+      places: [
+        { id: "venue:milk-studios-nyc", name: "Milk Studios Photo Loft NYC", type: "grunge_loft", subtype: "editorial_photo_studio", tags: [{ name: "cyclorama" }] },
+        { id: "venue:smashbox-studios-la", name: "Smashbox Studios Daylight Loft", type: "grunge_loft", subtype: "daylight_studio", tags: [{ name: "editorial" }] },
+      ],
+      relatedArtists: [
+        { id: "artist:courtney-love", name: "Courtney Love / Hole", tags: [{ name: "riot_grrrl" }] },
+        { id: "artist:kurt-cobain", name: "Kurt Cobain", tags: [{ name: "grunge" }] },
+        { id: "artist:babes-in-toyland", name: "Babes in Toyland", tags: [{ name: "punk_rock" }] },
+      ],
+      movies: [
+        { id: "film:1991-punk-broke", name: "1991: The Year Punk Broke", tags: [{ name: "documentary" }] },
+        { id: "film:the-doom-generation", name: "The Doom Generation (Gregg Araki)", tags: [{ name: "90s_indie" }] },
+      ],
+      brands: [
+        { id: "brand:profoto-lighting", name: "Profoto Pro-11 Studio Flash", type: "photographic_equipment", tags: [{ name: "strobe" }] },
+        { id: "brand:fender-jaguar", name: "Fender Jaguar Kurt Cobain Signature", type: "electric_guitar", tags: [{ name: "grunge" }] },
+      ],
+    },
   },
   // ==========================================================================
   // 6. CEDRIC THE ENTERTAINER + CONTEMPORARY COMEDY THEATRE
@@ -595,8 +694,30 @@ export const QLOO_SAMPLE_FIXTURES: Record<string, QlooContext> = {
         provenance: "inferred",
       },
     ],
+    crossDomainBundle: {
+      places: [
+        { id: "venue:boogalou-lounge-atl", name: "Boogalou Restaurant & Lounge Atlanta", type: "comedy_theatre", subtype: "cabaret_lounge", tags: [{ name: "standup" }] },
+        { id: "venue:comedy-cellar-nyc", name: "Comedy Cellar NYC", type: "comedy_theatre", subtype: "intimate_club", tags: [{ name: "comedians" }] },
+      ],
+      relatedArtists: [
+        { id: "artist:cedric-entertainer", name: "Cedric the Entertainer", tags: [{ name: "standup_comedy" }] },
+        { id: "artist:steve-harvey", name: "Steve Harvey", tags: [{ name: "kings_of_comedy" }] },
+        { id: "artist:dl-hughley", name: "D.L. Hughley", tags: [{ name: "comedy" }] },
+      ],
+      movies: [
+        { id: "film:original-kings-comedy", name: "The Original Kings of Comedy (Spike Lee)", tags: [{ name: "standup_film" }] },
+        { id: "film:barbershop-movie", name: "Barbershop (Tim Story)", tags: [{ name: "comedy" }] },
+      ],
+      brands: [
+        { id: "brand:shure-55sh", name: "Shure 55SH Series II Vintage Microphone", type: "audio_hardware", tags: [{ name: "vocal_mic" }] },
+        { id: "brand:crown-royal-whisky", name: "Crown Royal XR", type: "hospitality", tags: [{ name: "spirits" }] },
+      ],
+    },
   },
 };
+
+// Merge held-out benchmark fixtures (Phases 1 & 8)
+Object.assign(QLOO_SAMPLE_FIXTURES, HELDOUT_SAMPLE_FIXTURES);
 
 /**
  * Resolves a prompt to its matching Qloo sample fixture if one exists.
@@ -611,7 +732,7 @@ export function getQlooFixture(promptText: string): QlooContext | null {
     return QLOO_SAMPLE_FIXTURES[clean];
   }
 
-  // 2. Key phrases
+  // 2. Reference Prompts
   if (clean.includes("cedric")) {
     return QLOO_SAMPLE_FIXTURES["cedric the entertainer + contemporary comedy theatre"];
   }
@@ -630,8 +751,43 @@ export function getQlooFixture(promptText: string): QlooContext | null {
   if (clean.includes("garden") && (clean.includes("ambient") || clean.includes("japanese"))) {
     return QLOO_SAMPLE_FIXTURES["japanese gardens + ambient"];
   }
-  if ((clean.includes("chrome") || clean.includes("club")) && (clean.includes("techno") || clean.includes("culture"))) {
-    return QLOO_SAMPLE_FIXTURES["chrome + club culture"];
+
+  // 3. Held-Out Acceptance Prompts (Phase 8)
+  if (clean.includes("kraftwerk") || clean.includes("bauhaus")) {
+    return QLOO_SAMPLE_FIXTURES["kraftwerk + bauhaus electronics lab"];
+  }
+  if (clean.includes("bjork") || clean.includes("björk") || clean.includes("volcanic")) {
+    return QLOO_SAMPLE_FIXTURES["bjork + icelandic volcanic sound cave"];
+  }
+  if (clean.includes("ghibli") || clean.includes("alpine cabin")) {
+    return QLOO_SAMPLE_FIXTURES["studio ghibli + hand-hewn alpine cabin"];
+  }
+  if (clean.includes("wes anderson") || clean.includes("patisserie")) {
+    return QLOO_SAMPLE_FIXTURES["wes anderson + symmetrical pastel patisserie"];
+  }
+  if (clean.includes("joy division") || clean.includes("cotton mill")) {
+    return QLOO_SAMPLE_FIXTURES["joy division + manchester cotton mill rehearsal room"];
+  }
+  if (clean.includes("fela") || clean.includes("afrobeat") || clean.includes("brass hall")) {
+    return QLOO_SAMPLE_FIXTURES["fela kuti + afrobeat community shrine & brass hall"];
+  }
+  if (clean.includes("brian eno") || clean.includes("airport sound") || clean.includes("ambient pod")) {
+    return QLOO_SAMPLE_FIXTURES["brian eno + airport sound sanctuary & ambient pod"];
+  }
+  if (clean.includes("blade runner") || clean.includes("neon brutalist")) {
+    return QLOO_SAMPLE_FIXTURES["blade runner 2049 + neon brutalist archive"];
+  }
+  if (clean.includes("daft punk") || clean.includes("pyramid laser")) {
+    return QLOO_SAMPLE_FIXTURES["daft punk + pyramid laser sound stage"];
+  }
+  if (clean.includes("burial") || clean.includes("pirate radio") || clean.includes("foggy night")) {
+    return QLOO_SAMPLE_FIXTURES["burial + south london foggy night shelter & pirate radio"];
+  }
+  if (clean.includes("guggenheim") || clean.includes("palazzo")) {
+    return QLOO_SAMPLE_FIXTURES["peggy guggenheim + venetian canal palazzo gallery"];
+  }
+  if (clean.includes("sun ra") || clean.includes("arkestra") || clean.includes("cosmic ark")) {
+    return QLOO_SAMPLE_FIXTURES["sun ra + afrofuturist cosmic ark lounge"];
   }
 
   return null;

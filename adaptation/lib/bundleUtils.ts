@@ -81,6 +81,54 @@ export function contextToBundle(context?: QlooContext): QlooBundle | undefined {
     }
   }
 
+  // Fallback: If bundle cross-domain fields are sparse, extract domain-specific signals from context.entities
+  if (relatedArtists.length === 0) {
+    for (const ent of context.entities) {
+      if (/musician|artist|performer|musical_group|band|singer|composer/i.test(ent.type || "") || /artist:/i.test(ent.id)) {
+        relatedArtists.push({
+          id: ent.id,
+          name: ent.name,
+          tags: ent.signals || [],
+        });
+      }
+    }
+  }
+  if (relatedVenues.length === 0) {
+    for (const ent of context.entities) {
+      if (/venue|place|club|theatre|theater|loft|pavilion|setting|space|courtyard|sanctuary/i.test(ent.type || "") || /venue:/i.test(ent.id)) {
+        relatedVenues.push({
+          id: ent.id,
+          name: ent.name,
+          categories: [ent.type || "cultural_venue"],
+          tags: ent.signals || [],
+        });
+      }
+    }
+  }
+  if (relatedFilms.length === 0) {
+    for (const ent of context.entities) {
+      if (/film|movie|director|cinematic_style/i.test(ent.type || "") || /director:|film:/i.test(ent.id)) {
+        relatedFilms.push({
+          id: ent.id,
+          name: ent.name,
+          tags: ent.signals || [],
+        });
+      }
+    }
+  }
+  if (relatedBrands.length === 0) {
+    for (const ent of context.entities) {
+      if (/brand|record_label|label|movement|equipment|device|technology/i.test(ent.type || "") || /record_label:|brand:/i.test(ent.id)) {
+        relatedBrands.push({
+          id: ent.id,
+          name: ent.name,
+          categories: [ent.type || "brand"],
+          tags: ent.signals || [],
+        });
+      }
+    }
+  }
+
   const hashPayload = JSON.stringify({
     entities: entities.map((e) => `${e.id}:${e.name}`).sort(),
     venues: relatedVenues.map((v) => `${v.id}:${v.name}`).sort(),
